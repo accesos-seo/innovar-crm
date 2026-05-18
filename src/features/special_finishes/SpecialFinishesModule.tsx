@@ -253,7 +253,7 @@ export const SpecialFinishesModule: React.FC<SpecialFinishesModuleProps> = ({ on
                 />
                 <div className="flex flex-col flex-1">
                   <Label htmlFor="includeLed" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer">Iluminación LED Integrada</Label>
-                  <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">Suma $180,000 / ml</span>
+                  <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">Suma $150,000 / ml</span>
                 </div>
                 {formData.includeLed && (
                   <div className="w-24">

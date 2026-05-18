@@ -21,7 +21,7 @@ export interface SpecialFinishesInput {
 export const SPECIAL_FINISH_PRICES = {
   DOOR_M2: 1200000,
   HINGE_PAIR: 15000,
-  LED_ML: 180000,
+  LED_ML: 150000,        // Fuente: 3-ACABADOS.docx — $150,000/ml
   TRANSPORT_BASE: 150000
 };
 
@@ -47,16 +47,16 @@ export const calculateSpecialFinishes = (input: SpecialFinishesInput): SpecialFi
     const area = door.height * door.width;
     const doorBaseCost = area * SPECIAL_FINISH_PRICES.DOOR_M2;
     
-    let hingesCost = 0;
-    let hingesMultiplier = 0;
-    
+    // Bisagras según altura — Fuente: 3-ACABADOS.docx
+    // ≤ 0.80m → 1 par | 0.81–1.40m → 2 pares | > 1.40m → 3 pares
+    let hingesPairs = 1;
     if (door.height > 1.40) {
-      hingesCost = 2 * SPECIAL_FINISH_PRICES.HINGE_PAIR;
-      hingesMultiplier = 2;
+      hingesPairs = 3;
     } else if (door.height > 0.80) {
-      hingesCost = 1 * SPECIAL_FINISH_PRICES.HINGE_PAIR;
-      hingesMultiplier = 1;
+      hingesPairs = 2;
     }
+    const hingesCost = hingesPairs * SPECIAL_FINISH_PRICES.HINGE_PAIR;
+    const hingesMultiplier = hingesPairs;
 
     const doorTotal = doorBaseCost + hingesCost;
     doorsCost += doorTotal;
