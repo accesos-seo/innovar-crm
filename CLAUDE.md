@@ -18,7 +18,7 @@
 
 | Campo | Valor |
 |---|---|
-| Repositorio | https://github.com/accesos-seo/Crm-app-innovar |
+| Repositorio | https://github.com/accesos-seo/innovar-crm |
 | Rama | `master` |
 | Cuenta GitHub | `accesos-seo` |
 | Autenticación | GitHub CLI (`gh`) ya instalado y autenticado |
@@ -40,7 +40,7 @@ Set-Location "C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-
 ### Si el remote no responde
 
 ```powershell
-git remote set-url origin https://github.com/accesos-seo/Crm-app-innovar.git
+git remote set-url origin https://github.com/accesos-seo/innovar-crm.git
 ```
 
 ---

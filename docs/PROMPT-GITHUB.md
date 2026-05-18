@@ -12,7 +12,7 @@ Haz push de los cambios actuales a GitHub.
 Contexto:
 - Proyecto: CRM Innovar App
 - Carpeta: C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main
-- Repo: https://github.com/accesos-seo/Crm-app-innovar
+- Repo: https://github.com/accesos-seo/innovar-crm
 - Rama: master
 - Cuenta GitHub: accesos-seo (GitHub CLI ya autenticado)
 - PowerShell: usar ; para encadenar comandos, no &&
