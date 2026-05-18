@@ -71,8 +71,7 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- SECCIÓN 2: Módulos Especiales (muebles piso a techo)
@@ -113,8 +112,7 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- SECCIÓN 3: Mesones (Countertops)
@@ -142,8 +140,7 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- SECCIÓN 4: Acabados Especiales
@@ -169,8 +166,7 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- SECCIÓN 5: Pintado Alto Brillo
@@ -211,8 +207,7 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- SECCIÓN 6: Costos Fijos del Proyecto
@@ -238,5 +233,4 @@ INSERT INTO public.pricing_catalog (category, code, name, description, value, un
 ON CONFLICT (code) DO UPDATE SET
   value       = EXCLUDED.value,
   name        = EXCLUDED.name,
-  description = EXCLUDED.description,
-  updated_at  = NOW();
+  description = EXCLUDED.description;

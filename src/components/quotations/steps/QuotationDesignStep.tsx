@@ -130,7 +130,7 @@ export function QuotationDesignStep({
       </div>
 
       {leadContext && (
-        <div className="bg-[#1C1B1B] border border-primary/20 shadow-lg mb-8 relative">
+        <div className="bg-card border border-primary/20 shadow-lg mb-8 relative">
           <div
             className="flex items-center justify-between cursor-pointer group p-4 border-l-4 border-l-primary hover:bg-primary/5 transition-colors"
             onClick={() => setIsContextExpanded(!isContextExpanded)}
@@ -283,7 +283,7 @@ export function QuotationDesignStep({
             )}
 
             {/* Economic summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 bg-[#1C1B1B] p-8 border-t-4 border-t-primary shadow-2xl relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 bg-card p-8 border-t-4 border-t-primary shadow-2xl relative z-10">
               <div className="md:col-span-2 space-y-6">
                 <div className="flex flex-col space-y-4">
                   <div className="flex items-center gap-3 text-primary">
@@ -320,7 +320,7 @@ export function QuotationDesignStep({
                 </div>
               </div>
 
-              <div className="bg-[#1e3a35] p-6 lg:p-8 rounded-none border border-primary/20 shadow-inner flex flex-col justify-center items-end relative overflow-hidden group min-h-[180px] lg:min-h-[220px] w-full">
+              <div className="bg-primary-surface p-6 lg:p-8 rounded-none border border-primary/20 shadow-inner flex flex-col justify-center items-end relative overflow-hidden group min-h-[180px] lg:min-h-[220px] w-full">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
                 <p className="text-[10px] font-black text-primary/70 uppercase tracking-[0.3em] mb-4 relative z-10 text-right">Total Proyectado Neto</p>
                 <span className="text-xl lg:text-2xl xl:text-3xl font-black font-mono text-primary tracking-tighter text-right w-full block drop-shadow-[0_0_15px_rgba(68,221,193,0.3)] relative z-10">
@@ -341,7 +341,7 @@ export function QuotationDesignStep({
 
           {/* Desktop sidebar */}
           <aside className="hidden lg:flex flex-col sticky top-24 z-30 w-[300px] shrink-0 order-2">
-            <div className="bg-[#1C1B1B] border border-border/10 p-6 shadow-2xl flex flex-col gap-8 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border/10 p-6 shadow-2xl flex flex-col gap-8 rounded-xl overflow-hidden">
               <div className="space-y-6">
                 <div className="border-b border-primary/20 pb-4">
                   <div className="flex items-center gap-3">

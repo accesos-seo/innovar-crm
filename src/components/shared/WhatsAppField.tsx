@@ -53,7 +53,7 @@ export function WhatsAppField({ countries, onChange, initialValue, label = "What
 
         {/* Dropdown de Países */}
         {isPhoneDropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 w-56 bg-[#1C1B1B] border border-border/20 rounded-sm shadow-2xl z-[100] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
+          <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border/20 rounded-sm shadow-2xl z-[100] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
             {countries.map((country) => (
               <button
                 key={country.id}

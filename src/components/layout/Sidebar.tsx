@@ -159,7 +159,7 @@ const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActi
         <item.icon className={cn("w-5 h-5 transition-colors", isActive ? "text-primary" : "group-hover:text-primary")} aria-hidden="true" />
         {!isCollapsed && <span className="text-sm tracking-tight">{item.label}</span>}
       </div>
-      {!isCollapsed && isActive && <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_#44ddc1]" />}
+      {!isCollapsed && isActive && <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />}
       {!isCollapsed && !isActive && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
     </Link>
   );

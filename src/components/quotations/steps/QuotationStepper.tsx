@@ -38,7 +38,7 @@ export function QuotationStepper({ currentStep }: QuotationStepperProps) {
           <div key={step.id} className="flex flex-col items-center gap-3 bg-background px-6 relative z-10 transition-all duration-500">
             <div className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500",
-              isActive ? "border-primary bg-primary text-primary-foreground shadow-[0_0_20px_rgba(68,221,193,0.3)] scale-110" :
+              isActive ? "border-primary bg-primary text-primary-foreground shadow-[0_0_20px_var(--color-primary)]/30 scale-110" :
               isCompleted ? "border-primary bg-primary/20 text-primary" : "border-border/30 bg-muted/20 text-muted-foreground"
             )}>
               {isCompleted ? <Check className="w-6 h-6" /> : <Icon className="w-5 h-5" />}

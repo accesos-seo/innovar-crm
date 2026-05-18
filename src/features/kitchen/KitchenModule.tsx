@@ -77,7 +77,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
   const subtotal     = calculation?.data?.calculated_total ?? 0;
 
   return (
-    <Card className="w-full bg-[#1C1B1B] border-l-4 border-l-primary shadow-2xl overflow-hidden">
+    <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden">
       <CardHeader className="bg-primary/5 border-b border-border/10 pb-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
           <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
       </CardContent>
 
       <CardFooter className="bg-primary/5 border-t border-border/10 p-8 flex justify-end">
-        <div className="bg-[#1e3a35] p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl">
+        <div className="bg-primary-surface p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl">
           <p className="text-[11px] font-black text-primary/80 tracking-[0.2em] mb-2 uppercase">Subtotal Cocina</p>
           {isLoading ? (
             <div className="flex items-center gap-2">

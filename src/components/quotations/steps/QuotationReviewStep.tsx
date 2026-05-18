@@ -118,7 +118,7 @@ export function QuotationReviewStep({
 
         {/* Right: totals card + actions */}
         <div className="space-y-8">
-          <Card className="bg-[#1C1B1B] border-none shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden rounded-sm border-t-8 border-t-primary">
+          <Card className="bg-card border-none shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden rounded-sm border-t-8 border-t-primary">
             <div className="p-10 space-y-10">
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-muted-foreground/60 hover:text-foreground transition-colors">

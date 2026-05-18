@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ColumnDef } from "@tanstack/react-table";
 import { DetailModal, InlineEditField, InlineEditPhoneField, InlineEditDateField } from "@/components/shared/DetailModal";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { formatSentenceCase } from "@/lib/format-utils";
@@ -21,24 +20,25 @@ import { PrimaryButton } from "@/components/shared/PrimaryButton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { parseISO } from "date-fns";
 import { CalendarPopover } from "@/components/ui/calendar-popover";
-import { useLeads } from "@/hooks/useLeads";
+import { useLeads, LeadFilters } from "@/hooks/useLeads";
 import { ResourceListPage, ResourceQueryResult } from "@/components/shared/ResourceListPage";
 import { Lead, columns, statusMap, urgencyMap } from "./leads/LeadsColumns";
 
 function useLeadsQuery(
   search: string,
-  pagination: { pageIndex: number; pageSize: number }
+  pagination: { pageIndex: number; pageSize: number },
+  hookParams?: unknown
 ): ResourceQueryResult<Lead> {
-  const { leads: data, isLoading, totalCount, deleteLeads } = useLeads(search, pagination);
+  const { leads: data, isLoading, totalCount, deleteLeads } = useLeads(search, pagination, hookParams as LeadFilters | undefined);
   return { data, isLoading, totalCount, deleteItems: deleteLeads };
 }
 
 export default function LeadsPage() {
   const navigate = useNavigate();
   const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
-  const [filters, setFilters] = React.useState({
-    status: [] as string[],
-    urgency: [] as string[],
+  const [filters, setFilters] = React.useState<LeadFilters>({
+    status: [],
+    urgency: [],
     city: "",
     dateFrom: "",
     dateTo: ""
@@ -85,6 +85,7 @@ export default function LeadsPage() {
       createLabel="Nuevo lead"
       onCreateClick={() => navigate("/solicitudes/leads/new")}
       useQueryHook={useLeadsQuery}
+      hookParams={filters}
       columns={columns}
       searchPlaceholder="Buscar solicitudes por nombre, email o teléfono..."
       metrics={metrics}

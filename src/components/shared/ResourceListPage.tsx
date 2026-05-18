@@ -31,10 +31,13 @@ export interface ResourceListPageProps<TData> {
   onCreateClick?: () => void;
 
   // Data (hook injection — valid React pattern, called at component top level)
+  // hookParams: optional extra args forwarded verbatim to useQueryHook (e.g. filter state)
   useQueryHook: (
     search: string,
-    pagination: { pageIndex: number; pageSize: number }
+    pagination: { pageIndex: number; pageSize: number },
+    hookParams?: unknown
   ) => ResourceQueryResult<TData>;
+  hookParams?: unknown;
 
   // Table
   columns: ColumnDef<TData, any>[];
@@ -78,6 +81,7 @@ export function ResourceListPage<TData>({
   createLabel,
   onCreateClick,
   useQueryHook,
+  hookParams,
   columns,
   searchPlaceholder,
   pageSize: defaultPageSize = 20,
@@ -108,7 +112,7 @@ export function ResourceListPage<TData>({
 
   React.useEffect(() => { setPageIndex(0); }, [debouncedSearch, isFiltered]);
 
-  const { data, isLoading, totalCount, deleteItems } = useQueryHook(debouncedSearch, { pageIndex, pageSize });
+  const { data, isLoading, totalCount, deleteItems } = useQueryHook(debouncedSearch, { pageIndex, pageSize }, hookParams);
 
   const effectiveDelete = onConfirmDelete ?? (deleteItems
     ? async (rows: TData[]) => {

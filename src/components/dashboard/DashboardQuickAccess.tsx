@@ -133,7 +133,7 @@ export function DashboardQuickAccess() {
             transition={{ delay: index * 0.05 }}
             onClick={() => navigate(item.path)}
             className={cn(
-              "group relative p-5 bg-[#1C1B1B] border border-white/5 rounded-md cursor-pointer",
+              "group relative p-5 bg-card border border-white/5 rounded-md cursor-pointer",
               "transition-all duration-300 ease-out",
               "hover:-translate-y-2 hover:bg-[#22232d]",
               "flex flex-col justify-between min-h-[140px]",

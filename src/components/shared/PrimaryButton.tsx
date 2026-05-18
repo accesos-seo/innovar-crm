@@ -25,8 +25,8 @@ export function PrimaryButton({
   return (
     <Button 
       className={cn(
-        "bg-gradient-to-r from-primary to-[#36b09a]",
-        "hover:from-[#36b09a] hover:to-primary",
+        "bg-gradient-to-r from-primary to-primary-dark",
+        "hover:from-primary-dark hover:to-primary",
         "px-8 py-6 text-sm font-bold",
         "text-primary-foreground shadow-lg shadow-primary/20",
         "rounded-md transition-all duration-300",

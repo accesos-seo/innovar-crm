@@ -81,7 +81,7 @@ export const DoorsModule: React.FC<DoorsModuleProps> = ({ onDataChange, initialD
   };
 
   return (
-    <Card className="w-full bg-[#1C1B1B] border-l-4 border-l-primary shadow-2xl overflow-hidden animate-in fade-in duration-500">
+    <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden animate-in fade-in duration-500">
       <CardHeader className="bg-primary/5 border-b border-border/10 pb-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
           <div className="flex items-center gap-3">
@@ -125,7 +125,7 @@ export const DoorsModule: React.FC<DoorsModuleProps> = ({ onDataChange, initialD
               <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary w-full px-4">
                 <SelectValue placeholder="Selecciona tipo" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1C1B1B] border-border/40 min-w-[240px]">
+              <SelectContent className="bg-card border-border/40 min-w-[240px]">
                 <SelectItem value="CORREDIZA_SENCILLA" className="focus:bg-primary/20 focus:text-primary py-3">Corrediza Sencilla</SelectItem>
                 <SelectItem value="CORREDIZA_DOBLE" className="focus:bg-primary/20 focus:text-primary py-3">Corrediza Doble</SelectItem>
                 <SelectItem value="BATIENTE" className="focus:bg-primary/20 focus:text-primary py-3">Batiente</SelectItem>
@@ -187,7 +187,7 @@ export const DoorsModule: React.FC<DoorsModuleProps> = ({ onDataChange, initialD
       </CardContent>
 
       <CardFooter className="bg-primary/5 border-t border-border/10 p-8 flex justify-end">
-        <div className="bg-[#1e3a35] p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl relative overflow-hidden group">
+        <div className="bg-primary-surface p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
           <p className="text-[11px] font-black text-primary/80 tracking-[0.2em] mb-2 uppercase relative z-10">Subtotal Puertas</p>
           <span className="text-5xl font-black font-mono text-primary tracking-tighter relative z-10">

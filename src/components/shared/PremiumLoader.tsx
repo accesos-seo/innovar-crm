@@ -27,7 +27,7 @@ export function PremiumLoader({ className, size = "md", text }: PremiumLoaderPro
           {[0, 90, 180, 270].map((angle) => (
             <div
               key={angle}
-              className="absolute w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_#44ddc1]"
+              className="absolute w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_var(--color-primary)]"
               style={{
                 top: "50%",
                 left: "50%",
@@ -39,7 +39,7 @@ export function PremiumLoader({ className, size = "md", text }: PremiumLoaderPro
 
         {/* Hexágono Central - Morphing & Glow */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-1/2 h-1/2 bg-gradient-to-br from-primary to-[#36b09a] shadow-[0_0_30px_rgba(68,221,193,0.4)] rounded-[20%] animate-pulse" />
+          <div className="w-1/2 h-1/2 bg-gradient-to-br from-primary to-primary-dark shadow-[0_0_30px_rgba(68,221,193,0.4)] rounded-[20%] animate-pulse" />
         </div>
 
         {/* Brillo de Fondo Difuso */}

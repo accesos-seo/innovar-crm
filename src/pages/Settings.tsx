@@ -139,7 +139,7 @@ export default function SettingsPage() {
         viewport={{ once: true }}
         className="pt-12 border-t border-border/5"
       >
-        <div className="bg-[#1C1B1B] p-8 rounded-lg border border-border/10 flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-primary/20 transition-all duration-500 shadow-2xl">
+        <div className="bg-card p-8 rounded-lg border border-border/10 flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-primary/20 transition-all duration-500 shadow-2xl">
           <div className="space-y-1 text-center md:text-left">
             <h4 className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Capa de Seguridad Crítica</h4>
             <p className="text-xs text-muted-foreground max-w-md leading-relaxed">

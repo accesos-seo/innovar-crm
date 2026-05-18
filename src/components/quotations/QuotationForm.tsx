@@ -277,8 +277,8 @@ export function QuotationForm({ initialData, onSubmit, onCancel, isSubmitting }:
           type="submit"
           disabled={isSubmitting}
           className={cn(
-            "px-12 bg-gradient-to-r from-primary to-[#36b09a]",
-            "hover:from-[#36b09a] hover:to-primary",
+            "px-12 bg-gradient-to-r from-primary to-primary-dark",
+            "hover:from-primary-dark hover:to-primary",
             "text-primary-foreground font-bold text-sm tracking-tight h-14",
             "rounded-md shadow-lg shadow-primary/20 transition-all duration-300",
             "active:scale-95 border-none flex items-center gap-2"

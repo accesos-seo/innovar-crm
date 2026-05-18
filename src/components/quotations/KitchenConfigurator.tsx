@@ -76,7 +76,7 @@ export const KitchenConfigurator: React.FC<KitchenConfiguratorProps> = ({ onData
   const subtotalDisplay = calculation?.data?.calculated_total;
 
   return (
-    <Card className="w-full bg-[#1C1B1B] border-l-4 border-l-primary shadow-2xl overflow-hidden">
+    <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden">
       <CardHeader className="bg-primary/5 border-b border-border/10 pb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" aria-hidden="true" />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
@@ -95,7 +95,7 @@ export const KitchenConfigurator: React.FC<KitchenConfiguratorProps> = ({ onData
           </div>
 
           {/* Subtotal calculado por el backend */}
-          <div className="bg-[#1e3a35] p-5 rounded-sm border-2 border-primary/30 min-w-[280px] flex flex-col items-end shadow-[0_0_30px_rgba(68,221,193,0.15)]">
+          <div className="bg-primary-surface p-5 rounded-sm border-2 border-primary/30 min-w-[280px] flex flex-col items-end shadow-[0_0_30px_rgba(68,221,193,0.15)]">
             <p className="text-[11px] font-bold text-primary/80 tracking-wider mb-2">Presupuesto proyectado</p>
             <div className="flex items-center gap-4">
               {isLoading ? (
@@ -136,7 +136,7 @@ export const KitchenConfigurator: React.FC<KitchenConfiguratorProps> = ({ onData
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-[#1C1B1B] border-border/20">
+                      <SelectContent className="bg-card border-border/20">
                         <SelectItem value="COMPLETA_STANDARD" className="h-12 px-4 font-medium text-sm">Cocina Completa Standard</SelectItem>
                         <SelectItem value="COMPLETA_PREMIUM"  className="h-12 px-4 font-medium text-sm">Cocina Completa Premium</SelectItem>
                         <SelectItem value="COMPLETA_DELUXE"   className="h-12 px-4 font-medium text-sm">Cocina Completa Deluxe</SelectItem>
@@ -159,7 +159,7 @@ export const KitchenConfigurator: React.FC<KitchenConfiguratorProps> = ({ onData
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-[#1C1B1B] border-border/20">
+                      <SelectContent className="bg-card border-border/20">
                         <SelectItem value="L"        className="h-12 px-4 font-medium text-sm">Forma en L</SelectItem>
                         <SelectItem value="U"        className="h-12 px-4 font-medium text-sm">Forma en U</SelectItem>
                         <SelectItem value="LINEAL"   className="h-12 px-4 font-medium text-sm">Lineal recta</SelectItem>
@@ -219,7 +219,7 @@ export const KitchenConfigurator: React.FC<KitchenConfiguratorProps> = ({ onData
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-[#1C1B1B] border-border/20">
+                        <SelectContent className="bg-card border-border/20">
                           <SelectItem value="SINTERIZADO" className="h-12 px-4 font-medium text-sm">Sinterizado — $1.200.000/ml</SelectItem>
                           <SelectItem value="CUARZO"      className="h-12 px-4 font-medium text-sm">Cuarzo / Quarzone — $850.000/ml</SelectItem>
                           <SelectItem value="GRANITO"     className="h-12 px-4 font-medium text-sm">Granito — $700.000/ml</SelectItem>

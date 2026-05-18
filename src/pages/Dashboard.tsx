@@ -490,14 +490,14 @@ export default function Dashboard() {
                 <AreaChart data={productionData}>
                   <defs>
                     <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#44ddc1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#44ddc1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke="#3c4a46"
+                    stroke="var(--color-border)"
                     opacity={0.2}
                   />
                   <XAxis
@@ -515,17 +515,17 @@ export default function Dashboard() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1c1b1b",
-                      border: "1px solid #3c4a46",
+                      backgroundColor: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
                       fontSize: "10px",
                     }}
-                    itemStyle={{ color: "#44ddc1" }}
+                    itemStyle={{ color: "var(--color-primary)" }}
                   />
                   <Area
                     type="monotone"
                     dataKey="production"
                     name="Creados"
-                    stroke="#44ddc1"
+                    stroke="var(--color-primary)"
                     fillOpacity={1}
                     fill="url(#colorProd)"
                     strokeWidth={2}
@@ -535,7 +535,7 @@ export default function Dashboard() {
                     type="monotone"
                     dataKey="delivery"
                     name="Entregados"
-                    stroke="#9ed1c3"
+                    stroke="var(--color-secondary)"
                     fill="transparent"
                     strokeWidth={2}
                     strokeDasharray="5 5"

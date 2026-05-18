@@ -128,7 +128,7 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
   };
 
   return (
-    <Card className="w-full bg-[#1C1B1B] border-l-4 border-l-primary shadow-2xl overflow-hidden animate-in fade-in duration-500">
+    <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden animate-in fade-in duration-500">
       <CardHeader className="bg-primary/5 border-b border-border/10 pb-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
           <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
               <SelectTrigger className="h-12 bg-background border-border/40 text-xs font-bold rounded-none">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1C1B1B] border-border/40">
+              <SelectContent className="bg-card border-border/40">
                 <SelectItem value="all">Todas las categorías</SelectItem>
                 <SelectItem value="cocinas">Cocinas</SelectItem>
                 <SelectItem value="closets">Closets</SelectItem>
@@ -187,7 +187,7 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
               <SelectTrigger className="h-12 bg-background border-border/40 text-xs font-bold rounded-none">
                 <SelectValue placeholder="Selecciona un producto..." />
               </SelectTrigger>
-              <SelectContent className="bg-[#1C1B1B] border-border/40 max-h-[300px]">
+              <SelectContent className="bg-card border-border/40 max-h-[300px]">
                 {filteredCatalog.map(item => (
                   <SelectItem key={item.id} value={item.id} className="focus:bg-primary/10">
                     <div className="flex justify-between w-full gap-8">
@@ -316,7 +316,7 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
       </CardContent>
 
       <CardFooter className="bg-primary/5 border-t border-border/10 p-8 flex justify-end">
-        <div className="bg-[#1e3a35] p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl relative overflow-hidden group">
+        <div className="bg-primary-surface p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
           <p className="text-[11px] font-black text-primary/80 tracking-[0.2em] mb-2 uppercase relative z-10">Total Herrajes</p>
           <span className="text-5xl font-black font-mono text-primary tracking-tighter relative z-10">

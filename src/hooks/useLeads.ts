@@ -8,14 +8,23 @@ import { toast } from "sonner";
 
 const LEADS_KEY = "leads";
 
+export interface LeadFilters {
+  status: string[];
+  urgency: string[];
+  city?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export function useLeads(
   searchTerm: string = "",
-  pagination?: { pageIndex: number; pageSize: number }
+  pagination?: { pageIndex: number; pageSize: number },
+  filters?: LeadFilters
 ) {
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: [LEADS_KEY, searchTerm, pagination],
+    queryKey: [LEADS_KEY, searchTerm, pagination, filters],
     staleTime: 1000 * 60 * 5,
     retry: 0,
     queryFn: async () => {
@@ -27,6 +36,22 @@ export function useLeads(
         query = query.or(
           `name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,whatsapp_phone.ilike.%${searchTerm}%`
         );
+      }
+
+      if (filters?.status?.length) {
+        query = query.in("status", filters.status);
+      }
+      if (filters?.urgency?.length) {
+        query = query.in("urgency", filters.urgency);
+      }
+      if (filters?.city) {
+        query = query.ilike("city", `%${filters.city}%`);
+      }
+      if (filters?.dateFrom) {
+        query = query.gte("created_at", filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        query = query.lte("created_at", filters.dateTo + "T23:59:59");
       }
 
       let ordered = query.order("name", { ascending: true });
