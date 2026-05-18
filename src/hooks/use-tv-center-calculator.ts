@@ -8,11 +8,12 @@ import { calculateTVCenterTotal, TVCenterInput } from '@/features/tv_center/logi
 
 export const useTVCenterCalculator = (input: TVCenterInput) => {
   return useMemo(() => calculateTVCenterTotal(input), [
-    input.includeBase,
-    input.highGloss,
-    input.ledMetros,
-    input.shelvesQuantity,
+    input.width,
+    input.hasHighGloss,
+    input.hasLedLights,
+    input.floatingShelves,
+    input.equipmentSpaces,
     input.includeTransport,
-    input.manualDiscount
+    input.manualDiscount,
   ]);
 };

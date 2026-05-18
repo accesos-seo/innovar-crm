@@ -1,83 +1,78 @@
 /**
  * REGLA 3: Capa de Interfaz de Usuario (UI)
  * Módulo: Cotizador de Centro de TV
+ * Fuente de verdad: 2-CENTRO_DE_TV.docx
  */
 
 import * as React from 'react';
-import { 
-  Tv, 
+import {
+  Tv,
   Sparkles,
   Info,
   Lightbulb,
   Layers,
   Truck,
-  Eye
+  Eye,
+  Monitor,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { TVCenterTemplate } from '@/components/pdf/templates/TVCenterTemplate';
 import { useTVCenterCalculator } from '@/hooks/use-tv-center-calculator';
-import { TVCenterInput } from './logic';
+import { TVCenterInput, TV_CENTER_PRICES } from './logic';
 import { formatDate } from '@/lib/format-utils';
+import { cn } from '@/lib/utils';
 
 interface TVCenterModuleProps {
   onDataChange: (total: number, config: any) => void;
   initialData?: any;
 }
 
+// Anchos disponibles según la documentación (1.20m a 2.40m, pasos de 0.20)
+const WIDTH_OPTIONS = [1.20, 1.40, 1.60, 1.80, 2.00, 2.20, 2.40] as const;
+
+// Opciones de repisas (0–5)
+const SHELF_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
+
+// Opciones de espacios para equipos (0–4)
+const EQUIPMENT_OPTIONS = [0, 1, 2, 3, 4] as const;
+
 export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, initialData }) => {
   const [formData, setFormData] = React.useState<TVCenterInput>({
-    includeBase: initialData?.includeBase ?? true,
-    highGloss: initialData?.highGloss ?? false,
-    ledMetros: initialData?.ledMetros ?? 0,
-    shelvesQuantity: initialData?.shelvesQuantity ?? 0,
+    width:            initialData?.width            ?? 1.60,
+    hasHighGloss:     initialData?.hasHighGloss     ?? false,
+    hasLedLights:     initialData?.hasLedLights     ?? false,
+    floatingShelves:  initialData?.floatingShelves  ?? 2,
+    equipmentSpaces:  initialData?.equipmentSpaces  ?? 0,
     includeTransport: initialData?.includeTransport ?? false,
-    manualDiscount: initialData?.manualDiscount ?? 0
+    manualDiscount:   initialData?.manualDiscount   ?? 0,
   });
-
-  const [displayData, setDisplayData] = React.useState({
-    ledMetros: String(formData.ledMetros),
-    shelvesQuantity: String(formData.shelvesQuantity),
-    manualDiscount: String(formData.manualDiscount)
-  });
-
-  // Sincronizar displayData con formData (Patrón Empty-able de AGENTS.md)
-  React.useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      ledMetros: Number(displayData.ledMetros) || 0,
-      shelvesQuantity: Number(displayData.shelvesQuantity) || 0,
-      manualDiscount: Number(displayData.manualDiscount) || 0
-    }));
-  }, [displayData]);
 
   const results = useTVCenterCalculator(formData);
 
   const lastUpdateRef = React.useRef({ total: -1, configStr: '' });
 
   React.useEffect(() => {
-    const total = results.total;
+    const total     = results.total;
     const configStr = JSON.stringify(formData);
-
     if (total !== lastUpdateRef.current.total || configStr !== lastUpdateRef.current.configStr) {
       lastUpdateRef.current = { total, configStr };
       onDataChange(total, formData);
     }
   }, [results, formData, onDataChange]);
 
-  const handleCheckboxChange = (field: keyof TVCenterInput, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [field]: checked }));
-  };
+  const set = <K extends keyof TVCenterInput>(field: K, value: TVCenterInput[K]) =>
+    setFormData(prev => ({ ...prev, [field]: value }));
 
   return (
     <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden animate-in fade-in duration-500">
@@ -89,7 +84,9 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
             </div>
             <div>
               <CardTitle className="text-xl font-bold tracking-tight text-foreground uppercase italic">Centro de TV</CardTitle>
-              <CardDescription className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">Diseño Paramétrico & Multimedia</CardDescription>
+              <CardDescription className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">
+                Motor de precios INNOVAR — {formData.width.toFixed(2)}m
+              </CardDescription>
             </div>
           </div>
 
@@ -100,118 +97,171 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[850px] p-0 border-none bg-transparent shadow-2xl">
-              <div className="scale-75 origin-top-center overflow-auto max-h-[90vh]">
-                 <TVCenterTemplate 
+              <div className="scale-75 origin-top overflow-auto max-h-[90vh]">
+                <TVCenterTemplate
                   data={{
-                    client_name: "Previsualización Técnica",
-                    total_amount: results.total,
+                    client_name:   'Previsualización Técnica',
+                    total_amount:  results.total,
                     configuration: { ...formData, ...results },
-                    date: formatDate(new Date())
-                  }} 
-                 />
+                    date:          formatDate(new Date()),
+                  }}
+                />
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          
-          {/* OPCIONES PRINCIPALES (CHECKBOXES) */}
-          <div className="space-y-4 col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 transition-colors hover:bg-primary/10">
-              <Checkbox 
-                id="includeBase" 
-                checked={formData.includeBase}
-                onCheckedChange={(v) => handleCheckboxChange('includeBase', v as boolean)}
+      <CardContent className="pt-8 space-y-10">
+
+        {/* ── SECCIÓN 1: Ancho ── */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+            <Monitor className="w-3 h-3" /> Ancho del centro de TV
+          </p>
+          <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+            {WIDTH_OPTIONS.map(w => {
+              const diff = Math.round((w - TV_CENTER_PRICES.BASE_WIDTH) * 100);
+              const incs = Math.round(diff / 20);
+              const delta = incs * TV_CENTER_PRICES.INCREMENT_PER_20CM;
+              return (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => set('width', w)}
+                  className={cn(
+                    'flex flex-col items-center p-3 border text-center transition-all',
+                    formData.width === w
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background border-border/30 hover:border-primary/50 text-muted-foreground'
+                  )}
+                >
+                  <span className="text-sm font-black">{w.toFixed(2)}m</span>
+                  <span className={cn(
+                    'text-[9px] font-bold mt-0.5',
+                    formData.width === w ? 'text-primary-foreground/80' : 'text-muted-foreground/60'
+                  )}>
+                    {delta === 0 ? 'Estándar' : delta > 0 ? `+$${(delta / 1000).toFixed(0)}k` : `-$${(Math.abs(delta) / 1000).toFixed(0)}k`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── SECCIÓN 2: Opcionales (checkboxes) ── */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+            <Sparkles className="w-3 h-3" /> Opcionales
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 hover:bg-primary/10 transition-colors">
+              <Checkbox
+                id="hasHighGloss"
+                checked={formData.hasHighGloss}
+                onCheckedChange={v => set('hasHighGloss', v as boolean)}
                 className="border-primary data-[state=checked]:bg-primary"
               />
               <div className="flex flex-col">
-                <Label htmlFor="includeBase" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer">Mueble Base</Label>
-                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">Suma $2,800,000</span>
+                <Label htmlFor="hasHighGloss" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer">Alto Brillo</Label>
+                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">+$350,000</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 transition-colors hover:bg-primary/10">
-              <Checkbox 
-                id="highGloss" 
-                checked={formData.highGloss}
-                onCheckedChange={(v) => handleCheckboxChange('highGloss', v as boolean)}
+            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 hover:bg-primary/10 transition-colors">
+              <Checkbox
+                id="hasLedLights"
+                checked={formData.hasLedLights}
+                onCheckedChange={v => set('hasLedLights', v as boolean)}
                 className="border-primary data-[state=checked]:bg-primary"
               />
               <div className="flex flex-col">
-                <Label htmlFor="highGloss" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer">Acabado Alto Brillo</Label>
-                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">Suma $500,000</span>
+                <Label htmlFor="hasLedLights" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer flex items-center gap-1">
+                  <Lightbulb className="w-3 h-3" /> Iluminación LED
+                </Label>
+                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">+$250,000</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 transition-colors hover:bg-primary/10">
-              <Checkbox 
-                id="includeTransport" 
+            <div className="flex items-center space-x-3 bg-primary/5 p-4 border border-primary/20 h-16 hover:bg-primary/10 transition-colors">
+              <Checkbox
+                id="includeTransport"
                 checked={formData.includeTransport}
-                onCheckedChange={(v) => handleCheckboxChange('includeTransport', v as boolean)}
+                onCheckedChange={v => set('includeTransport', v as boolean)}
                 className="border-primary data-[state=checked]:bg-primary"
               />
               <div className="flex flex-col">
-                <Label htmlFor="includeTransport" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer">Logística & Transporte</Label>
-                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">Suma $150,000</span>
+                <Label htmlFor="includeTransport" className="text-[10px] font-black text-primary uppercase tracking-widest cursor-pointer flex items-center gap-1">
+                  <Truck className="w-3 h-3" /> Transporte
+                </Label>
+                <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">+$150,000</span>
               </div>
-            </div>
-          </div>
-
-          {/* INPUTS NUMÉRICOS */}
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
-              <Lightbulb className="w-3 h-3" /> Metros de LED
-            </label>
-            <Input 
-              type="text"
-              value={displayData.ledMetros}
-              onChange={(e) => setDisplayData(prev => ({ ...prev, ledMetros: e.target.value }))}
-              placeholder="0"
-              className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary w-full px-4 font-mono transition-all focus:border-primary"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
-              <Layers className="w-3 h-3" /> Repisas Adicionales
-            </label>
-            <Input 
-              type="text"
-              value={displayData.shelvesQuantity}
-              onChange={(e) => setDisplayData(prev => ({ ...prev, shelvesQuantity: e.target.value }))}
-              placeholder="0"
-              className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary w-full px-4 font-mono transition-all focus:border-primary"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Descuento (%)</label>
-            <div className="relative">
-              <Input 
-                type="text"
-                value={displayData.manualDiscount}
-                onChange={(e) => setDisplayData(prev => ({ ...prev, manualDiscount: e.target.value }))}
-                placeholder="0"
-                className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary w-full px-4 font-mono pr-12 transition-all focus:border-primary"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary font-bold">%</span>
             </div>
           </div>
         </div>
 
-        {/* INFO BOX */}
+        {/* ── SECCIÓN 3: Repisas y Espacios ── */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+            <Layers className="w-3 h-3" /> Repisas y espacios para equipos
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Repisas flotantes <span className="text-primary/60">(2 incluidas en base)</span>
+              </label>
+              <Select
+                value={String(formData.floatingShelves)}
+                onValueChange={v => set('floatingShelves', Number(v))}
+              >
+                <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHELF_OPTIONS.map(n => (
+                    <SelectItem key={n} value={String(n)} className="h-12 font-medium">
+                      {n === 0 ? '0 repisas (−$200,000)'
+                       : n === 1 ? '1 repisa (−$100,000)'
+                       : n === 2 ? '2 repisas (incluidas)'
+                       : `${n} repisas (+$${((n - 2) * 100_000).toLocaleString('es-CO')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Espacios para equipos <span className="text-primary/60">(+$150,000 c/u)</span>
+              </label>
+              <Select
+                value={String(formData.equipmentSpaces)}
+                onValueChange={v => set('equipmentSpaces', Number(v))}
+              >
+                <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EQUIPMENT_OPTIONS.map(n => (
+                    <SelectItem key={n} value={String(n)} className="h-12 font-medium">
+                      {n === 0 ? 'Sin espacios' : `${n} espacio${n > 1 ? 's' : ''} (+$${(n * 150_000).toLocaleString('es-CO')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* ── INFO BOX ── */}
         <div className="p-4 bg-primary/5 border border-primary/10 flex items-start gap-4 rounded-sm">
           <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-              <Sparkles className="w-3 h-3" /> Especificaciones de Ingeniería
+              <Sparkles className="w-3 h-3" /> Especificaciones de ingeniería
             </p>
             <p className="text-[9px] text-muted-foreground font-medium leading-relaxed uppercase tracking-tighter">
-              {results.specs.includes} Fabricado en {results.specs.material}. 
-              Configuración: {results.specs.base}, {results.specs.finish}, {results.specs.ledDetails}.
+              {results.specs.includes} {results.specs.material}. {results.specs.base}. {results.specs.finish}. {results.specs.ledDetails}. {results.specs.shelvesDetails}. {results.specs.equipDetails}.
             </p>
           </div>
         </div>
@@ -221,9 +271,14 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
         <div className="bg-primary-surface p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
           <p className="text-[11px] font-black text-primary/80 tracking-[0.2em] mb-2 uppercase relative z-10">Subtotal Centro de TV</p>
-          <span className="text-5xl font-black font-mono text-primary tracking-tighter relative z-10">
-             $ {results.total.toLocaleString('es-CO')}
+          <span className="text-5xl font-black font-mono text-primary tracking-tighter relative z-10 drop-shadow-[0_0_12px_rgba(68,221,193,0.3)]">
+            $ {results.total.toLocaleString('es-CO')}
           </span>
+          {formData.manualDiscount > 0 && (
+            <p className="text-[9px] text-muted-foreground/60 mt-1 relative z-10 uppercase tracking-widest">
+              Descuento {formData.manualDiscount}% aplicado
+            </p>
+          )}
         </div>
       </CardFooter>
     </Card>
