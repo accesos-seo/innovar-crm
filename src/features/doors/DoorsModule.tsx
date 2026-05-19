@@ -59,7 +59,7 @@ function newId() { return `d${Date.now()}-${_idCounter++}`; }
 function defaultDoor(): DoorItem {
   return {
     id: newId(),
-    type: 'batiente',
+    type: undefined as any,
     width: DOORS_DEFAULTS.defaultWidth,
     height: DOORS_DEFAULTS.defaultHeight,
     quantity: 1,
@@ -135,12 +135,12 @@ function DoorRow({ item, calc, onChange, onRemove, index }: DoorRowProps) {
         <div className="space-y-2">
           <label className="text-[9px] font-black text-primary/70 uppercase tracking-widest">Tipo</label>
           <Select value={item.type} onValueChange={(v) => onChange('type', v as DoorType)}>
-            <SelectTrigger className="h-11 bg-background border-border/40 text-xs font-bold rounded-none">
-              <SelectValue />
+            <SelectTrigger className="w-full h-11 bg-background border-border/40 text-xs font-bold rounded-none">
+              <SelectValue placeholder="Selecciona tipo de puerta" />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(TYPE_LABELS) as DoorType[]).map(t => (
-                <SelectItem key={t} value={t} className="text-xs font-bold">
+                <SelectItem key={t} value={t} label={TYPE_LABELS[t]} className="text-xs font-bold">
                   {TYPE_LABELS[t]}
                   <span className="ml-1 font-normal opacity-60 text-[10px]">
                     ${fmt(DOOR_PRICES[t]['50-85'])}–${fmt(DOOR_PRICES[t]['85-110'])}
@@ -210,12 +210,12 @@ function DoorRow({ item, calc, onChange, onRemove, index }: DoorRowProps) {
         <div className="space-y-2">
           <label className="text-[9px] font-black text-primary/70 uppercase tracking-widest">Color Herrajes</label>
           <Select value={item.hardwareColor} onValueChange={(v) => onChange('hardwareColor', v as HardwareColor)}>
-            <SelectTrigger className="h-11 bg-background border-border/40 text-xs font-bold rounded-none">
-              <SelectValue />
+            <SelectTrigger className="w-full h-11 bg-background border-border/40 text-xs font-bold rounded-none">
+              <SelectValue placeholder="Selecciona color" />
             </SelectTrigger>
             <SelectContent>
               {HARDWARE_COLORS.map(c => (
-                <SelectItem key={c.value} value={c.value} className="text-xs font-bold">
+                <SelectItem key={c.value} value={c.value} label={c.label} className="text-xs font-bold">
                   {c.label}
                 </SelectItem>
               ))}

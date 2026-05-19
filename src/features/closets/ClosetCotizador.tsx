@@ -53,10 +53,10 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
   });
 
   const [formData, setFormData] = React.useState<ClosetInput>({
-    type: 'estandar',
+    type: undefined as any,
     width: CLOSET_DEFAULTS.minWidth,
     height: CLOSET_DEFAULTS.minHeight,
-    doorType: 'batiente',
+    doorType: undefined as any,
     observations: '',
     transport: CLOSET_DEFAULTS.transport,
     discountPercent: 0,
@@ -132,12 +132,12 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
               onValueChange={(v) => { if (v !== null) handleChange('type', v as ClosetType); }}
             >
               <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary min-w-[240px] w-full px-4">
-                <SelectValue placeholder="Selecciona tipo" />
+                <SelectValue placeholder="Selecciona categoría de closet" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/10 min-w-[240px] w-[max-content]">
-                <SelectItem value="estandar" className="font-bold py-3 text-sm capitalize">Estándar <span className="lowercase font-normal opacity-60">($750.000/m² · 0.60m prof.)</span></SelectItem>
-                <SelectItem value="especial" className="font-bold py-3 text-sm capitalize">Especial <span className="lowercase font-normal opacity-60">($650.000/m² · 0.45m prof.)</span></SelectItem>
-                <SelectItem value="empotrado" className="font-bold py-3 text-sm capitalize">Empotrado <span className="lowercase font-normal opacity-60">($900.000/m² · 0.60m prof.)</span></SelectItem>
+                <SelectItem value="estandar" label="Estándar" className="font-bold py-3 text-sm capitalize">Estándar <span className="lowercase font-normal opacity-60">($750.000/m² · 0.60m prof.)</span></SelectItem>
+                <SelectItem value="especial" label="Especial" className="font-bold py-3 text-sm capitalize">Especial <span className="lowercase font-normal opacity-60">($650.000/m² · 0.45m prof.)</span></SelectItem>
+                <SelectItem value="empotrado" label="Empotrado" className="font-bold py-3 text-sm capitalize">Empotrado <span className="lowercase font-normal opacity-60">($900.000/m² · 0.60m prof.)</span></SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -152,11 +152,11 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
               onValueChange={(v) => { if (v !== null) handleChange('doorType', v as DoorType); }}
             >
               <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none min-w-[240px] w-full px-4">
-                <SelectValue placeholder="Selecciona puertas" />
+                <SelectValue placeholder="Selecciona sistema de apertura" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/10 min-w-[240px] w-[max-content]">
-                <SelectItem value="batiente" className="font-bold py-3 text-sm capitalize">Batientes <span className="lowercase font-medium opacity-60 ml-2">(Tradicional)</span></SelectItem>
-                <SelectItem value="corrediza" className="font-bold py-3 text-sm capitalize">Corredizas <span className="lowercase font-medium opacity-60 ml-2">(Espacios reducidos)</span></SelectItem>
+                <SelectItem value="batiente" label="Batientes" className="font-bold py-3 text-sm capitalize">Batientes <span className="lowercase font-medium opacity-60 ml-2">(Tradicional)</span></SelectItem>
+                <SelectItem value="corrediza" label="Corredizas" className="font-bold py-3 text-sm capitalize">Corredizas <span className="lowercase font-medium opacity-60 ml-2">(Espacios reducidos)</span></SelectItem>
               </SelectContent>
             </Select>
           </div>
