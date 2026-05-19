@@ -23,13 +23,16 @@ const GLOBAL_TIMEOUT_MS = 8000;
 // Recovery automático de sesión rota — se dispara en 2 escenarios:
 //   1. El endpoint /auth/v1/token responde 400/401/403 (refresh falló o credenciales
 //      no aceptadas). Esto sale rápido y es la señal más confiable de sesión rota.
-//   2. N timeouts consecutivos a queries de Supabase sin ninguna respuesta exitosa
-//      intermedia. El contador lo alimenta `recordSupabaseTimeout()` desde el
-//      QueryCache.onError de App.tsx (los timeouts externos no pasan por fetch).
+//   2. N timeouts a queries de Supabase dentro de una ventana de tiempo móvil. Esto
+//      cubre el caso donde el SDK Supabase está colgado por dentro y las queries
+//      timean masivamente. Las queries exitosas (de notificaciones del TopBar, p.ej.)
+//      NO resetean el contador — solo SIGNED_IN/TOKEN_REFRESHED lo hacen, porque son
+//      la única señal fuerte de que la auth está sana.
 // En ambos casos forzamos signOut() — el authStore captará SIGNED_OUT y el
 // ProtectedRoute redirigirá a /login, sin que el usuario tenga que recargar.
 const STALE_TIMEOUT_THRESHOLD = 3;
-let consecutiveTimeouts = 0;
+const TIMEOUT_WINDOW_MS = 30000;
+let recentTimeoutTimestamps: number[] = [];
 let staleRecoveryInProgress = false;
 
 function triggerStaleRecovery(reason: string): void {
@@ -38,7 +41,7 @@ function triggerStaleRecovery(reason: string): void {
   console.warn(
     `⚠️ Sesión cliente posiblemente rota (${reason}). Forzando signOut() para recuperar.`,
   );
-  consecutiveTimeouts = 0;
+  recentTimeoutTimestamps = [];
   try {
     localStorage.removeItem('innovar-auth-token');
   } catch {
@@ -51,10 +54,22 @@ function triggerStaleRecovery(reason: string): void {
         /* ignore */
       });
     }
-    // Re-armar el flag tras 10s para permitir nuevo recovery si vuelve a pasar.
+    // Hard fallback: si signOut no completa en 3s (porque el endpoint /auth/v1/logout
+    // también está colgado), forzar redirect manual a /login.
+    setTimeout(() => {
+      if (staleRecoveryInProgress && typeof window !== 'undefined') {
+        console.warn('⚠️ signOut tardó >3s — forzando redirect manual a /login.');
+        try {
+          window.location.href = '/login';
+        } catch {
+          /* ignore */
+        }
+      }
+    }, 3000);
+    // Re-armar el flag tras 15s para permitir nuevo recovery si vuelve a pasar.
     setTimeout(() => {
       staleRecoveryInProgress = false;
-    }, 10000);
+    }, 15000);
   }, 0);
 }
 
@@ -62,14 +77,27 @@ function triggerStaleRecovery(reason: string): void {
 // "Operation timed out" — esos timeouts vienen del wrapper `withTimeout` externo,
 // no del fetch interno, así que no pasan por `fetchWithTimeout`.
 export function recordSupabaseTimeout(): void {
-  consecutiveTimeouts++;
-  if (consecutiveTimeouts >= STALE_TIMEOUT_THRESHOLD) {
-    triggerStaleRecovery(`${consecutiveTimeouts} timeouts consecutivos`);
+  const now = Date.now();
+  // Mantener solo timestamps dentro de la ventana móvil.
+  recentTimeoutTimestamps = recentTimeoutTimestamps.filter(
+    (t) => now - t < TIMEOUT_WINDOW_MS,
+  );
+  recentTimeoutTimestamps.push(now);
+  console.warn(
+    `[supabase-timeout] count=${recentTimeoutTimestamps.length}/${STALE_TIMEOUT_THRESHOLD} ` +
+      `(ventana ${TIMEOUT_WINDOW_MS / 1000}s)`,
+  );
+  if (recentTimeoutTimestamps.length >= STALE_TIMEOUT_THRESHOLD) {
+    triggerStaleRecovery(
+      `${recentTimeoutTimestamps.length} timeouts en ${TIMEOUT_WINDOW_MS / 1000}s`,
+    );
   }
 }
 
+// Mantenida por compatibilidad con App.tsx aunque ya NO resetea el contador
+// (las queries exitosas pueden coexistir con el cliente roto).
 export function recordSupabaseSuccess(): void {
-  consecutiveTimeouts = 0;
+  /* no-op intencional — ver comentario arriba */
 }
 
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -117,12 +145,12 @@ if (supabase) {
     if (event === 'SIGNED_OUT') {
       localStorage.removeItem('innovar-auth-token');
       // Reset de contadores de recovery — la próxima sesión arranca limpia.
-      consecutiveTimeouts = 0;
+      recentTimeoutTimestamps = [];
       staleRecoveryInProgress = false;
     }
     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
       // Login exitoso o refresh exitoso del token: definitivamente no estamos rotos.
-      consecutiveTimeouts = 0;
+      recentTimeoutTimestamps = [];
       staleRecoveryInProgress = false;
     }
   });
