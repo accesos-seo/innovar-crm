@@ -76,13 +76,15 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
     }));
   }, [displayData]);
 
-  // Notificar cambios al padre cuando los resultados cambien
+  const lastUpdateRef = React.useRef({ total: -1, configStr: '' });
   React.useEffect(() => {
-    if (onDataChange) {
-      onDataChange(results.total, {
-        ...formData,
-        ...results
-      });
+    if (!onDataChange) return;
+    const total = results.total;
+    const config = { ...formData, ...results };
+    const configStr = JSON.stringify(config);
+    if (total !== lastUpdateRef.current.total || configStr !== lastUpdateRef.current.configStr) {
+      lastUpdateRef.current = { total, configStr };
+      onDataChange(total, config);
     }
   }, [results.total, formData]);
 

@@ -80,8 +80,6 @@ export function useQuotationBuilder() {
 
   // Client search
   React.useEffect(() => {
-    if (clientSearch.trim().length < 2) { setClients([]); setIsSearching(false); return; }
-
     let isMounted = true;
     const fetchClients = async () => {
       try {
@@ -91,18 +89,23 @@ export function useQuotationBuilder() {
           if (isMounted) { setClients([]); setIsSearching(false); }
           return;
         }
-        const { data, error } = await supabase
+        const query = supabase
           .from('clients')
-          .select('id, name, email, whatsapp_phone')
-          .or(`name.ilike.%${clientSearch}%,email.ilike.%${clientSearch}%,whatsapp_phone.ilike.%${clientSearch}%`)
-          .limit(10);
+          .select('id, name, email, whatsapp_phone');
+        const { data, error } = clientSearch.trim().length === 0
+          ? await query.order('name').limit(20)
+          : await query
+              .or(`name.ilike.%${clientSearch}%,email.ilike.%${clientSearch}%,whatsapp_phone.ilike.%${clientSearch}%`)
+              .order('name')
+              .limit(10);
         if (!isMounted) return;
         if (!error) setClients((data as QuotationClient[]) || []);
       } finally {
         if (isMounted) setIsSearching(false);
       }
     };
-    const timer = setTimeout(fetchClients, 400);
+    const delay = clientSearch.trim().length === 0 ? 0 : 400;
+    const timer = setTimeout(fetchClients, delay);
     return () => { isMounted = false; clearTimeout(timer); };
   }, [clientSearch]);
 

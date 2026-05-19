@@ -35,6 +35,7 @@ export function QuotationClientStep({
   handleCreateClient, onNext,
 }: QuotationClientStepProps) {
   const navigate = useNavigate();
+  const [isFocused, setIsFocused] = React.useState(false);
 
   return (
     <motion.div
@@ -88,6 +89,8 @@ export function QuotationClientStep({
                   className="pl-16 h-20 text-xl font-medium border-border/40 focus-visible:ring-primary shadow-2xl rounded-none bg-card/50 relative z-10"
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                 />
               </div>
 
@@ -162,7 +165,7 @@ export function QuotationClientStep({
               </Dialog>
             </div>
 
-            <div className="space-y-2 max-h-80 overflow-y-auto px-2">
+            {isFocused && <div className="space-y-2 max-h-80 overflow-y-auto px-2">
               {isSearching ? (
                 <div className="flex flex-col items-center py-12 gap-4">
                   <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -186,7 +189,7 @@ export function QuotationClientStep({
                   <ChevronRight className="w-5 h-5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
               ))}
-              {clientSearch.length >= 2 && clients.length === 0 && !isSearching && (
+              {clientSearch.trim().length > 0 && clients.length === 0 && !isSearching && (
                 <div className="text-center py-12 space-y-4">
                   <p className="text-muted-foreground text-sm">No encontramos resultados para su búsqueda.</p>
                   <Button
@@ -197,7 +200,7 @@ export function QuotationClientStep({
                   </Button>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         )}
       </div>

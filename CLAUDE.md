@@ -10,38 +10,172 @@
 - **Nombre:** CRM Innovar App
 - **Propósito:** CRM para empresa de cocinas y muebles (cotizaciones, clientes, proyectos, agenda, finanzas)
 - **Dueño:** No es técnico — todas las instrucciones deben ser de copiar y pegar
-- **Carpeta del proyecto:** `C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main`
+- **Carpeta real del proyecto:** `C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main`
+- **Alias en OneDrive (mismo contenido, sincronizado):** `C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main`
+
+> **IMPORTANTE:** Usar siempre la ruta del **Escritorio** para comandos de git y deploy. Las tareas PowerShell en background se cuelgan en rutas de OneDrive — dar siempre comandos al usuario para ejecutar en su terminal.
 
 ---
 
-## GitHub — todo lo que necesitas saber
+## GitHub
 
 | Campo | Valor |
 |---|---|
-| Repositorio | https://github.com/accesos-seo/innovar-crm |
+| Repositorio de trabajo | https://github.com/accesos-seo/innovar-crm |
 | Rama | `master` |
 | Cuenta GitHub | `accesos-seo` |
 | Autenticación | GitHub CLI (`gh`) ya instalado y autenticado |
 
-### Cómo hacer push (comando completo, listo para usar)
+### Hacer push (copiar y pegar)
 
 ```powershell
-Set-Location "C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main"; git add .; git commit -m "DESCRIPCION"; git push origin master
+Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; git add ARCHIVO1 ARCHIVO2; git commit -m "DESCRIPCION"; git push origin master
 ```
 
-Reemplaza `DESCRIPCION` con un resumen breve del cambio.
+> Siempre especificar los archivos individualmente en `git add` — nunca usar `git add .` para evitar subir archivos sensibles.
 
-### Verificar antes de subir
+### Verificar estado antes de subir
 
 ```powershell
-Set-Location "C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main"; git status
+Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; git status
 ```
 
-### Si el remote no responde
+---
+
+## Vercel — Deploy
+
+| Campo | Valor |
+|---|---|
+| Proyecto activo | `crm-innovar-app-2026` |
+| URL de producción | https://crm-innovar-app-2026.vercel.app |
+| Project ID | `prj_dowuuH3bdSTKuNbnNOUCWD2Hxjpi` |
+| Team ID | `team_K7m1K8aMiKR36myzPROYViA8` |
+| Token | En `.env` del proyecto como `VERCEL_TOKEN` |
+| Repo conectado en Vercel | `Rvirona/CRM-INNOVAR-APP` (rama `main`) ⚠️ |
+
+> **ADVERTENCIA CRÍTICA — Repo desconectado:** Vercel está conectado a `Rvirona/CRM-INNOVAR-APP:main`, pero el trabajo real va a `accesos-seo/innovar-crm:master`. Los push automáticos NO disparan deploys en Vercel. Hay que hacer deploy manual cada vez.
+
+### Hacer deploy manual a Vercel (copiar y pegar)
 
 ```powershell
-git remote set-url origin https://github.com/accesos-seo/innovar-crm.git
+Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; npx vercel --prod --token TU_VERCEL_TOKEN_AQUI --yes
 ```
+
+### Disparar redeploy vía API (cuando Claude lo hace)
+
+```bash
+curl -X POST "https://api.vercel.com/v13/deployments?teamId=team_K7m1K8aMiKR36myzPROYViA8&forceNew=1" \
+  -H "Authorization: Bearer VERCEL_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"crm-innovar-app-2026","project":"prj_dowuuH3bdSTKuNbnNOUCWD2Hxjpi","gitSource":{"type":"github","repoId":"1210035787","ref":"main"}}'
+```
+
+### Variables de entorno en Vercel (ya configuradas)
+
+| Variable | ID en Vercel | Valor |
+|---|---|---|
+| `VITE_SUPABASE_URL` | `VOe0hiQcqJEWVtDb` | `https://xdzbjptozeqcbnaqhtye.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | `Ef4LwttryZf6qBnR` | clave anon del `.env` local |
+
+---
+
+## Supabase
+
+| Campo | Valor |
+|---|---|
+| Project ID | `xdzbjptozeqcbnaqhtye` |
+| URL | `https://xdzbjptozeqcbnaqhtye.supabase.co` |
+| Claves | En `.env` del proyecto |
+
+> **ADVERTENCIA:** El Supabase MCP conectado en este entorno Claude es `Light_House` y `Swarm Agentes MD` — NO el proyecto Innovar. No usar el MCP para queries de Innovar.
+
+### Bucket de avatares (Storage)
+
+Si el avatar no se sube, ejecutar en SQL Editor de Supabase:
+
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "Avatar upload authenticated" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+
+CREATE POLICY "Avatar update authenticated" ON storage.objects
+  FOR UPDATE TO authenticated USING (bucket_id = 'avatars');
+
+CREATE POLICY "Avatar public read" ON storage.objects
+  FOR SELECT TO public USING (bucket_id = 'avatars');
+```
+
+---
+
+## Stack técnico
+
+- **Frontend:** React 19 + TypeScript + Vite 6
+- **UI:** shadcn/ui + Tailwind CSS 4
+- **Base de datos:** Supabase (PostgreSQL + Storage)
+- **Servidor local:** Node.js + Express (`server.ts`)
+- **Deploy:** Vercel (proyecto `crm-innovar-app-2026`)
+
+## Estructura de carpetas
+
+```
+src/
+  pages/        → Páginas (Dashboard, Proyectos, Cotizaciones, Profile...)
+  components/   → Componentes reutilizables y templates PDF
+  hooks/        → Hooks de datos (conexión a Supabase)
+  features/     → Módulos del cotizador paramétrico
+    kitchen/      → Cocinas (server-side via Edge Function)
+    closets/      → Closets (client-side)
+    doors/        → Puertas (client-side, reescrito)
+    mesones/      → Mesones (client-side, nuevo)
+    tv_center/    → Centro TV (client-side)
+    special_finishes/ → Acabados especiales (client-side)
+    hardware/     → Herrajes (client-side)
+  store/        → Estado global (Zustand)
+server/
+  services/     → Motor de precios server-side
+db/
+  migrations/   → Migraciones de base de datos
+```
+
+---
+
+## Arquitectura del cotizador — Patrón 3 capas
+
+Cada módulo sigue:
+
+```
+src/features/[modulo]/logic.ts              → Motor puro (tipos, constantes, cálculo)
+src/hooks/use-[modulo]-calculator.ts        → Hook React (useMemo sobre el motor)
+src/features/[modulo]/[Modulo]Module.tsx    → UI (Card + footer con total)
+```
+
+El hub central es `src/components/quotations/steps/QuotationDesignStep.tsx`.
+Todos los módulos notifican cambios vía `onDataChange(total, config)`.
+El `config` se guarda en `item.configuration` en Supabase y alimenta los templates PDF.
+
+### Templates PDF existentes
+
+| Módulo | Template |
+|---|---|
+| Cocinas | `src/components/pdf/templates/KitchenTemplate.tsx` |
+| Closets | `src/components/pdf/templates/ClosetTemplate.tsx` |
+| Puertas | `src/components/pdf/templates/DoorsTemplate.tsx` |
+| TV Center | `src/components/pdf/templates/TVCenterTemplate.tsx` |
+| Herrajes | `src/components/pdf/templates/HardwareTemplate.tsx` |
+| Acabados | `src/components/pdf/templates/SpecialFinishesTemplate.tsx` |
+| Mesones | ⚠️ **Pendiente crear** |
+
+---
+
+## Pendientes conocidos
+
+- [ ] `MesonesTemplate.tsx` — crear template PDF para mesones
+- [ ] `MesonesModule` sin `initialData` — no restaura config guardada al reabrir cotización
+- [ ] Conectar Vercel al repo correcto `accesos-seo/innovar-crm:master` para deploys automáticos
+- [ ] Verificar políticas del bucket `avatars` en Supabase Storage (ver SQL arriba)
 
 ---
 
@@ -49,44 +183,21 @@ git remote set-url origin https://github.com/accesos-seo/innovar-crm.git
 
 | Archivo / Carpeta | Por qué |
 |---|---|
-| `.env` | Contiene claves privadas de Supabase |
+| `.env` | Contiene claves privadas de Supabase y tokens |
 | `.claude/` | Contiene tokens y permisos locales |
+| `.vercel/` | Contiene IDs del proyecto Vercel |
 | `node_modules/` | Dependencias (se instalan con `npm install`) |
 | `*.log` | Logs de errores locales |
-
-Todos están en `.gitignore`. Si aparecen en `git status`, NO hacer `git add` sobre ellos.
-
----
-
-## Stack técnico
-
-- **Frontend:** React + TypeScript + Vite
-- **UI:** shadcn/ui + Tailwind CSS
-- **Base de datos:** Supabase
-- **Servidor:** Node.js + Express (`server.ts`)
-- **Deploy:** Vercel
-
-## Estructura de carpetas
-
-```
-src/
-  pages/        → Páginas de la app (Clientes, Proyectos, Cotizaciones...)
-  components/   → Componentes visuales reutilizables
-  hooks/        → Lógica de datos (conexión a Supabase)
-  features/     → Módulos de cotización por categoría (cocinas, closets...)
-server/
-  services/     → Motor de precios y cotizaciones
-db/
-  migrations/   → Cambios de base de datos
-docs/           → Documentación del proyecto
-```
 
 ---
 
 ## Reglas de trabajo
 
 1. El dueño NO es técnico — siempre dar comandos de copiar y pegar
-2. Usar `;` para encadenar comandos en PowerShell (no `&&`)
-3. Antes de cualquier push, confirmar con `git status` que no hay archivos sensibles
-4. Nunca subir `.env` aunque el usuario lo pida explícitamente
-5. Si hay error de autenticación, verificar con `gh auth status`
+2. Usar `;` para encadenar comandos en PowerShell (nunca `&&`)
+3. No usar tareas PowerShell en background en rutas OneDrive — se cuelgan
+4. Antes de cualquier push, confirmar con `git status` que no hay archivos sensibles
+5. Nunca subir `.env` aunque el usuario lo pida explícitamente
+6. El Supabase MCP del entorno NO corresponde al proyecto Innovar — no usarlo
+7. Para deploys a Vercel: usar el comando `npx vercel --prod` o la API (ver sección Vercel)
+8. Si hay error de autenticación GitHub: `gh auth status`
