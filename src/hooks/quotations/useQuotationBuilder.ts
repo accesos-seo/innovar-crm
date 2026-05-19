@@ -78,35 +78,53 @@ export function useQuotationBuilder() {
   React.useEffect(() => { setTransportCost(Number(transportDisplay) || 0); }, [transportDisplay]);
   React.useEffect(() => { setDiscountPercent(Number(discountDisplay) || 0); }, [discountDisplay]);
 
-  // Client search
+  // Client search — timeout propio de 12s para evitar spinner infinito
   React.useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
+
     const fetchClients = async () => {
+      if (!isMounted) return;
+      setIsSearching(true);
       try {
-        setIsSearching(true);
         if (!supabase) {
           await new Promise(resolve => setTimeout(resolve, 400));
-          if (isMounted) { setClients([]); setIsSearching(false); }
+          if (isMounted) setClients([]);
           return;
         }
+
+        const timeoutId = setTimeout(() => abortController.abort(), 12000);
+
         const query = supabase
           .from('clients')
-          .select('id, name, email, whatsapp_phone');
+          .select('id, name, email, whatsapp_phone')
+          .abortSignal(abortController.signal);
+
         const { data, error } = clientSearch.trim().length === 0
           ? await query.order('name').limit(20)
           : await query
               .or(`name.ilike.%${clientSearch}%,email.ilike.%${clientSearch}%,whatsapp_phone.ilike.%${clientSearch}%`)
               .order('name')
               .limit(10);
+
+        clearTimeout(timeoutId);
         if (!isMounted) return;
-        if (!error) setClients((data as QuotationClient[]) || []);
+        if (!error && data) setClients(data as QuotationClient[]);
+      } catch {
+        // Timeout o error de red — simplemente limpia la lista, sin spinner eterno
+        if (isMounted) setClients([]);
       } finally {
         if (isMounted) setIsSearching(false);
       }
     };
+
     const delay = clientSearch.trim().length === 0 ? 0 : 400;
     const timer = setTimeout(fetchClients, delay);
-    return () => { isMounted = false; clearTimeout(timer); };
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [clientSearch]);
 
   const totals = React.useMemo(() => {

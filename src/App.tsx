@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "./components/shared/ScrollToTop";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
+import { ConnectionBanner } from "./components/shared/ConnectionBanner";
 import { supabase } from "@/lib/supabaseClient";
 
 // ── Static imports (critical path — always needed) ─────────────────────────
@@ -64,7 +65,9 @@ function PageLoader() {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 0,
+      // Reintenta 2 veces antes de mostrar error (cubre cold starts de Supabase)
+      retry: 2,
+      retryDelay: (attempt) => Math.min(3000 * (attempt + 1), 10000),
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5,
       networkMode: "always",
@@ -195,6 +198,7 @@ export default function App() {
               </Routes>
             </Suspense>
           </Router>
+          <ConnectionBanner />
           <PremiumToaster />
           <ReactQueryDevtools initialIsOpen={false} />
         </TooltipProvider>

@@ -16,9 +16,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Configuración de Supabase incompleta. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en los Secrets.');
 }
 
-// Fetch con timeout global de 10 segundos para TODAS las peticiones a Supabase.
-// Esto cubre los hooks que no usan withTimeout individualmente.
-const GLOBAL_TIMEOUT_MS = 10000;
+// Timeout global por petición HTTP. Simple y predecible: si Supabase no responde
+// en 15s, falla rápido. Los reintentos los maneja React Query en niveles superiores.
+const GLOBAL_TIMEOUT_MS = 15000;
 
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
