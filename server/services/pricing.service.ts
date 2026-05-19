@@ -14,8 +14,21 @@
  */
 
 import { supabase as defaultSupabase } from '../../src/lib/supabaseClient';
-import { KitchenConfigSchema, DoorsConfigSchema } from '../../src/schemas/quotation.schema';
+import {
+  KitchenConfigSchema,
+  DoorsConfigSchema,
+  TVCenterConfigSchema,
+  SpecialFinishesConfigSchema,
+  ClosetConfigSchema,
+  InteriorDoorsConfigSchema,
+  MesonesConfigSchema,
+} from '../../src/schemas/quotation.schema';
 import { calcularCocina, PriceCatalog } from './kitchen.engine';
+import { calcularTVCenter } from './tv-center.engine';
+import { calcularSpecialFinishes } from './special-finishes.engine';
+import { calcularCloset } from './closets.engine';
+import { calcularInteriorDoors } from './interior-doors.engine';
+import { calcularMesones } from './mesones.engine';
 
 export class PricingService {
 
@@ -67,6 +80,106 @@ export class PricingService {
     return {
       subtotal:       result.subtotal,
       metrajeEfectivo: result.metrajeResultante,
+      desglose:        result.desglose,
+      preciosUsados:   result.preciosUsados,
+    };
+  }
+
+  /**
+   * Calcula el precio de un Centro de TV.
+   * Valida el input, carga el catálogo y delega a tv-center.engine.ts
+   */
+  static async calculateTVCenter(
+    configData: any,
+    supabaseClient = defaultSupabase
+  ): Promise<{ subtotal: number; metrajeEfectivo: number | null; desglose: any; preciosUsados: any }> {
+    const config  = TVCenterConfigSchema.parse(configData);
+    const catalog = await PricingService.loadCatalog(supabaseClient);
+    const result  = calcularTVCenter(config, catalog);
+
+    return {
+      subtotal:        result.subtotal,
+      metrajeEfectivo: result.metrajeEfectivo,
+      desglose:        result.desglose,
+      preciosUsados:   result.preciosUsados,
+    };
+  }
+
+  /**
+   * Calcula el precio de un módulo de Mesones (standalone).
+   * Valida el input, carga el catálogo y delega a mesones.engine.ts
+   */
+  static async calculateMesones(
+    configData: any,
+    supabaseClient = defaultSupabase
+  ): Promise<{ subtotal: number; metrajeEfectivo: number | null; desglose: any; preciosUsados: any }> {
+    const config  = MesonesConfigSchema.parse(configData);
+    const catalog = await PricingService.loadCatalog(supabaseClient);
+    const result  = calcularMesones(config, catalog);
+
+    return {
+      subtotal:        result.subtotal,
+      metrajeEfectivo: result.metrajeEfectivo,
+      desglose:        result.desglose,
+      preciosUsados:   result.preciosUsados,
+    };
+  }
+
+  /**
+   * Calcula el precio de Puertas Interiores (categoría 'puerta', singular).
+   * NO confundir con calculateDoors (categoría 'puertas', plural = repuestos cocina).
+   */
+  static async calculateInteriorDoors(
+    configData: any,
+    supabaseClient = defaultSupabase
+  ): Promise<{ subtotal: number; metrajeEfectivo: number | null; desglose: any; preciosUsados: any }> {
+    const config  = InteriorDoorsConfigSchema.parse(configData);
+    const catalog = await PricingService.loadCatalog(supabaseClient);
+    const result  = calcularInteriorDoors(config, catalog);
+
+    return {
+      subtotal:        result.subtotal,
+      metrajeEfectivo: result.metrajeEfectivo,
+      desglose:        result.desglose,
+      preciosUsados:   result.preciosUsados,
+    };
+  }
+
+  /**
+   * Calcula el precio de un Closet a medida.
+   * Valida el input, carga el catálogo y delega a closets.engine.ts
+   */
+  static async calculateCloset(
+    configData: any,
+    supabaseClient = defaultSupabase
+  ): Promise<{ subtotal: number; metrajeEfectivo: number | null; desglose: any; preciosUsados: any }> {
+    const config  = ClosetConfigSchema.parse(configData);
+    const catalog = await PricingService.loadCatalog(supabaseClient);
+    const result  = calcularCloset(config, catalog);
+
+    return {
+      subtotal:        result.subtotal,
+      metrajeEfectivo: result.metrajeEfectivo,
+      desglose:        result.desglose,
+      preciosUsados:   result.preciosUsados,
+    };
+  }
+
+  /**
+   * Calcula el precio de un módulo de Acabados Especiales.
+   * Valida el input, carga el catálogo y delega a special-finishes.engine.ts
+   */
+  static async calculateSpecialFinishes(
+    configData: any,
+    supabaseClient = defaultSupabase
+  ): Promise<{ subtotal: number; metrajeEfectivo: number | null; desglose: any; preciosUsados: any }> {
+    const config  = SpecialFinishesConfigSchema.parse(configData);
+    const catalog = await PricingService.loadCatalog(supabaseClient);
+    const result  = calcularSpecialFinishes(config, catalog);
+
+    return {
+      subtotal:        result.subtotal,
+      metrajeEfectivo: result.metrajeEfectivo,
       desglose:        result.desglose,
       preciosUsados:   result.preciosUsados,
     };

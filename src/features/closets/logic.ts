@@ -1,3 +1,15 @@
+/**
+ * @deprecated for production — moved to server-side.
+ *
+ * Producción: server/services/closets.engine.ts + pricing_catalog (DB).
+ * Este archivo se mantiene solo para:
+ *   - Tipos/interfaces compartidos (ClosetInput, ClosetCalculation, ClosetType)
+ *   - Constantes NO monetarias (CLOSET_DEPTHS, CLOSET_DEFAULTS)
+ *   - Tests unitarios de regresión matemática
+ *
+ * NO usar calculateCloset() en runtime de producción. La UI debe
+ * consumir useClosetCalculator() (server-side via useCalculatePrice).
+ */
 
 export type ClosetType = 'estandar' | 'especial' | 'empotrado';
 export type DoorType = 'corrediza' | 'batiente';

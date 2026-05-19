@@ -55,6 +55,22 @@ function CategoryEmptyState({ category, label, onAdd }: { category: string; labe
   );
 }
 
+function ItemWrapper({ id, onRemove, children }: { id: string; onRemove: (id: string) => void; children: React.ReactNode }) {
+  return (
+    <div className="relative group/item">
+      {children}
+      <Button
+        variant="destructive"
+        size="icon"
+        className="absolute -top-4 -right-4 rounded-full shadow-xl opacity-0 group-hover/item:opacity-100 transition-opacity z-20"
+        onClick={() => onRemove(id)}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
 interface QuotationDesignStepProps {
   selectedClient: QuotationClient | null;
   leadContext: any;
@@ -92,21 +108,9 @@ export function QuotationDesignStep({
     setItems([...items, { id: newId, category, calculatedTotal: 0, configuration: {} }]);
   };
 
-  const removeItem = (id: string) => setItems(items.filter(i => i.id !== id));
-
-  const ItemWrapper = ({ id, children }: { id: string; children: React.ReactNode }) => (
-    <div className="relative group/item">
-      {children}
-      <Button
-        variant="destructive"
-        size="icon"
-        className="absolute -top-4 -right-4 rounded-full shadow-xl opacity-0 group-hover/item:opacity-100 transition-opacity z-20"
-        onClick={() => removeItem(id)}
-      >
-        <Trash2 className="w-4 h-4" />
-      </Button>
-    </div>
-  );
+  const removeItem = React.useCallback((id: string) => {
+    setItems(items.filter(i => i.id !== id));
+  }, [items, setItems]);
 
   return (
     <motion.div
@@ -226,14 +230,14 @@ export function QuotationDesignStep({
               <>
                 <TabsContent value="cocina" className="mt-0 focus-visible:outline-none space-y-12">
                   {items.filter(i => i.category === 'cocina' || i.category === 'cocina_integral').map(item => (
-                    <ItemWrapper key={item.id} id={item.id}>
+                    <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                       <KitchenModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} />
                     </ItemWrapper>
                   ))}
                 </TabsContent>
                 <TabsContent value="closet" className="mt-0 focus-visible:outline-none space-y-12">
                   {items.filter(i => i.category === 'closet').map(item => (
-                    <ItemWrapper key={item.id} id={item.id}>
+                    <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                       <ClosetModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
                     </ItemWrapper>
                   ))}
@@ -242,7 +246,7 @@ export function QuotationDesignStep({
                   {items.filter(i => i.category === 'puerta' || i.category === 'puertas').length === 0
                     ? <CategoryEmptyState category="puerta" label="Puerta" onAdd={() => addItem('puerta')} />
                     : items.filter(i => i.category === 'puerta' || i.category === 'puertas').map(item => (
-                      <ItemWrapper key={item.id} id={item.id}>
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                         <DoorsModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
                       </ItemWrapper>
                     ))}
@@ -251,7 +255,7 @@ export function QuotationDesignStep({
                   {items.filter(i => i.category === 'tv_center').length === 0
                     ? <CategoryEmptyState category="tv_center" label="Centro TV" onAdd={() => addItem('tv_center')} />
                     : items.filter(i => i.category === 'tv_center').map(item => (
-                      <ItemWrapper key={item.id} id={item.id}>
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                         <TVCenterModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
                       </ItemWrapper>
                     ))}
@@ -260,7 +264,7 @@ export function QuotationDesignStep({
                   {items.filter(i => i.category === 'mesones').length === 0
                     ? <CategoryEmptyState category="mesones" label="Mesones" onAdd={() => addItem('mesones')} />
                     : items.filter(i => i.category === 'mesones').map(item => (
-                      <ItemWrapper key={item.id} id={item.id}>
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                         <MesonesModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} />
                       </ItemWrapper>
                     ))}
@@ -269,7 +273,7 @@ export function QuotationDesignStep({
                   {items.filter(i => i.category === 'herrajes').length === 0
                     ? <CategoryEmptyState category="herrajes" label="Herrajes" onAdd={() => addItem('herrajes')} />
                     : items.filter(i => i.category === 'herrajes').map(item => (
-                      <ItemWrapper key={item.id} id={item.id}>
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                         <HardwareModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
                       </ItemWrapper>
                     ))}
@@ -278,7 +282,7 @@ export function QuotationDesignStep({
                   {items.filter(i => i.category === 'especiales').length === 0
                     ? <CategoryEmptyState category="especiales" label="Acabados especiales" onAdd={() => addItem('especiales')} />
                     : items.filter(i => i.category === 'especiales').map(item => (
-                      <ItemWrapper key={item.id} id={item.id}>
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
                         <SpecialFinishesModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
                       </ItemWrapper>
                     ))}

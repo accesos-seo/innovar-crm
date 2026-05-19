@@ -1,5 +1,16 @@
 /**
- * REGLA 1: Capa de Lógica Pura (Engine)
+ * @deprecated for production — moved to server-side.
+ *
+ * Producción: server/services/tv-center.engine.ts + pricing_catalog (DB).
+ * Este archivo se mantiene solo para:
+ *   - Tipos/interfaces compartidos (TVCenterInput)
+ *   - Constantes NO monetarias usadas por la UI (MIN_WIDTH, MAX_WIDTH, BASE_SHELVES, etc.)
+ *   - Tests unitarios de regresión matemática
+ *
+ * NO usar calculateTVCenterTotal() en runtime de producción. La UI debe
+ * consumir useTVCenterCalculator() (server-side via useCalculatePrice).
+ *
+ * REGLA 1 original: Capa de Lógica Pura (Engine)
  * Módulo: Cotizador de Centro de TV
  * Fuente de verdad: 2-CENTRO_DE_TV.docx
  */

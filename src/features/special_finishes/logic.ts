@@ -1,5 +1,16 @@
 /**
- * REGLA 1: Capa de Lógica Pura (Engine)
+ * @deprecated for production — moved to server-side.
+ *
+ * Producción: server/services/special-finishes.engine.ts + pricing_catalog (DB).
+ * Este archivo se mantiene solo para:
+ *   - Tipos/interfaces compartidos (SpecialFinishesInput, SpecialDoor, SpecialFinishesResults)
+ *   - Constante SPECIAL_FINISH_LEGAL_NOTE (texto legal, no monetaria)
+ *   - Tests unitarios de regresión matemática
+ *
+ * NO usar calculateSpecialFinishes() en runtime de producción. La UI debe
+ * consumir useSpecialFinishesCalculator() (server-side via useCalculatePrice).
+ *
+ * REGLA 1 original: Capa de Lógica Pura (Engine)
  * Módulo: Cotizador de Acabados Especiales
  */
 

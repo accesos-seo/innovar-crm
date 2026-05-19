@@ -1,3 +1,18 @@
+/**
+ * @deprecated for production — moved to server-side.
+ *
+ * Producción: server/services/interior-doors.engine.ts + pricing_catalog (DB).
+ * Categoría wire-level: 'puerta' (singular).
+ *
+ * Este archivo se mantiene solo para:
+ *   - Tipos/interfaces compartidos (DoorItem, DoorsInput, DoorsCalculation, etc.)
+ *   - Constantes NO monetarias (DOORS_DEFAULTS sin transport, HARDWARE_COLORS)
+ *   - Tests unitarios de regresión matemática
+ *
+ * NO usar calculateDoors() en runtime de producción. La UI debe consumir
+ * useDoorsCalculator() (server-side via useCalculatePrice).
+ */
+
 export type DoorType = 'batiente' | 'corrediza';
 export type WidthRange = '50-85' | '85-110';
 export type HardwareColor = 'aluminio' | 'negro';

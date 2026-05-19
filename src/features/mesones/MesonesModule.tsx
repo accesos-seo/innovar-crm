@@ -147,12 +147,12 @@ function MesonRow({ item, calc, onChange, onRemove, index }: MesonRowProps) {
         <div className="space-y-2">
           <label className="text-[9px] font-black text-primary/70 uppercase tracking-widest">Tipo</label>
           <Select value={item.tipo} onValueChange={(v) => handleTipoChange(v as MesonTipo)}>
-            <SelectTrigger className="h-11 bg-background border-border/40 text-xs font-bold rounded-none">
-              <SelectValue />
+            <SelectTrigger className="w-full h-11 bg-background border-border/40 text-xs font-bold rounded-none">
+              <SelectValue placeholder="Selecciona tipo" />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(TIPO_LABELS) as MesonTipo[]).map(t => (
-                <SelectItem key={t} value={t} className="text-xs font-bold">{TIPO_LABELS[t]}</SelectItem>
+                <SelectItem key={t} value={t} label={TIPO_LABELS[t]} className="text-xs font-bold">{TIPO_LABELS[t]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -167,12 +167,12 @@ function MesonRow({ item, calc, onChange, onRemove, index }: MesonRowProps) {
             </span>
           </label>
           <Select value={item.material} onValueChange={(v) => onChange('material', v as MesonMaterial)}>
-            <SelectTrigger className="h-11 bg-background border-border/40 text-xs font-bold rounded-none">
-              <SelectValue />
+            <SelectTrigger className="w-full h-11 bg-background border-border/40 text-xs font-bold rounded-none">
+              <SelectValue placeholder="Selecciona material" />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(MATERIAL_LABELS) as MesonMaterial[]).map(m => (
-                <SelectItem key={m} value={m} className="text-xs font-bold">
+                <SelectItem key={m} value={m} label={MATERIAL_LABELS[m]} className="text-xs font-bold">
                   {MATERIAL_LABELS[m]}
                   <span className="ml-1 font-normal opacity-60 text-[10px]">
                     ${fmt(BASE_PRICES[m].standard)}/ML
@@ -301,15 +301,18 @@ function MesonRow({ item, calc, onChange, onRemove, index }: MesonRowProps) {
                 value={String(item.alturaLateral ?? 0)}
                 onValueChange={(v) => onChange('alturaLateral', parseInt(v) as BarraLateralAltura)}
               >
-                <SelectTrigger className="h-8 w-32 bg-background border-border/40 text-xs font-bold rounded-none">
-                  <SelectValue />
+                <SelectTrigger className="h-8 w-36 bg-background border-border/40 text-xs font-bold rounded-none">
+                  <SelectValue placeholder="Selecciona lateral" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BARRA_LATERAL_HEIGHTS.map(h => (
-                    <SelectItem key={h} value={String(h)} className="text-xs font-bold">
-                      {h === 0 ? 'Sin lateral' : `${h}cm`}
-                    </SelectItem>
-                  ))}
+                  {BARRA_LATERAL_HEIGHTS.map(h => {
+                    const lateralLabel = h === 0 ? 'Sin lateral' : `${h}cm`;
+                    return (
+                      <SelectItem key={h} value={String(h)} label={lateralLabel} className="text-xs font-bold">
+                        {lateralLabel}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               {(item.alturaLateral ?? 0) > 0 && calc.subtotalLaterales > 0 && (

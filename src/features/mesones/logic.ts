@@ -1,3 +1,18 @@
+/**
+ * @deprecated for production — moved to server-side.
+ *
+ * Producción: server/services/mesones.engine.ts + pricing_catalog (DB).
+ * Categoría wire-level: 'mesones'.
+ *
+ * Este archivo se mantiene solo para:
+ *   - Tipos/interfaces compartidos (MesonItem, MesonesInput, MesonesCalculation, etc.)
+ *   - Constantes NO monetarias (BARRA_LATERAL_HEIGHTS, MESONES_DEFAULTS)
+ *   - Tests unitarios de regresión matemática
+ *
+ * NO usar calculateMesones() en runtime de producción. La UI debe consumir
+ * useMesonesCalculator() (server-side via useCalculatePrice).
+ */
+
 export type MesonMaterial = 'granito' | 'cuarzo' | 'sinterizado';
 export type MesonTipo = 'meson' | 'isla' | 'barra';
 export type BarraLateralAltura = 0 | 90 | 100 | 110;

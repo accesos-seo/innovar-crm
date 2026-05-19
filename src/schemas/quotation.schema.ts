@@ -97,10 +97,116 @@ export const DoorsConfigSchema = z.object({
   }))
 });
 
+// =============================================================
+// 2.2 ESQUEMA DE CENTRO DE TV
+// Motor: server/services/tv-center.engine.ts
+// Doc:   Cotizacioners/2-CENTRO_DE_TV.docx
+// =============================================================
+// `width` sin min/max — el engine hace el clamp [1.20, 2.40].
+// `manualDiscount` NO está aquí: vive solo en UI, se aplica
+// en el hook adaptador post-cálculo.
+export const TVCenterConfigSchema = z.object({
+  width:            z.number(),
+  hasHighGloss:     z.boolean().default(false),
+  hasLedLights:     z.boolean().default(false),
+  floatingShelves:  z.number().int().nonnegative().default(2),
+  equipmentSpaces:  z.number().int().nonnegative().default(0),
+  includeTransport: z.boolean().default(false),
+});
+
+// =============================================================
+// 2.2.3 ESQUEMA DE MESONES (standalone)
+// Motor:    server/services/mesones.engine.ts
+// Doc:      Cotizacioners/5-MESONES.docx
+// Categoría: 'mesones'
+// =============================================================
+// `discountPercent` UI-only. `transport` raw number (compat UI).
+export const MesonItemSchema = z.object({
+  id:                       z.string().optional(),
+  tipo:                     z.enum(['meson', 'isla', 'barra']),
+  material:                 z.enum(['granito', 'cuarzo', 'sinterizado']),
+  metrosLineales:           z.number().nonnegative(),
+  fondo:                    z.number().nonnegative(),  // cm
+  incluyeSalpicaderoAlto:   z.boolean().optional(),
+  incluyeLaterales:         z.boolean().optional(),
+  incluyeRegrueso:          z.boolean().optional(),
+  alturaLateral:            z.union([z.literal(0), z.literal(90), z.literal(100), z.literal(110)]).optional(),
+});
+
+export const MesonesConfigSchema = z.object({
+  mesones:   z.array(MesonItemSchema).default([]),
+  transport: z.number().nonnegative().default(0),
+});
+
+// =============================================================
+// 2.2.2 ESQUEMA DE PUERTAS INTERIORES
+// Motor:    server/services/interior-doors.engine.ts
+// Doc:      Cotizacioners/6-PUERTAS.docx
+// Categoría: 'puerta' (singular) — NO confundir con 'puertas'
+//            (plural = repuestos de cocina, DoorsConfigSchema).
+// =============================================================
+// `discountPercent` UI-only. `hardwareColor` y `hasLintel` no
+// afectan precio (UI-only). `transport` viene del toggle UI.
+export const InteriorDoorItemSchema = z.object({
+  id:            z.string().optional(),
+  type:          z.enum(['batiente', 'corrediza']),
+  width:         z.number().nonnegative(),          // cm
+  height:        z.number().nonnegative(),          // m
+  quantity:      z.number().int().nonnegative(),
+  hardwareColor: z.enum(['aluminio', 'negro']).optional(),
+  hasLintel:     z.boolean().optional(),
+  location:      z.string().optional(),
+  notes:         z.string().optional(),
+});
+
+export const InteriorDoorsConfigSchema = z.object({
+  doors:     z.array(InteriorDoorItemSchema).default([]),
+  transport: z.number().nonnegative().default(0),
+});
+
+// =============================================================
+// 2.2.1 ESQUEMA DE CLOSETS A MEDIDA
+// Motor: server/services/closets.engine.ts
+// Doc:   Cotizacioners/4-CLOSETS.docx
+// =============================================================
+// `transport` es un número editable por el usuario (compat UI):
+// el motor lo añade tal cual al subtotal.
+// `discountPercent` UI-only — no viaja al backend.
+export const ClosetConfigSchema = z.object({
+  type:      z.enum(['estandar', 'especial', 'empotrado']),
+  width:     z.number().nonnegative(),
+  height:    z.number().nonnegative(),
+  doorType:  z.enum(['corrediza', 'batiente']).optional(),
+  transport: z.number().nonnegative().default(0),
+});
+
+// =============================================================
+// 2.3 ESQUEMA DE ACABADOS ESPECIALES
+// Motor: server/services/special-finishes.engine.ts
+// Doc:   Cotizacioners/3-ACABADOS.docx
+// =============================================================
+// Categoría wire-level: 'especiales' (no 'acabados_especiales')
+// — alineada con QuotationDesignStep.tsx y useQuotationBuilder.ts.
+// `manualDiscount` UI-only, no viaja al backend.
+export const SpecialFinishDoorSchema = z.object({
+  id:     z.string().optional(),
+  height: z.number().nonnegative(),
+  width:  z.number().nonnegative(),
+});
+
+export const SpecialFinishesConfigSchema = z.object({
+  description:      z.string().optional(),
+  doors:            z.array(SpecialFinishDoorSchema).default([]),
+  includeLed:       z.boolean().default(false),
+  ledMl:            z.number().nonnegative().default(0),
+  includeTransport: z.boolean().default(false),
+});
+
 // 3. ESQUEMA DEL REQUEST PARA CALCULAR ITEM (Lo que el Frontend le envía al Backend)
+// Nota: 'puerta' (singular) = puertas interiores (módulo doors). 'puertas' (plural) = puertas/tapas repuestos de cocina.
 export const CalculateItemRequestSchema = z.object({
-  category: z.enum(['cocina', 'closet', 'puertas', 'tv_center']),
-  configuration: z.any() // Aquí vendrá KitchenConfigSchema, ClosetSchema, etc.
+  category: z.enum(['cocina', 'closet', 'puerta', 'puertas', 'tv_center', 'especiales', 'mesones']),
+  configuration: z.any() // Aquí vendrá KitchenConfigSchema, ClosetSchema, TVCenterConfigSchema, SpecialFinishesConfigSchema, etc.
 });
 
 // ESQUEMA PARA GUARDAR LA COTIZACIÓN COMPLETA EN LA BD

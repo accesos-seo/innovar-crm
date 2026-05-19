@@ -31,11 +31,30 @@ export const calculateItemTotal = async (req: Request, res: Response) => {
         calculationResult = await PricingService.calculateDoors(configuration, supabase);
         break;
 
-      // Próximas categorías — replicar este patrón:
-      // case 'closet':   calculationResult = await PricingService.calculateCloset(configuration, supabase); break;
-      // case 'tv_center': calculationResult = await PricingService.calculateTVCenter(configuration, supabase); break;
-      // case 'mesones':  calculationResult = await PricingService.calculateMesones(configuration, supabase); break;
-      // case 'puertas_interiores': calculationResult = await PricingService.calculatePuertasInteriores(configuration, supabase); break;
+      case 'tv_center':
+        calculationResult = await PricingService.calculateTVCenter(configuration, supabase);
+        break;
+
+      case 'especiales':
+        // Acabados Especiales — puertas en aluminio, LED, transporte
+        calculationResult = await PricingService.calculateSpecialFinishes(configuration, supabase);
+        break;
+
+      case 'closet':
+        calculationResult = await PricingService.calculateCloset(configuration, supabase);
+        break;
+
+      case 'puerta':
+        // Puertas interiores (batiente/corrediza). Singular intencional.
+        // 'puertas' (plural) sigue siendo repuestos de cocina.
+        calculationResult = await PricingService.calculateInteriorDoors(configuration, supabase);
+        break;
+
+      case 'mesones':
+        // Mesones standalone (sin cocina). El mesón dentro de una cocina lo
+        // sigue calculando calculateKitchen vía kitchen.engine.ts
+        calculationResult = await PricingService.calculateMesones(configuration, supabase);
+        break;
 
       default:
         return res.status(400).json({
