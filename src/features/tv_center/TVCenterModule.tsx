@@ -214,18 +214,21 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
                 value={String(formData.floatingShelves)}
                 onValueChange={v => set('floatingShelves', Number(v))}
               >
-                <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
+                <SelectTrigger className="w-full h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SHELF_OPTIONS.map(n => (
-                    <SelectItem key={n} value={String(n)} className="h-12 font-medium">
-                      {n === 0 ? '0 repisas (−$200,000)'
-                       : n === 1 ? '1 repisa (−$100,000)'
-                       : n === 2 ? '2 repisas (incluidas)'
-                       : `${n} repisas (+$${((n - 2) * 100_000).toLocaleString('es-CO')})`}
-                    </SelectItem>
-                  ))}
+                  {SHELF_OPTIONS.map(n => {
+                    const shelfLabel = n === 0 ? '0 repisas (−$200,000)'
+                      : n === 1 ? '1 repisa (−$100,000)'
+                      : n === 2 ? '2 repisas (incluidas)'
+                      : `${n} repisas (+$${((n - 2) * 100_000).toLocaleString('es-CO')})`;
+                    return (
+                      <SelectItem key={n} value={String(n)} label={shelfLabel} className="h-12 font-medium">
+                        {shelfLabel}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -238,15 +241,18 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
                 value={String(formData.equipmentSpaces)}
                 onValueChange={v => set('equipmentSpaces', Number(v))}
               >
-                <SelectTrigger className="h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
+                <SelectTrigger className="w-full h-14 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {EQUIPMENT_OPTIONS.map(n => (
-                    <SelectItem key={n} value={String(n)} className="h-12 font-medium">
-                      {n === 0 ? 'Sin espacios' : `${n} espacio${n > 1 ? 's' : ''} (+$${(n * 150_000).toLocaleString('es-CO')})`}
-                    </SelectItem>
-                  ))}
+                  {EQUIPMENT_OPTIONS.map(n => {
+                    const equipLabel = n === 0 ? 'Sin espacios' : `${n} espacio${n > 1 ? 's' : ''} (+$${(n * 150_000).toLocaleString('es-CO')})`;
+                    return (
+                      <SelectItem key={n} value={String(n)} label={equipLabel} className="h-12 font-medium">
+                        {equipLabel}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

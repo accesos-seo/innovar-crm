@@ -30,6 +30,9 @@ const MODULOS_ESPECIALES = [
 ] as const;
 
 export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) => {
+  const [metrajeDisplay, setMetrajeDisplay] = React.useState('');
+  const [profDisplay, setProfDisplay] = React.useState('60');
+
   const form = useForm({
     resolver: zodResolver(KitchenConfigSchema),
     defaultValues: {
@@ -104,17 +107,17 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Tipo de Cocina</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background border-border/40 h-14">
+                      <SelectTrigger className="w-full bg-background border-border/40 h-14">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="COMPLETA_STANDARD">Completa Standard</SelectItem>
-                      <SelectItem value="COMPLETA_PREMIUM">Completa Premium</SelectItem>
-                      <SelectItem value="COMPLETA_DELUXE">Completa Deluxe</SelectItem>
-                      <SelectItem value="SOLO_SUPERIOR">Solo Superiores</SelectItem>
-                      <SelectItem value="SOLO_INFERIOR">Solo Inferiores</SelectItem>
-                      <SelectItem value="FRENTE_POLLO">Frente PLL</SelectItem>
+                      <SelectItem value="COMPLETA_STANDARD" label="Completa Standard">Completa Standard</SelectItem>
+                      <SelectItem value="COMPLETA_PREMIUM" label="Completa Premium">Completa Premium</SelectItem>
+                      <SelectItem value="COMPLETA_DELUXE" label="Completa Deluxe">Completa Deluxe</SelectItem>
+                      <SelectItem value="SOLO_SUPERIOR" label="Solo Superiores">Solo Superiores</SelectItem>
+                      <SelectItem value="SOLO_INFERIOR" label="Solo Inferiores">Solo Inferiores</SelectItem>
+                      <SelectItem value="FRENTE_POLLO" label="Frente PLL">Frente PLL</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -125,16 +128,16 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Layout / Forma</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background border-border/40 h-14">
+                      <SelectTrigger className="w-full bg-background border-border/40 h-14">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="L">Forma en L</SelectItem>
-                      <SelectItem value="U">Forma en U</SelectItem>
-                      <SelectItem value="LINEAL">Lineal</SelectItem>
-                      <SelectItem value="PARALELA">Paralela</SelectItem>
-                      <SelectItem value="ISLA">Con Isla</SelectItem>
+                      <SelectItem value="L" label="Forma en L">Forma en L</SelectItem>
+                      <SelectItem value="U" label="Forma en U">Forma en U</SelectItem>
+                      <SelectItem value="LINEAL" label="Lineal">Lineal</SelectItem>
+                      <SelectItem value="PARALELA" label="Paralela">Paralela</SelectItem>
+                      <SelectItem value="ISLA" label="Con Isla">Con Isla</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -150,10 +153,18 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                         inputMode="decimal"
                         placeholder="0.00"
                         className="h-14 bg-background border-border/40 text-xl font-mono font-bold"
-                        value={field.value || ''}
+                        value={metrajeDisplay}
                         onChange={e => {
-                          const val = e.target.value.replace(',', '.');
-                          field.onChange(val === '' ? 0 : parseFloat(val) || 0);
+                          const raw = e.target.value.replace(',', '.');
+                          if (/^(\d*\.?\d*)$/.test(raw)) {
+                            setMetrajeDisplay(raw);
+                            field.onChange(parseFloat(raw) || 0);
+                          }
+                        }}
+                        onBlur={() => {
+                          const num = parseFloat(metrajeDisplay) || 0;
+                          setMetrajeDisplay(num > 0 ? String(num) : '');
+                          field.onChange(num);
                         }}
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary px-2 py-1 bg-primary/10">ML</span>
@@ -170,15 +181,15 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Material Mesón</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background/50 h-12">
+                      <SelectTrigger className="w-full bg-background/50 h-12">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="SINTERIZADO">Sinterizado — $1.200.000/ml</SelectItem>
-                      <SelectItem value="CUARZO">Cuarzo — $850.000/ml</SelectItem>
-                      <SelectItem value="GRANITO">Granito — $700.000/ml</SelectItem>
-                      <SelectItem value="NINGUNO">Sin mesón</SelectItem>
+                      <SelectItem value="SINTERIZADO" label="Sinterizado">Sinterizado — $1.200.000/ml</SelectItem>
+                      <SelectItem value="CUARZO" label="Cuarzo">Cuarzo — $850.000/ml</SelectItem>
+                      <SelectItem value="GRANITO" label="Granito">Granito — $700.000/ml</SelectItem>
+                      <SelectItem value="NINGUNO" label="Sin mesón">Sin mesón</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -193,8 +204,17 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                         type="text"
                         inputMode="numeric"
                         className="h-12 bg-background/50 font-mono font-bold pr-14"
-                        value={field.value || ''}
-                        onChange={e => field.onChange(parseInt(e.target.value.replace(/\D/g, '')) || 60)}
+                        value={profDisplay}
+                        onChange={e => {
+                          const raw = e.target.value.replace(/\D/g, '');
+                          setProfDisplay(raw);
+                          field.onChange(parseInt(raw) || 0);
+                        }}
+                        onBlur={() => {
+                          const num = parseInt(profDisplay) || 60;
+                          setProfDisplay(String(num));
+                          field.onChange(num);
+                        }}
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary">CM</span>
                     </div>

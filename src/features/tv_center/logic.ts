@@ -70,7 +70,7 @@ export const calculateTVCenterTotal = (input: TVCenterInput) => {
       base:          `Centro TV ${width.toFixed(2)}m — Base $${basePrice.toLocaleString('es-CO')}`,
       finish:        input.hasHighGloss ? 'Acabado Alto Brillo' : 'Acabado Estándar',
       ledDetails:    input.hasLedLights ? 'Con Iluminación LED' : 'Sin LED',
-      shelvesDetails:`${input.floatingShelves ?? 2} repisas${extraShelves > 0 ? ` (${extraShelves} adicionales)` : ' (incluidas en base)'}`,
+      shelvesDetails:`${input.floatingShelves ?? 2} repisas${shelvesAdj > 0 ? ` (${shelvesAdj} adicionales)` : ' (incluidas en base)'}`,
       equipDetails:  (input.equipmentSpaces ?? 0) > 0
                        ? `${input.equipmentSpaces} espacio(s) para equipos`
                        : 'Sin espacios para equipos',
