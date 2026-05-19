@@ -55,9 +55,14 @@ function triggerStaleRecovery(reason: string): void {
       });
     }
     // Hard fallback: si signOut no completa en 3s (porque el endpoint /auth/v1/logout
-    // también está colgado), forzar redirect manual a /login.
+    // también está colgado), forzar redirect manual a /login. NO redirigir si ya
+    // estamos en /login (evita loops de recarga durante login fresh).
     setTimeout(() => {
-      if (staleRecoveryInProgress && typeof window !== 'undefined') {
+      if (
+        staleRecoveryInProgress &&
+        typeof window !== 'undefined' &&
+        !window.location.pathname.includes('/login')
+      ) {
         console.warn('⚠️ signOut tardó >3s — forzando redirect manual a /login.');
         try {
           window.location.href = '/login';
@@ -112,13 +117,18 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise
 
   return fetch(input as any, { ...init, signal: controller.signal })
     .then((response) => {
-      // Señal directa de sesión rota: cualquier 400/401/403 al endpoint /auth/v1/token.
-      // (Cubre refresh_token vencido, password rechazado por backend, etc.)
+      // Señal directa de sesión rota: 400/401/403 al endpoint /auth/v1/token CON
+      // grant_type=refresh_token. NO disparar para grant_type=password — eso es
+      // un login fresh (el usuario tipeó mal su contraseña) y debe manejarlo el
+      // formulario, no nuestro recovery automático.
       if (urlString.includes('/auth/v1/token') && response.status >= 400 && response.status < 500) {
-        triggerStaleRecovery(`auth endpoint respondió ${response.status}`);
-      } else {
-        // Cualquier otra respuesta HTTP significa red OK + backend responde → reset.
-        consecutiveTimeouts = 0;
+        const bodyStr = typeof init?.body === 'string' ? init.body : '';
+        const isRefresh =
+          urlString.includes('grant_type=refresh_token') ||
+          bodyStr.includes('grant_type=refresh_token');
+        if (isRefresh) {
+          triggerStaleRecovery(`refresh_token respondió ${response.status}`);
+        }
       }
       return response;
     })
