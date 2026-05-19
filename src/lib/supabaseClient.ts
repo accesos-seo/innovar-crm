@@ -18,14 +18,62 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Timeout global por petición HTTP. Si Supabase no responde en 8s, falla rápido.
 // Los reintentos los maneja React Query en niveles superiores (retry: 2 con backoff).
-// Antes era 15s — bajado a 8s para que fallos de red surjan en ~24s totales (3 intentos)
-// en lugar de ~45s, mejor UX cuando hay problema real.
 const GLOBAL_TIMEOUT_MS = 8000;
+
+// Recovery automático de sesión rota: si N requests consecutivos a Supabase se
+// abortan por timeout sin ninguna respuesta exitosa intermedia, asumimos que el
+// cliente quedó atrapado en un refresh-loop de JWT que no emite el evento explícito
+// "Refresh Token Not Found". En ese caso forzamos signOut() — el authStore captará
+// SIGNED_OUT y ProtectedRoute redirigirá a /login, recuperando la sesión sin que el
+// usuario tenga que recargar la pestaña manualmente.
+const STALE_TIMEOUT_THRESHOLD = 3;
+let consecutiveTimeouts = 0;
+let staleRecoveryInProgress = false;
 
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GLOBAL_TIMEOUT_MS);
   return fetch(input as any, { ...init, signal: controller.signal })
+    .then((response) => {
+      // Cualquier respuesta HTTP (200/4xx/5xx) significa red OK + backend responde.
+      // El cliente NO está roto — reset del contador de stale-recovery.
+      consecutiveTimeouts = 0;
+      return response;
+    })
+    .catch((err) => {
+      // AbortError = nuestro AbortController canceló por timeout interno.
+      if (err?.name === 'AbortError') {
+        consecutiveTimeouts++;
+        if (consecutiveTimeouts >= STALE_TIMEOUT_THRESHOLD && !staleRecoveryInProgress) {
+          staleRecoveryInProgress = true;
+          console.warn(
+            `⚠️ ${consecutiveTimeouts} timeouts consecutivos a Supabase — sesión cliente ` +
+              `posiblemente atrapada en refresh-loop. Forzando signOut() para recuperar.`,
+          );
+          consecutiveTimeouts = 0;
+          try {
+            localStorage.removeItem('innovar-auth-token');
+          } catch {
+            /* ignore */
+          }
+          // Diferimos al siguiente tick para garantizar que `supabase` esté inicializado
+          // (fetchWithTimeout se define ANTES de createClient).
+          setTimeout(() => {
+            if (typeof supabase !== 'undefined' && supabase?.auth?.signOut) {
+              supabase.auth.signOut().catch(() => {
+                /* ignore */
+              });
+            }
+            // Re-armar el flag tras un tiempo prudente: si el usuario hace login y vuelve
+            // a quedar atrapado en otro refresh-loop, queremos poder disparar de nuevo.
+            setTimeout(() => {
+              staleRecoveryInProgress = false;
+            }, 10000);
+          }, 0);
+        }
+      }
+      throw err;
+    })
     .finally(() => clearTimeout(timer));
 }
 
@@ -48,6 +96,14 @@ if (supabase) {
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') {
       localStorage.removeItem('innovar-auth-token');
+      // Reset de contadores de recovery — la próxima sesión arranca limpia.
+      consecutiveTimeouts = 0;
+      staleRecoveryInProgress = false;
+    }
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      // Login exitoso o refresh exitoso del token: definitivamente no estamos rotos.
+      consecutiveTimeouts = 0;
+      staleRecoveryInProgress = false;
     }
   });
 
