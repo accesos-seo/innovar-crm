@@ -11,7 +11,6 @@ export function useClosures(filters?: {
 }) {
   return useQuery({
     queryKey: ["closures", filters],
-    retry: 0,
     queryFn: async (): Promise<AccountingClosure[]> => {
       assertSupabase(supabase);
 

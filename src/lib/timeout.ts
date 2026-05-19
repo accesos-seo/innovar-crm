@@ -1,4 +1,4 @@
-export const withTimeout = <T>(promise: PromiseLike<T>, ms: number = 20000): Promise<T> => {
+export const withTimeout = <T>(promise: PromiseLike<T>, ms: number = 10000): Promise<T> => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Operation timed out after ${ms}ms. Es posible que el servidor de base de datos esté inactivo o haya problemas de conexión.`));

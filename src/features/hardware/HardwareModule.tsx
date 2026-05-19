@@ -59,7 +59,7 @@ interface HardwareModuleProps {
 }
 
 export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, initialData }) => {
-  const [selectedCategory, setSelectedCategory] = React.useState<'all' | 'cocinas' | 'closets' | 'puertas'>('all');
+  const [selectedCategory, setSelectedCategory] = React.useState<string>('');
   const [currentItemId, setCurrentItemId] = React.useState<string>('');
   const [currentQuantity, setCurrentQuantity] = React.useState<string>('1');
   
@@ -94,8 +94,8 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
     }
   }, [results, formData, onDataChange]);
 
-  const filteredCatalog = HARDWARE_CATALOG.filter(item => 
-    selectedCategory === 'all' || item.category === selectedCategory
+  const filteredCatalog = HARDWARE_CATALOG.filter(item =>
+    !selectedCategory || item.category === selectedCategory
   );
 
   const handleAddItem = () => {
@@ -165,26 +165,29 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
 
       <CardContent className="pt-8 space-y-8">
         {/* PANEL DE SELECCIÓN */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-muted/5 p-6 border border-border/10">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-4 bg-muted/5 p-6 border border-border/10">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-primary uppercase tracking-widest">Filtrar Categoría</label>
-            <Select value={selectedCategory} onValueChange={(v: any) => setSelectedCategory(v)}>
-              <SelectTrigger className="h-12 bg-background border-border/40 text-xs font-bold rounded-none">
-                <SelectValue placeholder="Categoría" />
+            <Select
+              value={selectedCategory}
+              onValueChange={(v) => setSelectedCategory(v === 'todas' ? '' : v)}
+            >
+              <SelectTrigger className="w-full h-12 bg-background border-border/40 text-sm font-bold rounded-none">
+                <SelectValue placeholder="Selecciona categoría" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/40">
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                <SelectItem value="cocinas">Cocinas</SelectItem>
-                <SelectItem value="closets">Closets</SelectItem>
-                <SelectItem value="puertas">Puertas</SelectItem>
+                <SelectItem value="todas" label="Todas las categorías">Todas las categorías</SelectItem>
+                <SelectItem value="cocinas" label="Cocinas">Cocinas</SelectItem>
+                <SelectItem value="closets" label="Closets">Closets</SelectItem>
+                <SelectItem value="puertas" label="Puertas">Puertas</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="md:col-span-2 space-y-2">
+          <div className="space-y-2">
             <label className="text-[10px] font-black text-primary uppercase tracking-widest">Seleccionar Herraje</label>
             <Select value={currentItemId} onValueChange={setCurrentItemId}>
-              <SelectTrigger className="h-12 bg-background border-border/40 text-xs font-bold rounded-none">
+              <SelectTrigger className="w-full h-12 bg-background border-border/40 text-sm font-bold rounded-none">
                 <SelectValue placeholder="Selecciona un producto..." />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/40 max-h-[300px]">
@@ -201,17 +204,17 @@ export const HardwareModule: React.FC<HardwareModuleProps> = ({ onDataChange, in
           </div>
 
           <div className="flex items-end gap-2">
-            <div className="flex-1 space-y-2">
+            <div className="space-y-2">
               <label className="text-[10px] font-black text-primary uppercase tracking-widest">Cant.</label>
-              <Input 
+              <Input
                 type="number"
                 value={currentQuantity}
                 onChange={(e) => setCurrentQuantity(e.target.value)}
                 min="1"
-                className="h-12 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary font-mono"
+                className="h-12 w-20 bg-background border-border/40 text-sm font-bold rounded-none focus:ring-primary font-mono"
               />
             </div>
-            <Button 
+            <Button
               onClick={handleAddItem}
               disabled={!currentItemId}
               className="h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-none px-6"

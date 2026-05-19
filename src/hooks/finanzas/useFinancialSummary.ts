@@ -13,7 +13,6 @@ export interface FinancialSummary {
 export function useFinancialSummary(dateFrom?: string, dateTo?: string) {
   return useQuery({
     queryKey: ["financial_summary", dateFrom, dateTo],
-    retry: 0,
     queryFn: async (): Promise<FinancialSummary> => {
       assertSupabase(supabase);
 

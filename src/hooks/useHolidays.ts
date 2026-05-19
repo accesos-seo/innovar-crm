@@ -19,7 +19,6 @@ export function useHolidays() {
   const query = useQuery({
     queryKey: ["holidays"],
     staleTime: 1000 * 60 * 60, // 1 h — holidays rarely change
-    retry: 0,
     queryFn: async (): Promise<Holiday[]> => {
       assertSupabase(supabase);
       const response = (await withTimeout(

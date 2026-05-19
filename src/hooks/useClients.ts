@@ -16,7 +16,6 @@ export function useClients(
   const { data, isLoading, refetch } = useQuery({
     queryKey: [CLIENTS_KEY, searchTerm, pagination],
     staleTime: 1000 * 60 * 5,
-    retry: 0,
     queryFn: async () => {
       assertSupabase(supabase);
 

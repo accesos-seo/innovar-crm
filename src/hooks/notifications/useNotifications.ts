@@ -9,7 +9,6 @@ export function useNotifications(filterType?: string) {
 
   return useInfiniteQuery({
     queryKey: ['notifications', 'list', user?.id, filterType],
-    retry: 0,
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) return { data: [], nextCursor: null };
       assertSupabase(supabase);

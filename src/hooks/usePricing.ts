@@ -20,7 +20,6 @@ export function usePricing() {
     queryKey: ["pricing"],
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
-    retry: 0,
     queryFn: async (): Promise<PricingItem[]> => {
       assertSupabase(supabase);
       const response = (await withTimeout(

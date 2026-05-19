@@ -16,7 +16,6 @@ export function useTasks(filters?: {
   return useQuery({
     queryKey: ["tasks", filters, user?.id],
     enabled: !!user && !!profile,
-    retry: 0,
     queryFn: async (): Promise<Task[]> => {
       assertSupabase(supabase);
       if (!user || !profile) return [];

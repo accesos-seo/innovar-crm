@@ -13,7 +13,6 @@ export function useSystemDictionary(filters?: { category?: string; status?: stri
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: [DICTIONARY_KEY, filters],
-    retry: 0,
     queryFn: async (): Promise<SystemDictionaryEntry[]> => {
       assertSupabase(supabase);
 

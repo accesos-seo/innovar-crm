@@ -65,7 +65,6 @@ export const useQuotations = (filters?: { status?: string; client_id?: string })
   return useQuery({
     queryKey: [QUOTATIONS_KEY, filters],
     staleTime: 1000 * 60 * 5,
-    retry: 0,
     queryFn: async (): Promise<Quotation[]> => {
       assertSupabase(supabase);
 

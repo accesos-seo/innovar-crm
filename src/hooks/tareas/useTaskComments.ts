@@ -9,7 +9,6 @@ export function useTaskComments(taskId: string) {
 
   const query = useQuery({
     queryKey: ['task_comments', taskId],
-    retry: 0,
     queryFn: async (): Promise<any[]> => {
       assertSupabase(supabase);
       const { data, error } = await supabase

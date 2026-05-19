@@ -11,7 +11,6 @@ interface Profile {
 export function useActiveStaff() {
   return useQuery({
     queryKey: ['activeStaff'],
-    retry: 0,
     queryFn: async (): Promise<Profile[]> => {
       assertSupabase(supabase);
       const { data, error } = await supabase

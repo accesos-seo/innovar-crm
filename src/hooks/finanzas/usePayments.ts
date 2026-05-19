@@ -13,7 +13,6 @@ export function usePayments(filters?: {
 }) {
   return useQuery({
     queryKey: ["payments", filters],
-    retry: 0,
     queryFn: async (): Promise<Payment[]> => {
       assertSupabase(supabase);
 

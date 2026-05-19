@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useAuthStore } from "./store/authStore";
 import { Layout } from "./components/layout/Layout";
@@ -11,6 +11,7 @@ import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
 import { supabase } from "@/lib/supabaseClient";
+import { runConnectionDiagnostic } from "@/lib/connection-diagnostic";
 
 // ── Static imports (critical path — always needed) ─────────────────────────
 import LoginPage from "./pages/Login";
@@ -62,7 +63,26 @@ function PageLoader() {
   );
 }
 
+// Reporter global de errores de queries — hace visibles los timeouts/RLS
+// errors en lugar de dejar skeletons infinitos.
+const queryErrorCache = new QueryCache({
+  onError: (error, query) => {
+    const msg = (error as Error)?.message ?? String(error);
+    const tableHint = JSON.stringify(query.queryKey).slice(0, 80);
+    console.error(`[query-error] ${tableHint} → ${msg}`);
+
+    // Solo toast en errores de timeout / red para evitar spam de errores triviales
+    if (/timed out|timeout|network|fetch/i.test(msg)) {
+      notify.error(
+        'Error al cargar datos',
+        `${msg.split('.')[0]}. Verifica la consola para más detalles.`
+      );
+    }
+  },
+});
+
 const queryClient = new QueryClient({
+  queryCache: queryErrorCache,
   defaultOptions: {
     queries: {
       // Reintenta 2 veces antes de mostrar error (cubre cold starts de Supabase)
@@ -97,6 +117,16 @@ export default function App() {
         "Modo Demostración Activo",
         "Supabase no está configurado. Se están usando datos locales de prueba."
       );
+    }
+
+    // Diagnóstico de conexión — solo en dev. Escribe a consola.
+    // Permite identificar si el problema es auth, RLS o latencia de red.
+    if (import.meta.env.DEV) {
+      // Esperamos a que initializeAuth tenga oportunidad de cargar la sesión
+      const t = setTimeout(() => {
+        runConnectionDiagnostic().catch(err => console.error('[diag] crashed:', err));
+      }, 1500);
+      return () => clearTimeout(t);
     }
   }, [initializeAuth]);
 

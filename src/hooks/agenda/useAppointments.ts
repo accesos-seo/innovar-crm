@@ -8,7 +8,6 @@ import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
   return useQuery({
     queryKey: ['appointments', date.toISOString(), view],
-    retry: 0,
     queryFn: async (): Promise<Task[]> => {
       assertSupabase(supabase);
       const from = view === 'week' ? startOfWeek(date, { weekStartsOn: 1 }) : startOfMonth(date);

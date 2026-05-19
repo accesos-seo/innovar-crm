@@ -10,7 +10,6 @@ export function useTaskAttachments(taskId: string) {
 
   const query = useQuery({
     queryKey: ['task_attachments', taskId],
-    retry: 0,
     queryFn: async (): Promise<TaskAttachment[]> => {
       assertSupabase(supabase);
       const { data, error } = await supabase

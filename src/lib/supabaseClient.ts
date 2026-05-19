@@ -16,9 +16,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Configuración de Supabase incompleta. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en los Secrets.');
 }
 
-// Timeout global por petición HTTP. Simple y predecible: si Supabase no responde
-// en 15s, falla rápido. Los reintentos los maneja React Query en niveles superiores.
-const GLOBAL_TIMEOUT_MS = 15000;
+// Timeout global por petición HTTP. Si Supabase no responde en 8s, falla rápido.
+// Los reintentos los maneja React Query en niveles superiores (retry: 2 con backoff).
+// Antes era 15s — bajado a 8s para que fallos de red surjan en ~24s totales (3 intentos)
+// en lugar de ~45s, mejor UX cuando hay problema real.
+const GLOBAL_TIMEOUT_MS = 8000;
 
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -49,15 +51,24 @@ if (supabase) {
     }
   });
 
-  // Interceptar la consola para ocultar temporalmente el "Invalid Refresh Token" o purgar
+  // Interceptar la consola para detectar refresh-token inválido y forzar logout LIMPIO.
+  // ANTES: solo borraba localStorage, pero el authStore zustand seguía pensando que el
+  // usuario estaba autenticado → queries iban anónimas → RLS retornaba [] → UI con tabla
+  // vacía sin razón aparente.
+  // AHORA: invoca signOut() para emitir SIGNED_OUT → authStore.onAuthStateChange limpia
+  // user/profile → ProtectedRoute redirige a /login.
   const originalError = console.error;
+  let staleTokenHandled = false;
   console.error = (...args) => {
     const msg = args.join(' ');
     if (msg.includes('Refresh Token Not Found') || msg.includes('Invalid Refresh Token')) {
-      localStorage.removeItem('innovar-auth-token');
-      // No re-lanzamos el console.error para no asustar al usuario de UI,
-      // esto forzará que inicie sesión en la próxima carga
-      originalError('⚠️ Sesión expirada, debes iniciar sesión de nuevo.');
+      if (!staleTokenHandled) {
+        staleTokenHandled = true;
+        localStorage.removeItem('innovar-auth-token');
+        originalError('⚠️ Sesión expirada — cerrando sesión y redirigiendo a /login.');
+        // Forzar logout limpio (signOut emite SIGNED_OUT → authStore actualiza user=null)
+        supabase!.auth.signOut().catch(() => { /* ignore */ });
+      }
       return;
     }
     originalError(...args);

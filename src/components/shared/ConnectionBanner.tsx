@@ -3,7 +3,11 @@ import { useIsFetching } from '@tanstack/react-query';
 
 /**
  * Muestra un banner de "Conectando con Innovar..." durante el cold start de Supabase.
- * Aparece después de 2 segundos de carga activa y desaparece automáticamente.
+ * Aparece después de 4 segundos de carga activa y desaparece automáticamente.
+ *
+ * Threshold 4s: las queries normales toman <2s en caliente. Con retry: 2 + backoff,
+ * un retry legítimo puede tomar 3-5s. Threshold de 4s evita parpadeo en navegación
+ * normal y solo aparece en cold starts o redes lentas reales.
  */
 export function ConnectionBanner() {
   const isFetching = useIsFetching();
@@ -12,8 +16,8 @@ export function ConnectionBanner() {
 
   React.useEffect(() => {
     if (isFetching > 0) {
-      // Solo muestra el banner si la carga dura más de 2 segundos
-      timerRef.current = setTimeout(() => setVisible(true), 2000);
+      // Solo muestra el banner si la carga dura más de 4 segundos
+      timerRef.current = setTimeout(() => setVisible(true), 4000);
     } else {
       if (timerRef.current) clearTimeout(timerRef.current);
       setVisible(false);

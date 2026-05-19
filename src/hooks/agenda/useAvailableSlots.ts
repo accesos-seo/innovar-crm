@@ -13,7 +13,6 @@ export interface AvailableSlot {
 export function useAvailableSlots(staffId: string | undefined, dateFrom: Date, dateTo: Date) {
   return useQuery({
     queryKey: ['availableSlots', staffId, dateFrom.toISOString(), dateTo.toISOString()],
-    retry: 0,
     queryFn: async (): Promise<AvailableSlot[]> => {
       if (!staffId) return [];
       assertSupabase(supabase);

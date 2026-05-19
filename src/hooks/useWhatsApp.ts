@@ -11,7 +11,6 @@ export function useWhatsApp(filters?: { status?: string; delivery_status?: strin
 
   const messagesQuery = useQuery({
     queryKey: ['whatsapp_messages', filters],
-    retry: 0,
     queryFn: async (): Promise<{ data: NotificationQueueRow[]; count: number }> => {
       assertSupabase(supabase);
 
@@ -79,7 +78,6 @@ export function useWhatsApp(filters?: { status?: string; delivery_status?: strin
 export function useWhatsAppEvents(providerMessageId: string | null) {
   return useQuery({
     queryKey: ['whatsapp_events', providerMessageId],
-    retry: 0,
     queryFn: async (): Promise<MetaWhatsappStatusEvent[]> => {
       if (!providerMessageId) return [];
       assertSupabase(supabase);

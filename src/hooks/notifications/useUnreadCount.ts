@@ -8,7 +8,6 @@ export function useUnreadCount() {
 
   return useQuery({
     queryKey: ['notifications', 'unreadCount', user?.id],
-    retry: 0,
     enabled: !!user?.id,
     queryFn: async (): Promise<number> => {
       if (!user?.id) return 0;

@@ -33,7 +33,6 @@ export function useMaterials() {
 
   const query = useQuery({
     queryKey: ["materials"],
-    retry: 0,
     staleTime: 1000 * 60 * 10,
     queryFn: async (): Promise<HardwareItem[]> => {
       assertSupabase(supabase);

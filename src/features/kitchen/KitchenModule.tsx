@@ -36,12 +36,12 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
   const form = useForm({
     resolver: zodResolver(KitchenConfigSchema),
     defaultValues: {
-      tipoCocina:        'COMPLETA_STANDARD' as const,
-      forma:             'L' as const,
+      tipoCocina:        undefined as any,
+      forma:             undefined as any,
       metrajeTotal:      0,
       modulosEspeciales: [] as { codigo: typeof MODULOS_ESPECIALES[number]['codigo']; cantidad: number }[],
       meson: {
-        tipo:          'CUARZO' as const,
+        tipo:          undefined as any,
         profundidadCm: 60,
       },
       costoTransporte: false,
@@ -108,7 +108,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-full bg-background border-border/40 h-14">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona tipo de cocina" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -129,7 +129,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-full bg-background border-border/40 h-14">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona layout / forma" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -182,7 +182,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-full bg-background/50 h-12">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona material del mesón" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>

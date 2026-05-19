@@ -17,7 +17,6 @@ export function useExpenses(
 ) {
   return useQuery({
     queryKey: ["expenses", filters, pagination],
-    retry: 0,
     queryFn: async (): Promise<{ data: Expense[]; count: number }> => {
       assertSupabase(supabase);
 
