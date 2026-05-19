@@ -1,0 +1,114 @@
+Categoria,Tipo,Nombre,Tabla/Evento,Cuando,Descripcion
+Auditoria,Funcion,audit_trigger_fn,N/A,trigger,Nucleo del sistema de auditoria - alimenta audit_log con old_data/new_data
+Auditoria,Trigger,trg_audit_clients,clients,INSERT/UPDATE AFTER,Audita cambios en clientes
+Auditoria,Trigger,trg_audit_expenses,expenses,INSERT/UPDATE AFTER,Audita cambios en gastos
+Auditoria,Trigger,trg_audit_payments,payments,INSERT/UPDATE AFTER,Audita cambios en pagos
+Auditoria,Trigger,trg_audit_projects,projects,INSERT/UPDATE AFTER,Audita cambios en proyectos
+Auditoria,Trigger,trg_audit_quotation_items,quotation_items,INSERT/UPDATE AFTER,Audita cambios en items de cotizacion
+Auditoria,Trigger,trg_audit_quotations,quotations,INSERT/UPDATE AFTER,Audita cambios en cotizaciones
+Auditoria,Trigger,trg_audit_tasks,tasks,INSERT/UPDATE AFTER,Audita cambios en tareas
+Leads,Trigger,tr_on_new_lead_email,clients,INSERT AFTER,Envia email de bienvenida al nuevo lead
+Leads,Trigger,trg_enqueue_whatsapp_new_lead,clients,INSERT AFTER,Encola WhatsApp avisando al equipo del lead nuevo
+Leads,Trigger,trg_client_lead_score,clients,INSERT/UPDATE AFTER,Recalcula score de calidad del lead
+Leads,Funcion,calculate_lead_score,N/A,Smallint,Calcula score numerico del lead
+Leads,Funcion,fn_trigger_lead_score,N/A,trigger handler,Handler que llama calculate_lead_score
+Leads,Funcion,fn_trigger_lead_score_on_quotation,N/A,trigger handler,Recalcula score cuando hay nueva cotizacion
+Leads,Funcion,fn_trigger_welcome_email,N/A,trigger handler,Envia email de bienvenida
+Cotizaciones,Trigger,trg_quotation_lead_score,quotations,INSERT/UPDATE AFTER,Recalcula score del lead asociado
+Cotizaciones,Trigger,trg_recalculate_quotation_totals,quotation_items,INSERT/UPDATE/DELETE AFTER,Recalcula totales de cotizacion al cambiar items
+Cotizaciones,Trigger,trg_prevent_changes_on_finalized_quotation_items,quotation_items,INSERT/UPDATE/DELETE BEFORE,Bloquea modificaciones a items de cotizacion finalizada
+Cotizaciones,Trigger,trg_pdf_on_quotation_status,quotations,UPDATE AFTER,Encola generacion de PDF de cotizacion
+Cotizaciones,Trigger,trg_wa_quotation_expiry,quotations,INSERT/UPDATE AFTER,Notifica WhatsApp vencimiento proximo
+Cotizaciones,Funcion,generate_next_quotation_number,N/A,Text,Genera numero secuencial anti-colision
+Cotizaciones,Funcion,recalculate_quotation_totals,N/A,Void,Recalcula subtotal y total
+Cotizaciones,Funcion,handle_quotation_item_totals_change,N/A,trigger handler,Handler que llama recalculate_quotation_totals
+Cotizaciones,Funcion,prevent_changes_on_finalized_quotation_items,N/A,trigger handler,Lock anti-manipulacion
+Cotizaciones,Funcion,create_quotation_version,N/A,UUID,Crea version historica de cotizacion
+Cotizaciones,Funcion,fn_queue_pdf_generation,N/A,trigger handler,Encola en pdf_generation_queue
+Cotizaciones,Funcion,fn_wa_quotation_expiry_alert,N/A,trigger handler,Alerta WhatsApp por vencimiento
+Proyectos,Trigger,trg_create_project_from_approved_quotation,quotations,UPDATE AFTER,Crea proyecto al aprobar cotizacion
+Proyectos,Trigger,trg_create_project_starter_tasks,projects,INSERT AFTER,Crea tareas iniciales del proyecto
+Proyectos,Trigger,trg_auto_post_delivery,projects,UPDATE AFTER,Acciones automaticas al marcar como entregado
+Proyectos,Trigger,trg_project_status_notification,projects,UPDATE AFTER,Notifica cambios de estado
+Proyectos,Trigger,trg_wa_project_status_change,projects,UPDATE AFTER,Notifica WhatsApp al cliente cambios de estado
+Proyectos,Trigger,trigger_notify_production.,projects,UPDATE AFTER,Notifica al equipo de produccion (nombre con punto sospechoso)
+Proyectos,Funcion,create_project_from_approved_quotation,N/A,trigger handler,Conversion cotizacion->proyecto
+Proyectos,Funcion,create_project_starter_tasks,N/A,trigger handler,Tareas iniciales
+Proyectos,Funcion,fn_auto_post_delivery,N/A,trigger handler,Acciones post-entrega
+Proyectos,Funcion,notify_project_status_change,N/A,trigger handler,Notifica cambios de estado
+Proyectos,Funcion,fn_wa_project_status_change,N/A,trigger handler,WhatsApp por cambio de estado
+Pagos,Trigger,trg_after_payment_insert,payments,INSERT AFTER,Avanza estado del proyecto si pago cubre hito
+Pagos,Trigger,trg_notify_payment_received,payments,INSERT AFTER,Notifica WhatsApp confirmacion al cliente
+Pagos,Trigger,trigger_handle_payment_approval,payments,INSERT AFTER,Logica de aprobacion del pago
+Pagos,Funcion,check_and_update_project_status_on_payment,N/A,trigger handler,Avance automatico de proyecto por pago
+Pagos,Funcion,handle_payment_approval,N/A,trigger handler,Aprobacion automatica
+Pagos,Funcion,notify_payment_received,N/A,trigger handler,Notifica al cliente
+Gastos,Trigger,trg_notify_expense_pending,expenses,INSERT AFTER,Notifica al supervisor para aprobacion
+Gastos,Trigger,trg_notify_expense_reviewed,expenses,UPDATE AFTER,Notifica al solicitante aprobacion/rechazo
+Gastos,Funcion,notify_expense_pending,N/A,trigger handler,Avisa supervisor
+Gastos,Funcion,notify_expense_reviewed,N/A,trigger handler,Avisa solicitante
+Agenda,Trigger,tr_block_slots_after_holiday_insert,holidays,INSERT AFTER,Bloquea slots de agenda del dia festivo
+Agenda,Trigger,trg_book_task_availability,tasks,INSERT/UPDATE/DELETE AFTER,Reserva/libera slot del responsable
+Agenda,Trigger,trg_calendar_sync_insert,tasks,INSERT AFTER,Encola sync Google Calendar
+Agenda,Trigger,trg_calendar_sync_update,tasks,UPDATE AFTER,Encola sync Google Calendar
+Agenda,Trigger,trg_calendar_sync_delete,tasks,DELETE AFTER,Encola sync Google Calendar
+Agenda,Trigger,trg_notify_booking_created,tasks,INSERT AFTER,Notifica creacion de reserva
+Agenda,Trigger,trg_notify_booking_status,tasks,UPDATE AFTER,Notifica cambio de estado de reserva
+Agenda,Trigger,trg_wa_appointment_booked,tasks,INSERT AFTER,WhatsApp al cliente confirmando cita
+Agenda,Funcion,book_appointment,N/A,JSONB (RPC),Reservar cita desde frontend
+Agenda,Funcion,get_available_slots,N/A,Record (RPC),Consultar disponibilidad
+Agenda,Funcion,sync_task_availability_booking,N/A,trigger handler,Reserva/libera slot
+Agenda,Funcion,fn_block_slots_on_holiday,N/A,trigger handler,Bloquea slots festivos
+Agenda,Funcion,fn_queue_calendar_sync,N/A,trigger handler,Encola en calendar_sync_queue
+Agenda,Funcion,fn_wa_appointment_booked,N/A,trigger handler,WhatsApp confirmacion
+Tareas,Trigger,trg_notify_task_assigned,tasks,INSERT/UPDATE AFTER,WhatsApp al asignar tarea
+Tareas,Trigger,trg_notify_task_blocked,tasks,UPDATE AFTER,Notifica al bloquearse tarea
+Tareas,Trigger,trg_notify_task_completed,tasks,UPDATE AFTER,Notifica al completarse tarea
+Tareas,Trigger,trg_notify_task_comment,task_comments,INSERT AFTER,Notifica comentarios en tarea
+Tareas,Funcion,notify_task_assigned,N/A,trigger handler,Avisa asignacion
+Tareas,Funcion,notify_task_blocked,N/A,trigger handler,Avisa bloqueo
+Tareas,Funcion,notify_task_completed,N/A,trigger handler,Avisa cierre
+Tareas,Funcion,notify_task_comment,N/A,trigger handler,Avisa comentario
+Tareas,Funcion,notify_booking_created,N/A,trigger handler,Avisa reserva
+Tareas,Funcion,notify_booking_status_change,N/A,trigger handler,Avisa cambio de reserva
+Tareas,Funcion,reorder_kanban,N/A,JSONB (RPC),Reordena tarjetas kanban
+Tareas,Funcion,escalate_overdue_and_blocked_tasks,N/A,Integer,Escala tareas vencidas/bloqueadas
+Tareas,Funcion,run_daily_task_escalation,N/A,JSONB (cron),Job diario de escalamiento
+Notificaciones,Trigger,trg_notification_queue_updated_at,notification_queue,UPDATE BEFORE,Timestamp en cola
+Notificaciones,Funcion,enqueue_notification,N/A,UUID,Encola mensaje en notification_queue
+Notificaciones,Funcion,send_whatsapp_notification,N/A,UUID,Envia via edge function
+Notificaciones,Funcion,set_notification_queue_updated_at,N/A,trigger handler,Timestamp
+Notificaciones,Funcion,fn_enqueue_whatsapp_new_lead,N/A,trigger handler,Encola WhatsApp lead nuevo
+Notificaciones,Funcion,normalize_whatsapp_phone,N/A,Text utility,Formato E.164
+Notificaciones,CronJob,job-2-whatsapp-processor,N/A,Cada minuto,POST a edge function process-whatsapp-notifications con dry_run=false limit=25
+Notificaciones,EdgeFunction,process-whatsapp-notifications,N/A,On-demand HTTP,Consume notification_queue y envia via Meta WhatsApp API
+Auth-Seguridad,Trigger,trg_prevent_non_admin_profile_role_change,profiles,UPDATE BEFORE,Bloquea cambios de rol por no-admins (anti-escalada)
+Auth-Seguridad,Trigger,set_updated_at,profiles,UPDATE BEFORE,Timestamp
+Auth-Seguridad,Trigger,trg_profiles_updated_at,profiles,UPDATE BEFORE,Timestamp (duplicado a revisar)
+Auth-Seguridad,Funcion,get_my_role,N/A,User_role,Utility usado en RLS policies
+Auth-Seguridad,Funcion,handle_new_user,N/A,trigger handler,Crea profile al registrar en auth.users
+Auth-Seguridad,Funcion,prevent_non_admin_profile_role_change,N/A,trigger handler,Bloqueo anti-escalada
+Finanzas,Funcion,create_accounting_closure,N/A,JSONB (RPC),Cierra periodo contable de proyecto
+Finanzas,Funcion,get_financial_summary,N/A,JSONB (RPC),Resumen financiero
+Finanzas,Funcion,get_project_balance,N/A,JSONB (RPC),Saldo por proyecto
+Finanzas,Funcion,generate_weekly_report,N/A,JSONB (cron),Reporte semanal
+Finanzas,Funcion,run_payment_reminders,N/A,JSONB (cron),Recordatorios de pago programados
+Mantenimiento,Funcion,run_archive_inactive_projects,N/A,JSONB (cron),Archiva proyectos inactivos
+Timestamps,Funcion,update_updated_at,N/A,trigger handler,Helper de timestamp generico
+Timestamps,Trigger,trg_clients_updated_at,clients,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_expenses_updated_at,expenses,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_projects_updated_at,projects,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_quotation_items_updated_at,quotation_items,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_quotations_updated_at,quotations,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_tasks_updated_at,tasks,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_warranties_updated_at,warranties,UPDATE BEFORE,Timestamp
+Timestamps,Trigger,trg_warranty_claims_updated_at,warranty_claims,UPDATE BEFORE,Timestamp
+Webhooks,Tabla,meta_whatsapp_status_events,N/A,On-demand POST,Recibe eventos del API Meta WhatsApp (delivered/read/failed) - 18 eventos almacenados
+Colas,Tabla,notification_queue,N/A,Cola asincrona,Mensajes pendientes de envio - 6 en cola
+Colas,Tabla,pdf_generation_queue,N/A,Cola asincrona,PDFs pendientes de generar - 0 en cola
+Colas,Tabla,calendar_sync_queue,N/A,Cola asincrona,Sincronizaciones Google Calendar - 5 en cola
+Colas,Tabla,scheduled_job_log,N/A,Log de jobs,Bitacora de cron jobs ejecutados
+EdgeFunction-Inferida,EdgeFunction,generate-quotation-pdf,N/A,On-demand,Genera PDF al consumir pdf_generation_queue (pendiente confirmar en dashboard)
+EdgeFunction-Inferida,EdgeFunction,sync-google-calendar,N/A,On-demand,Sincroniza con Google Calendar (pendiente confirmar en dashboard)
+EdgeFunction-Inferida,EdgeFunction,whatsapp-webhook,N/A,Webhook receiver,Recibe eventos del API Meta (pendiente confirmar en dashboard)
+EdgeFunction-Inferida,EdgeFunction,send-welcome-email,N/A,On-demand,Envia email de bienvenida (pendiente confirmar en dashboard)
