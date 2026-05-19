@@ -20,59 +20,79 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Los reintentos los maneja React Query en niveles superiores (retry: 2 con backoff).
 const GLOBAL_TIMEOUT_MS = 8000;
 
-// Recovery automático de sesión rota: si N requests consecutivos a Supabase se
-// abortan por timeout sin ninguna respuesta exitosa intermedia, asumimos que el
-// cliente quedó atrapado en un refresh-loop de JWT que no emite el evento explícito
-// "Refresh Token Not Found". En ese caso forzamos signOut() — el authStore captará
-// SIGNED_OUT y ProtectedRoute redirigirá a /login, recuperando la sesión sin que el
-// usuario tenga que recargar la pestaña manualmente.
+// Recovery automático de sesión rota — se dispara en 2 escenarios:
+//   1. El endpoint /auth/v1/token responde 400/401/403 (refresh falló o credenciales
+//      no aceptadas). Esto sale rápido y es la señal más confiable de sesión rota.
+//   2. N timeouts consecutivos a queries de Supabase sin ninguna respuesta exitosa
+//      intermedia. El contador lo alimenta `recordSupabaseTimeout()` desde el
+//      QueryCache.onError de App.tsx (los timeouts externos no pasan por fetch).
+// En ambos casos forzamos signOut() — el authStore captará SIGNED_OUT y el
+// ProtectedRoute redirigirá a /login, sin que el usuario tenga que recargar.
 const STALE_TIMEOUT_THRESHOLD = 3;
 let consecutiveTimeouts = 0;
 let staleRecoveryInProgress = false;
 
+function triggerStaleRecovery(reason: string): void {
+  if (staleRecoveryInProgress) return;
+  staleRecoveryInProgress = true;
+  console.warn(
+    `⚠️ Sesión cliente posiblemente rota (${reason}). Forzando signOut() para recuperar.`,
+  );
+  consecutiveTimeouts = 0;
+  try {
+    localStorage.removeItem('innovar-auth-token');
+  } catch {
+    /* ignore */
+  }
+  // Diferimos al siguiente tick para garantizar que `supabase` esté inicializado.
+  setTimeout(() => {
+    if (typeof supabase !== 'undefined' && supabase?.auth?.signOut) {
+      supabase.auth.signOut().catch(() => {
+        /* ignore */
+      });
+    }
+    // Re-armar el flag tras 10s para permitir nuevo recovery si vuelve a pasar.
+    setTimeout(() => {
+      staleRecoveryInProgress = false;
+    }, 10000);
+  }, 0);
+}
+
+// Exportadas para que App.tsx (QueryCache.onError) las invoque al detectar
+// "Operation timed out" — esos timeouts vienen del wrapper `withTimeout` externo,
+// no del fetch interno, así que no pasan por `fetchWithTimeout`.
+export function recordSupabaseTimeout(): void {
+  consecutiveTimeouts++;
+  if (consecutiveTimeouts >= STALE_TIMEOUT_THRESHOLD) {
+    triggerStaleRecovery(`${consecutiveTimeouts} timeouts consecutivos`);
+  }
+}
+
+export function recordSupabaseSuccess(): void {
+  consecutiveTimeouts = 0;
+}
+
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GLOBAL_TIMEOUT_MS);
+  const urlString =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : (input as Request).url;
+
   return fetch(input as any, { ...init, signal: controller.signal })
     .then((response) => {
-      // Cualquier respuesta HTTP (200/4xx/5xx) significa red OK + backend responde.
-      // El cliente NO está roto — reset del contador de stale-recovery.
-      consecutiveTimeouts = 0;
-      return response;
-    })
-    .catch((err) => {
-      // AbortError = nuestro AbortController canceló por timeout interno.
-      if (err?.name === 'AbortError') {
-        consecutiveTimeouts++;
-        if (consecutiveTimeouts >= STALE_TIMEOUT_THRESHOLD && !staleRecoveryInProgress) {
-          staleRecoveryInProgress = true;
-          console.warn(
-            `⚠️ ${consecutiveTimeouts} timeouts consecutivos a Supabase — sesión cliente ` +
-              `posiblemente atrapada en refresh-loop. Forzando signOut() para recuperar.`,
-          );
-          consecutiveTimeouts = 0;
-          try {
-            localStorage.removeItem('innovar-auth-token');
-          } catch {
-            /* ignore */
-          }
-          // Diferimos al siguiente tick para garantizar que `supabase` esté inicializado
-          // (fetchWithTimeout se define ANTES de createClient).
-          setTimeout(() => {
-            if (typeof supabase !== 'undefined' && supabase?.auth?.signOut) {
-              supabase.auth.signOut().catch(() => {
-                /* ignore */
-              });
-            }
-            // Re-armar el flag tras un tiempo prudente: si el usuario hace login y vuelve
-            // a quedar atrapado en otro refresh-loop, queremos poder disparar de nuevo.
-            setTimeout(() => {
-              staleRecoveryInProgress = false;
-            }, 10000);
-          }, 0);
-        }
+      // Señal directa de sesión rota: cualquier 400/401/403 al endpoint /auth/v1/token.
+      // (Cubre refresh_token vencido, password rechazado por backend, etc.)
+      if (urlString.includes('/auth/v1/token') && response.status >= 400 && response.status < 500) {
+        triggerStaleRecovery(`auth endpoint respondió ${response.status}`);
+      } else {
+        // Cualquier otra respuesta HTTP significa red OK + backend responde → reset.
+        consecutiveTimeouts = 0;
       }
-      throw err;
+      return response;
     })
     .finally(() => clearTimeout(timer));
 }

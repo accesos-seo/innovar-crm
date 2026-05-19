@@ -10,7 +10,7 @@ import ScrollToTop from "./components/shared/ScrollToTop";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, recordSupabaseTimeout, recordSupabaseSuccess } from "@/lib/supabaseClient";
 import { runConnectionDiagnostic } from "@/lib/connection-diagnostic";
 
 // ── Static imports (critical path — always needed) ─────────────────────────
@@ -65,19 +65,34 @@ function PageLoader() {
 
 // Reporter global de errores de queries — hace visibles los timeouts/RLS
 // errors en lugar de dejar skeletons infinitos.
+//
+// Además, alimenta al contador de "timeouts consecutivos" del cliente Supabase
+// (recordSupabaseTimeout). Esto cubre el caso donde el timeout viene del
+// `withTimeout` externo (no del fetch interno con AbortController), que es lo
+// más común porque el SDK de Supabase atrapa los AbortError internamente.
 const queryErrorCache = new QueryCache({
   onError: (error, query) => {
     const msg = (error as Error)?.message ?? String(error);
     const tableHint = JSON.stringify(query.queryKey).slice(0, 80);
     console.error(`[query-error] ${tableHint} → ${msg}`);
 
-    // Solo toast en errores de timeout / red para evitar spam de errores triviales
-    if (/timed out|timeout|network|fetch/i.test(msg)) {
+    const isTimeout = /timed out|timeout/i.test(msg);
+    if (isTimeout) {
+      recordSupabaseTimeout();
+      notify.error(
+        'Error al cargar datos',
+        `${msg.split('.')[0]}. Verifica la consola para más detalles.`
+      );
+    } else if (/network|fetch/i.test(msg)) {
       notify.error(
         'Error al cargar datos',
         `${msg.split('.')[0]}. Verifica la consola para más detalles.`
       );
     }
+  },
+  onSuccess: () => {
+    // Cualquier query exitosa confirma que el cliente Supabase funciona — reset contador.
+    recordSupabaseSuccess();
   },
 });
 
