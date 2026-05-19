@@ -352,15 +352,22 @@ export function MesonesModule({ onDataChange }: MesonesModuleProps) {
     mesones,
     transport: includeTransport ? MESONES_DEFAULTS.transport : 0,
     discountPercent,
+    notes,
   };
 
   const results = useMesonesCalculator(input);
 
+  const lastUpdateRef = React.useRef({ total: -1, configStr: '' });
   React.useEffect(() => {
-    if (onDataChange) {
-      onDataChange(results.total, { ...input, ...results });
+    if (!onDataChange) return;
+    const total = results.total;
+    const config = { ...input, ...results };
+    const configStr = JSON.stringify(config);
+    if (total !== lastUpdateRef.current.total || configStr !== lastUpdateRef.current.configStr) {
+      lastUpdateRef.current = { total, configStr };
+      onDataChange(total, config);
     }
-  }, [results.total]);
+  }, [results, mesones, includeTransport, discountPercent, notes]);
 
   // Actualiza un campo de un ítem específico
   const handleItemChange = (id: string, field: keyof MesonItem, value: any) => {

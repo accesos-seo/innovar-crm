@@ -80,7 +80,7 @@ export const ClosetTemplate: React.FC<ClosetTemplateProps> = ({ data }) => {
 
            <div className="col-span-2 py-6 border-b border-slate-100 text-xs font-bold uppercase tracking-tight">Dimensiones Estructurales</div>
            <div className="col-span-3 py-6 border-b border-slate-100 text-xs font-mono font-bold text-slate-900">
-             {config.width}m Ancho x {config.height}m Alto (0.60m Profundidad)
+             {config.width}m Ancho x {config.height}m Alto ({config.depth ? `${config.depth}m` : '0.60m'} Profundidad)
            </div>
 
            <div className="col-span-2 py-6 border-b border-slate-100 text-xs font-bold uppercase tracking-tight">Metraje Total</div>
