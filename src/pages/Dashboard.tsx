@@ -247,7 +247,7 @@ export default function Dashboard() {
     e.stopPropagation();
     setIsGeneratingPDF(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const { jsPDF } = await import("jspdf");
         const doc = new jsPDF();

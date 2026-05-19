@@ -3,18 +3,19 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Camera, 
-  Save, 
+import {
+  User,
+  Mail,
+  Lock,
+  Camera,
+  Save,
   ShieldCheck,
   Bell,
   Eye,
   EyeOff,
   Calendar,
-  Clock
+  Clock,
+  Phone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import { es } from "date-fns/locale";
 const profileSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Correo electrónico inválido"),
+  phone: z.string().optional(),
 });
 
 const passwordSchema = z.object({
@@ -64,6 +66,7 @@ export default function ProfilePage() {
     defaultValues: {
       name: profile?.full_name || user?.email?.split('@')[0] || "",
       email: user?.email || "",
+      phone: (profile as any)?.phone || "",
     }
   });
 
@@ -73,6 +76,7 @@ export default function ProfilePage() {
       profileForm.reset({
         name: profile?.full_name || user?.email?.split('@')[0] || "",
         email: user?.email || "",
+        phone: (profile as any)?.phone || "",
       });
     }
   }, [profile, user, profileForm]);
@@ -81,9 +85,18 @@ export default function ProfilePage() {
     resolver: zodResolver(passwordSchema),
   });
 
-  const onProfileSubmit = (data: ProfileFormData) => {
-    toast.success("Perfil actualizado correctamente");
-    console.log(data);
+  const onProfileSubmit = async (data: ProfileFormData) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: data.name, phone: data.phone ?? null })
+        .eq('id', user.id);
+      if (error) throw error;
+      toast.success("Perfil actualizado correctamente");
+    } catch (err: any) {
+      toast.error("Error al guardar el perfil", { description: err.message });
+    }
   };
 
   const onPasswordSubmit = (data: PasswordFormData) => {
@@ -293,7 +306,7 @@ export default function ProfilePage() {
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <User className="w-3 h-3" /> Nombre Completo
                     </label>
-                    <Input 
+                    <Input
                       {...profileForm.register("name")}
                       className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary"
                     />
@@ -304,10 +317,21 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div className="md:col-span-1">
-                    <EmailInputField 
+                    <EmailInputField
                       label="Correo Electrónico"
                       error={profileForm.formState.errors.email?.message}
                       {...profileForm.register("email")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Phone className="w-3 h-3" /> Teléfono
+                    </label>
+                    <Input
+                      type="tel"
+                      placeholder="Ej: +57 300 123 4567"
+                      {...profileForm.register("phone")}
+                      className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary"
                     />
                   </div>
                 </div>
