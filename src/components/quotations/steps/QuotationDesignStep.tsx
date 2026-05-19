@@ -11,6 +11,7 @@ import { DoorsModule } from '@/features/doors/DoorsModule';
 import { TVCenterModule } from '@/features/tv_center/TVCenterModule';
 import { HardwareModule } from '@/features/hardware/HardwareModule';
 import { SpecialFinishesModule } from '@/features/special_finishes/SpecialFinishesModule';
+import { MesonesModule } from '@/features/mesones/MesonesModule';
 import { urgencyMap } from '@/pages/leads/LeadsColumns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -255,8 +256,14 @@ export function QuotationDesignStep({
                       </ItemWrapper>
                     ))}
                 </TabsContent>
-                <TabsContent value="mesones" className="mt-0">
-                  <PlaceholderModule title="Mesones" />
+                <TabsContent value="mesones" className="mt-0 focus-visible:outline-none space-y-12">
+                  {items.filter(i => i.category === 'mesones').length === 0
+                    ? <CategoryEmptyState category="mesones" label="Mesones" onAdd={() => addItem('mesones')} />
+                    : items.filter(i => i.category === 'mesones').map(item => (
+                      <ItemWrapper key={item.id} id={item.id}>
+                        <MesonesModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} />
+                      </ItemWrapper>
+                    ))}
                 </TabsContent>
                 <TabsContent value="herrajes" className="mt-0 focus-visible:outline-none space-y-12">
                   {items.filter(i => i.category === 'herrajes').length === 0

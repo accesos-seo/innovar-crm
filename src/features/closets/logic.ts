@@ -1,9 +1,4 @@
 
-/**
- * REGLA 1: Capa de Lógica Pura (Engine)
- * Módulo: Closets a medida
- */
-
 export type ClosetType = 'estandar' | 'especial' | 'empotrado';
 export type DoorType = 'corrediza' | 'batiente';
 
@@ -18,16 +13,24 @@ export interface ClosetInput {
 }
 
 export const FALLBACK_CLOSET_PRICES: Record<string, number> = {
-  CLOSET_ESTANDAR: 650000,
-  CLOSET_ESPECIAL: 750000,
-  CLOSET_EMPOTRADO: 900000,
+  CLOSET_ESTANDAR: 750000,   // profundidad 0.60m — nivel básico
+  CLOSET_ESPECIAL: 650000,   // profundidad 0.45m — económico para espacios reducidos
+  CLOSET_EMPOTRADO: 900000,  // profundidad 0.60m — premium con espaldar y laterales
+};
+
+// Profundidad informativa por tipo (en metros)
+export const CLOSET_DEPTHS: Record<ClosetType, number> = {
+  estandar: 0.60,
+  especial: 0.45,
+  empotrado: 0.60,
 };
 
 export const CLOSET_DEFAULTS = {
-  depth: 0.60, // Profundidad fija (informativo)
   transport: 150000,
-  minWidth: 1,
-  minHeight: 1,
+  minWidth: 0.5,
+  maxWidth: 5.0,
+  minHeight: 1.5,
+  maxHeight: 3.0,
 };
 
 export interface ClosetCalculation {
@@ -36,24 +39,21 @@ export interface ClosetCalculation {
   productSubtotal: number;
   discountAmount: number;
   total: number;
+  depth: number;
 }
 
-/**
- * Calcula la matemática completa del closet
- */
 export function calculateCloset(input: ClosetInput, dbPrices: Record<string, number> = {}): ClosetCalculation {
   const { width, height, type, transport = 0, discountPercent = 0 } = input;
-  
-  // Mapeo de tipos a códigos de base de datos
+
   const priceKey = `CLOSET_${type.toUpperCase()}`;
   const pricePerMeter = dbPrices[priceKey] || FALLBACK_CLOSET_PRICES[priceKey] || 0;
-  
+
   const area = width * height;
   const productSubtotal = area * pricePerMeter;
-  
+
   const baseForDiscount = productSubtotal + transport;
   const discountAmount = baseForDiscount * (discountPercent / 100);
-  
+
   const total = baseForDiscount - discountAmount;
 
   return {
@@ -62,5 +62,6 @@ export function calculateCloset(input: ClosetInput, dbPrices: Record<string, num
     productSubtotal,
     discountAmount,
     total,
+    depth: CLOSET_DEPTHS[type],
   };
 }

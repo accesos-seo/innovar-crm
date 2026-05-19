@@ -25,12 +25,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
-import { 
-  ClosetInput, 
-  ClosetType, 
-  DoorType, 
-  FALLBACK_CLOSET_PRICES, 
-  CLOSET_DEFAULTS 
+import {
+  ClosetInput,
+  ClosetType,
+  DoorType,
+  CLOSET_DEFAULTS,
+  CLOSET_DEPTHS,
 } from './logic';
 import { useClosetCalculator } from '@/hooks/use-closet-calculator';
 
@@ -46,16 +46,16 @@ interface ClosetCotizadorProps {
 export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorProps) {
   // Estado local para permitir strings vacíos en inputs numéricos y mejorar UX
   const [displayData, setDisplayData] = React.useState({
-    width: String(initialData?.width || 1),
-    height: String(initialData?.height || 1),
+    width: String(initialData?.width || CLOSET_DEFAULTS.minWidth),
+    height: String(initialData?.height || CLOSET_DEFAULTS.minHeight),
     transport: String(initialData?.transport || CLOSET_DEFAULTS.transport),
     discountPercent: String(initialData?.discountPercent || 0),
   });
 
   const [formData, setFormData] = React.useState<ClosetInput>({
     type: 'estandar',
-    width: 1,
-    height: 1,
+    width: CLOSET_DEFAULTS.minWidth,
+    height: CLOSET_DEFAULTS.minHeight,
     doorType: 'batiente',
     observations: '',
     transport: CLOSET_DEFAULTS.transport,
@@ -133,9 +133,9 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
                 <SelectValue placeholder="Selecciona tipo" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/10 min-w-[240px] w-[max-content]">
-                <SelectItem value="estandar" className="font-bold py-3 text-sm capitalize">Estandard <span className="lowercase font-normal opacity-60">($650.000/m²)</span></SelectItem>
-                <SelectItem value="especial" className="font-bold py-3 text-sm capitalize">Especial <span className="lowercase font-normal opacity-60">($750.000/m²)</span></SelectItem>
-                <SelectItem value="empotrado" className="font-bold py-3 text-sm capitalize">Empotrado <span className="lowercase font-normal opacity-60">($900.000/m²)</span></SelectItem>
+                <SelectItem value="estandar" className="font-bold py-3 text-sm capitalize">Estándar <span className="lowercase font-normal opacity-60">($750.000/m² · 0.60m prof.)</span></SelectItem>
+                <SelectItem value="especial" className="font-bold py-3 text-sm capitalize">Especial <span className="lowercase font-normal opacity-60">($650.000/m² · 0.45m prof.)</span></SelectItem>
+                <SelectItem value="empotrado" className="font-bold py-3 text-sm capitalize">Empotrado <span className="lowercase font-normal opacity-60">($900.000/m² · 0.60m prof.)</span></SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -171,8 +171,11 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
                 value={displayData.width}
                 onChange={(e) => handleDisplayChange('width', e.target.value)}
                 onBlur={() => {
-                  if (displayData.width === '' || isNaN(Number(displayData.width))) {
-                    handleDisplayChange('width', '1');
+                  const v = Number(displayData.width);
+                  if (displayData.width === '' || isNaN(v) || v < CLOSET_DEFAULTS.minWidth) {
+                    handleDisplayChange('width', String(CLOSET_DEFAULTS.minWidth));
+                  } else if (v > CLOSET_DEFAULTS.maxWidth) {
+                    handleDisplayChange('width', String(CLOSET_DEFAULTS.maxWidth));
                   }
                 }}
                 className="h-16 bg-background border-border/40 text-2xl font-mono font-bold pl-12 rounded-none"
@@ -191,8 +194,11 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
                 value={displayData.height}
                 onChange={(e) => handleDisplayChange('height', e.target.value)}
                 onBlur={() => {
-                  if (displayData.height === '' || isNaN(Number(displayData.height))) {
-                    handleDisplayChange('height', '1');
+                  const v = Number(displayData.height);
+                  if (displayData.height === '' || isNaN(v) || v < CLOSET_DEFAULTS.minHeight) {
+                    handleDisplayChange('height', String(CLOSET_DEFAULTS.minHeight));
+                  } else if (v > CLOSET_DEFAULTS.maxHeight) {
+                    handleDisplayChange('height', String(CLOSET_DEFAULTS.maxHeight));
                   }
                 }}
                 className="h-16 bg-background border-border/40 text-2xl font-mono font-bold pl-12 rounded-none"
@@ -255,7 +261,7 @@ export function ClosetCotizador({ onDataChange, initialData }: ClosetCotizadorPr
               <Sparkles className="w-3 h-3" /> Configuración Estándar Validada
             </p>
             <p className="text-[9px] text-muted-foreground font-medium leading-relaxed uppercase tracking-tighter">
-              Incluye Maletero, divisor, doble colgadero, entrepaños, doble cajonero, zapatero y puertas. Profundidad estándar 0.60m. Área analizada: <span className="text-foreground font-bold">{results.area.toFixed(2)}m²</span>
+              Incluye Maletero, divisor, doble colgadero, entrepaños, doble cajonero, zapatero y puertas.{formData.type === 'empotrado' && ' Espaldar y laterales completos.'} Profundidad: <span className="text-foreground font-bold">{CLOSET_DEPTHS[formData.type]}m</span>. Área: <span className="text-foreground font-bold">{results.area.toFixed(2)}m²</span>
             </p>
           </div>
         </div>
