@@ -15,6 +15,12 @@ export const materialCategorySchema = z.enum([
   "otros",
 ]);
 
+// Schema alineado contra el schema real de la tabla `materials` en producción
+// (columnas: id, category, name, description, photoUrl, price, unit, active, sortOrder).
+// Las columnas `brand` y `stock` NO existen en la BD real — fueron removidas del
+// schema para evitar el mismo bug que `data_origin` en clients (PG 42703 al INSERT).
+// Si el negocio necesita estos campos en el futuro, primero agregar las columnas
+// vía migración SQL y después restaurarlos aquí.
 export const materialSchema = z.object({
   category: materialCategorySchema,
   name: z.string().min(1, "Nombre requerido").max(255),
@@ -24,9 +30,7 @@ export const materialSchema = z.object({
   unit: z.string().min(1).default("unidad"),
   active: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
-  brand: z.string().max(100).nullable().optional(),
-  stock: z.number().int().nonnegative().default(0),
-});
+}).passthrough();
 
 export const materialInsertSchema = materialSchema;
 

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { withTimeout } from '@/lib/timeout';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 interface Profile {
@@ -11,12 +12,15 @@ interface Profile {
 export function useActiveStaff() {
   return useQuery({
     queryKey: ['activeStaff'],
+    staleTime: 1000 * 60 * 30, // 30 min — staff cambia raramente
     queryFn: async (): Promise<Profile[]> => {
       assertSupabase(supabase);
-      const { data, error } = await supabase
+      const query = supabase
         .from('profiles')
         .select('id, full_name, role');
-        // si existe is_active se le puede agregar: .eq('is_active', true)
+
+      const response = (await withTimeout(query as any)) as any;
+      const { data, error } = response;
 
       if (error) throw mapSupabaseError(error);
       return (data as Profile[]) || [];

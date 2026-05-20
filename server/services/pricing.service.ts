@@ -35,28 +35,45 @@ export class PricingService {
   /**
    * Carga los precios de pricing_catalog y construye el mapa.
    * Solo lee `code` y `value` — las columnas que sí existen en BD.
+   *
+   * Si la query falla (timeout, RLS, conexión), retorna un Map vacío en lugar
+   * de lanzar error. Cada engine tiene su propio FALLBACK de precios hardcoded,
+   * así que un catálogo vacío hace que TODOS los engines usen sus fallbacks
+   * (resultado: la cotización sigue funcionando con precios de respaldo en
+   * lugar de quedar completamente rota).
    */
   private static async loadCatalog(supabaseClient = defaultSupabase): Promise<PriceCatalog> {
     console.log('[PricingService] 📦 Cargando catálogo de precios...');
 
-    const { data, error } = await supabaseClient
-      .from('pricing_catalog')
-      .select('code, value');
+    try {
+      const { data, error } = await supabaseClient
+        .from('pricing_catalog')
+        .select('code, value');
 
-    if (error) {
-      console.error('[PricingService] ❌ Error cargando catálogo:', error.message);
-      throw new Error('No se pudo cargar el catálogo de precios de Supabase');
+      if (error) {
+        console.error(
+          '[PricingService] ⚠️ Error cargando catálogo. Engines usarán FALLBACK records:',
+          error.message,
+        );
+        return new Map();
+      }
+
+      const rows = (data ?? []) as Array<{ code: string | null; value: number | null }>;
+      const catalog: PriceCatalog = new Map(
+        rows
+          .filter(item => item.code !== null)
+          .map(item => [item.code as string, Number(item.value)] as [string, number])
+      );
+
+      console.log(`[PricingService] ✅ ${catalog.size} precios cargados`);
+      return catalog;
+    } catch (err: any) {
+      console.error(
+        '[PricingService] ⚠️ Excepción cargando catálogo. Engines usarán FALLBACK records:',
+        err?.message ?? err,
+      );
+      return new Map();
     }
-
-    const rows = (data ?? []) as Array<{ code: string | null; value: number | null }>;
-    const catalog: PriceCatalog = new Map(
-      rows
-        .filter(item => item.code !== null)
-        .map(item => [item.code as string, Number(item.value)] as [string, number])
-    );
-
-    console.log(`[PricingService] ✅ ${catalog.size} precios cargados`);
-    return catalog;
   }
 
   /**

@@ -74,6 +74,19 @@ export const calculateItemTotal = async (req: Request, res: Response) => {
         calculationResult = await PricingService.calculateMesones(configuration, supabase);
         break;
 
+      case 'herrajes':
+        // Herrajes son items operativos sin motor de precios automático.
+        // El usuario los añade manualmente con su precio. Devolvemos subtotal 0
+        // para que la UI no muestre error y el comercial pueda manejarlos a mano.
+        // (Pendiente futuro: motor formal cuando exista catálogo de herrajes.)
+        calculationResult = {
+          subtotal: 0,
+          metrajeEfectivo: null,
+          desglose: null,
+          preciosUsados: null,
+        };
+        break;
+
       default:
         return res.status(400).json({
           success: false,

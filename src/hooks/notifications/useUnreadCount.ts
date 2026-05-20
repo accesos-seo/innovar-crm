@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { withTimeout } from '@/lib/timeout';
 import { useAuthStore } from '@/store/authStore';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
@@ -9,15 +10,19 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ['notifications', 'unreadCount', user?.id],
     enabled: !!user?.id,
+    staleTime: 1000 * 30, // 30s — el badge no necesita ser perfecto en tiempo real
     queryFn: async (): Promise<number> => {
       if (!user?.id) return 0;
       assertSupabase(supabase);
 
-      const { count, error } = await supabase
+      const query = supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_read', false);
+
+      const response = (await withTimeout(query as any)) as any;
+      const { count, error } = response;
 
       if (error) throw mapSupabaseError(error);
       return count || 0;

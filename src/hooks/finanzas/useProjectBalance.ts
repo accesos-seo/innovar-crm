@@ -1,21 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { withTimeout } from '@/lib/timeout';
+import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 export function useProjectBalance(projectId?: string) {
   return useQuery({
     queryKey: ['project_balance', projectId],
+    enabled: !!projectId,
+    staleTime: 1000 * 60, // 1 min — balance no cambia tan seguido
     queryFn: async () => {
-      if (!supabase || !projectId) return null;
-      
-      const { data, error } = await supabase.rpc("get_project_balance", { p_project_id: projectId });
-      
-      if (error) {
-        // Since we may not have the RPC, gracefully fallback to computing locally or returning mock while we wait for backend updates.
-        // But the prompt says use RPC directly. Let's just return what it returns.
-        throw error;
-      }
+      assertSupabase(supabase);
+      if (!projectId) return null;
+
+      const rpcCall = supabase.rpc('get_project_balance', { p_project_id: projectId });
+      const response = (await withTimeout(rpcCall as any)) as any;
+      const { data, error } = response;
+
+      if (error) throw mapSupabaseError(error);
       return data;
     },
-    enabled: !!projectId
   });
 }

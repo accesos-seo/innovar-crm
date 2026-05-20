@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
+import { withTimeout } from "@/lib/timeout";
 import { Task } from "@/types/database";
 import { useAuthStore } from "@/store/authStore";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
@@ -60,7 +61,8 @@ export function useTasks(filters?: {
         query = query.ilike("title", `%${filters.searchTerm}%`);
       }
 
-      const { data, error } = await query;
+      const response = (await withTimeout(query as any)) as any;
+      const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as unknown as Task[]) || [];
     },
