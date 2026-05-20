@@ -1,0 +1,105 @@
+================================================================================
+  PASOS PARA HABILITAR EL FIX DEL CUELGUE EN TU MÁQUINA
+================================================================================
+
+El código está listo. Ahora hay 2 cosas que hacer:
+
+PASO 1: Aplicar cambios en la base de datos (SQL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Abre este link en tu navegador:
+   https://supabase.com/dashboard/project/xdzbjptozeqcbnaqhtye/sql/new
+
+2. Te vas a ver un editor en blanco.
+
+3. En el archivo HandOver/STATE-OF-SYSTEM-2026-05-20.md (sección 3), hay
+   7 archivos SQL que necesitas copiar y pegar. Cópialos en este orden:
+
+   - db/migrations/002_fix_handle_new_user_default_role.sql
+   - db/migrations/002_kitchen_pricing_catalog.sql
+   - db/migrations/003_tv_center_pricing.sql
+   - db/migrations/004_special_finishes_pricing.sql
+   - db/migrations/005_closets_pricing.sql
+   - db/migrations/006_interior_doors_pricing.sql
+   - db/migrations/007_mesones_pricing.sql
+
+4. Para cada uno:
+   - Abre el archivo (están en la carpeta "db/migrations" del proyecto)
+   - Copia TODO el contenido
+   - Lo pegas en el editor del Supabase
+   - Clickeas el botón "Run" (o presionas Ctrl+Enter)
+   - Esperas a que termine (verás un checkmark verde si funcionó)
+
+5. Una vez que hayas aplicado los 7, ejecuta esta verificación:
+
+   SELECT category, COUNT(*) AS filas FROM pricing_catalog GROUP BY category ORDER BY category;
+
+   Debería mostrarte 7+ categorías (cocina, closet, puerta, tv_center, especiales, mesones, herrajes).
+
+
+PASO 2: Probar que el fix funciona en tu máquina local
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(Este paso es OPCIONAL si confías — pero es bueno validar)
+
+1. En tu terminal, ve a la carpeta del proyecto:
+
+   Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"
+
+2. Levanta el servidor de desarrollo:
+
+   npm run dev
+
+3. Espera a que aparezca localhost:3000 (ópcionalmente abre en navegador)
+
+4. Haz login normalmente con tus credenciales.
+
+5. Abre la consola del navegador (F12 o Ctrl+Shift+I), pestaña "Console".
+
+6. Copia y pega esta línea COMPLETA:
+
+   localStorage.setItem('innovar-auth-token', JSON.stringify({ ...JSON.parse(localStorage.getItem('innovar-auth-token')), expires_at: Math.floor(Date.now()/1000) - 3600 }))
+
+7. Presiona Enter. Verás un resultado como "Object { ... }" — eso está bien.
+
+8. Ahora recarga la página (F5 o Ctrl+R).
+
+9. RESULTADO ESPERADO:
+   - En menos de 2 segundos, debería aparecer un mensaje amarillo diciendo:
+     "Tu sesión expiró - Te estamos llevando a la pantalla de inicio de sesión..."
+   - Y deberías ser redirigido a la pantalla de login.
+
+   Si eso pasa → EL FIX FUNCIONA. ✓
+
+   Si no pasa → reportame qué viste en consola (F12 → pestaña Console).
+
+
+PASO 3: Desplegar a Vercel (producción)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Una vez que validaste que funciona en local:
+
+1. En tu terminal, ejecuta este comando COMPLETO (cópialo tal cual):
+
+   Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; npx vercel --prod --token $env:VERCEL_TOKEN --yes
+
+2. Espera a que termine (debería decir "Production" al final).
+
+3. Abre tu app en producción:
+   https://crm-innovar-app-2026.vercel.app
+
+4. Hace login y prueba lo mismo que en local (si quieres validar también aquí).
+
+
+================================================================================
+                          ¿PREGUNTAS?
+================================================================================
+
+Si algo no te queda claro o algo explota, mandame un mensaje con:
+- Qué paso estabas haciendo
+- Qué error viste exactamente (captura pantalla o copia el error)
+- Qué navegador usás
+
+¡Confío en que va a andar! 💚
+
+================================================================================
