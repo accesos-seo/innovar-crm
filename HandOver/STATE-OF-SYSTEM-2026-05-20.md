@@ -12,13 +12,16 @@
 
 | Tema | Estado |
 |---|---|
-| Bug "módulos cuelgan 10-30s en skeleton" | ✅ **Fix de raíz aplicado** en `src/lib/supabaseClient.ts` (3 cambios: B.1, B.2, B.3) |
-| Causa raíz confirmada | Token JWT stale + recovery con umbral demasiado alto (3 timeouts en 30s) |
-| Diagnóstico rápido para el usuario | `Ctrl+Shift+R` libera el cuelgue ← confirma que es estado local, no backend |
-| Migraciones SQL pendientes | 7 archivos en `db/migrations/` por aplicar en Supabase Dashboard |
-| Deploy a Vercel | ⏳ Manual pendiente (auto-deploy roto: Vercel conectado a repo equivocado) |
-| Branch de trabajo actual | `claude/continue-crm-innovar-r22VQ` (sesión Claude Code on the Web) |
-| Última verificación typecheck | 37 errores baseline preexistentes — cero regresiones del fix |
+| Bug "módulos cuelgan 10-30s en skeleton" | ⏳ **Fix de raíz REAL aplicado y desplegado** — en período de prueba por el usuario |
+| Causa raíz CONFIRMADA (inspección directa de localStorage en prod) | **Token huérfano legacy `sb-xdzbjptozeqcbnaqhtye-auth-token`** coexistiendo con el custom `innovar-auth-token`. El SDK Supabase intentaba usar el huérfano vencido y se colgaba 10s sin emitir error legible. |
+| Fix definitivo (commit `eab7382`) | Limpieza automática del token huérfano al cargar `src/lib/supabaseClient.ts` |
+| Fixes B.1/B.2/B.3 (anteriores) | Siguen activos como red de seguridad para futuros casos de token stale |
+| Diagnóstico rápido para el usuario | `Ctrl+Shift+R` libera el cuelgue ← confirma que era estado local |
+| Migraciones SQL | ✅ Las 7 aplicadas en Supabase por el usuario |
+| Deploy a Vercel | ✅ Producción al día con commit `eab7382` |
+| Branch de trabajo actual | `claude/continue-crm-innovar-r22VQ` |
+| Última verificación typecheck | 37 errores baseline preexistentes — cero regresiones de ninguno de los fixes |
+| **Estado de validación** | ⏳ **EN PRUEBA POR EL USUARIO** — esperando feedback tras horas/días de uso real |
 
 ---
 
@@ -39,21 +42,37 @@ El access_token JWT de Supabase persistido en `localStorage["innovar-auth-token"
 - React Query reintenta 2 veces más con backoff 3s + 6s = total ~19s antes de mostrar error
 - Si el usuario navega antes de que se acumulen **3 timeouts en 30s**, el recovery automático (`recordSupabaseTimeout`) NUNCA se dispara → el usuario debe hacer `Ctrl+Shift+R` manualmente cada vez
 
-### 2.3 Fix aplicado (3 cambios en `src/lib/supabaseClient.ts`)
+### 2.3 Fix DEFINITIVO (commit `eab7382` del 2026-05-20)
 
-**B.1 — Verificación sincrónica del JWT al cargar el módulo** (líneas 187-216)
+**Cómo se descubrió la causa real:** Después del primer deploy del fix B.1/B.2/B.3, el bug **reapareció** en producción. El usuario inspeccionó `localStorage` directamente desde DevTools y compartió el contenido. Ahí se encontraron DOS tokens coexistiendo:
+
+```
+innovar-auth-token              → expires_at: 1779293491 (futuro, válido)
+sb-xdzbjptozeqcbnaqhtye-auth-token → expires_at: 1778336018 (PASADO, vencido)
+```
+
+**Explicación:** En versiones anteriores de la app, el cliente Supabase NO tenía `storageKey: 'innovar-auth-token'`. El SDK guardaba tokens con su nombre default (`sb-{ref}-auth-token`). Cuando se agregó el storageKey custom, los navegadores de usuarios EXISTENTES quedaron con AMBOS tokens. El SDK Supabase intentaba usar el huérfano vencido internamente, no respondía, y disparaba timeouts de 10s SIN emitir error legible (esto es comportamiento del SDK, no de nuestro código).
+
+**Fix:** Al cargar `src/lib/supabaseClient.ts`, borrar el token huérfano si existe. Idempotente. Cero impacto en sesiones limpias (incógnito, usuarios nuevos). Esto cierra la causa raíz definitiva del bug.
+
+### 2.4 Fixes anteriores B.1/B.2/B.3 — Red de seguridad activa
+
+Aunque la causa raíz era el token huérfano, los 3 cambios B.1/B.2/B.3 quedan en el código como red de seguridad para casos futuros de token stale (no causados por huérfanos), por ejemplo: tokens vencidos por inactividad muy larga.
+
+**B.1 — Verificación sincrónica del JWT al cargar el módulo**
 - Función `isPersistedJwtExpired()` decodifica el claim `exp` del access_token guardado en localStorage
 - Si está vencido o expira en <60s, dispara `triggerStaleRecovery` ANTES de que cualquier query corra
-- Efecto: si el usuario abre la app con token vencido, va directo a `/login` sin pasar por 10s de spinner
 
-**B.2 — Verificación proactiva al primer timeout** (líneas 105-128)
+**B.2 — Verificación proactiva al primer timeout**
 - Al primer timeout, llamar `supabase.auth.getSession()` inmediatamente
 - Si la sesión es inválida o el token expira en <60s, disparar recovery sin esperar a acumular 3 timeouts
-- Si la sesión es válida, mantener el comportamiento actual (esperar umbral de 3) — esto evita falsos positivos por red lenta
 
-**B.3 — Toast visible durante el recovery** (líneas 45-52)
-- Ahora `triggerStaleRecovery` muestra un toast `notify.warning` para que el usuario entienda qué pasa
-- Antes solo había `console.warn` (invisible para usuario no técnico)
+**B.3 — Toast visible durante el recovery**
+- `triggerStaleRecovery` muestra un toast `notify.warning` para que el usuario entienda qué pasa
+
+**B.4 (DEFINITIVO) — Limpieza de token huérfano legacy**
+- Al cargar el módulo, borrar `sb-xdzbjptozeqcbnaqhtye-auth-token` de localStorage si existe
+- Esta es la causa raíz real del bug recurrente
 
 ### 2.4 Cómo verificar que el fix funciona
 
