@@ -5,6 +5,9 @@ import { Notification } from '@/types/database';
 import { useAuthStore } from '@/store/authStore';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
+// Mismo kill-switch que useUnreadCount — ver comentario allí.
+const NOTIFICATIONS_DISABLED = import.meta.env.VITE_DISABLE_NOTIFICATIONS === 'true';
+
 export function useNotifications(filterType?: string) {
   const user = useAuthStore(state => state.user);
 
@@ -46,6 +49,6 @@ export function useNotifications(filterType?: string) {
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: 0,
-    enabled: !!user?.id,
+    enabled: !!user?.id && !NOTIFICATIONS_DISABLED,
   });
 }
