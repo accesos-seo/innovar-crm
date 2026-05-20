@@ -140,6 +140,16 @@ export function recordSupabaseSuccess(): void {
   /* no-op intencional — ver comentario arriba */
 }
 
+// Reset de contadores de recovery. Invocada por authStore al detectar
+// SIGNED_OUT/SIGNED_IN/TOKEN_REFRESHED — son las únicas señales fuertes de
+// que la auth está sana y los timeouts previos no son representativos.
+// Reemplaza al listener duplicado que antes vivía en este archivo y peleaba
+// con el de authStore.ts por orden de ejecución (race condition global).
+export function resetTimeoutTracking(): void {
+  recentTimeoutTimestamps = [];
+  staleRecoveryInProgress = false;
+}
+
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GLOBAL_TIMEOUT_MS);
@@ -236,22 +246,13 @@ if (supabase && isPersistedJwtExpired()) {
   }, 0);
 }
 
-// Listener global para purgar estado corrupto si Supabase emite un error de Refresh Token
-if (supabase) {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_OUT') {
-      localStorage.removeItem('innovar-auth-token');
-      // Reset de contadores de recovery — la próxima sesión arranca limpia.
-      recentTimeoutTimestamps = [];
-      staleRecoveryInProgress = false;
-    }
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      // Login exitoso o refresh exitoso del token: definitivamente no estamos rotos.
-      recentTimeoutTimestamps = [];
-      staleRecoveryInProgress = false;
-    }
-  });
+// NOTA: el listener onAuthStateChange que antes vivía aquí fue ELIMINADO.
+// authStore.ts mantiene UN solo listener y llama a resetTimeoutTracking()
+// cuando detecta SIGNED_OUT/SIGNED_IN/TOKEN_REFRESHED. Tener 2 listeners en
+// paralelo causaba race conditions globales — uno actualizaba el state del
+// authStore mientras el otro reseteaba contadores, en orden no determinístico.
 
+if (supabase) {
   // Interceptar la consola para detectar refresh-token inválido y forzar logout LIMPIO.
   // ANTES: solo borraba localStorage, pero el authStore zustand seguía pensando que el
   // usuario estaba autenticado → queries iban anónimas → RLS retornaba [] → UI con tabla
