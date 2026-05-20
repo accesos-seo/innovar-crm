@@ -176,6 +176,33 @@ El `config` se guarda en `item.configuration` en Supabase y alimenta los templat
 - [ ] `MesonesModule` sin `initialData` — no restaura config guardada al reabrir cotización
 - [ ] Conectar Vercel al repo correcto `accesos-seo/innovar-crm:master` para deploys automáticos
 - [ ] Verificar políticas del bucket `avatars` en Supabase Storage (ver SQL arriba)
+- [ ] Aplicar 7 migraciones SQL pendientes en Supabase Dashboard (ver `HandOver/STATE-OF-SYSTEM-2026-05-20.md` sección 3)
+
+---
+
+## Diagnóstico rápido: bug "módulos cuelgan en skeleton 10-30s"
+
+**Síntoma típico en consola:**
+```
+supabaseClient.ts:188 [query-error] [...] → Operation timed out after 10000ms
+```
+
+**Causa raíz:** Token JWT vencido en `localStorage["innovar-auth-token"]`. El SDK Supabase no emite el error como string detectable (`"Refresh Token Not Found"`), solo timea.
+
+**Fix instalado en código (2026-05-20):** `src/lib/supabaseClient.ts` ahora verifica el `exp` claim del JWT al cargar el módulo Y llama `getSession()` al primer timeout. Si está vencido, dispara `signOut` + redirect a `/login` automáticamente con toast visible.
+
+**Si el bug vuelve a aparecer (recovery manual desde DevTools del navegador):**
+```js
+localStorage.removeItem('innovar-auth-token'); location.reload();
+```
+
+**NO probar de nuevo (hipótesis ya descartadas):**
+- Bajar `retry: 0` en hooks → causa MÁS cuelgues
+- Acortar timeouts (<5s) → rompe red lenta legítima
+- Desactivar RLS → no es la causa
+- Eliminar JOINs PostgREST → también fallan sin joins
+
+**Ver detalles completos en:** `HandOver/STATE-OF-SYSTEM-2026-05-20.md` sección 2.
 
 ---
 
