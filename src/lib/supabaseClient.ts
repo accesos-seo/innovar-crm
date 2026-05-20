@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { notify } from '@/components/ui/PremiumToast';
 
 const FALLBACK_URL = 'https://xdzbjptozeqcbnaqhtye.supabase.co';
 const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkemJqcHRvemVxY2JuYXFodHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDU3MTQsImV4cCI6MjA5MTY4MTcxNH0.M4-nl-r-M3sMNGUoJoyRXar8dwdnUkAJGR9YGkV5bNk';
@@ -41,6 +42,14 @@ function triggerStaleRecovery(reason: string): void {
   console.warn(
     `⚠️ Sesión cliente posiblemente rota (${reason}). Forzando signOut() para recuperar.`,
   );
+  try {
+    notify.warning(
+      'Tu sesión expiró',
+      'Te estamos llevando a la pantalla de inicio de sesión para recuperar la conexión.',
+    );
+  } catch {
+    /* notify puede no estar listo durante el bootstrap inicial */
+  }
   recentTimeoutTimestamps = [];
   try {
     localStorage.removeItem('innovar-auth-token');
@@ -92,6 +101,32 @@ export function recordSupabaseTimeout(): void {
     `[supabase-timeout] count=${recentTimeoutTimestamps.length}/${STALE_TIMEOUT_THRESHOLD} ` +
       `(ventana ${TIMEOUT_WINDOW_MS / 1000}s)`,
   );
+
+  // Al primer timeout, verificar proactivamente la salud de la sesión.
+  // Si el JWT expiró (o expira en <60s), la próxima petición fallaría igual:
+  // mejor disparar recovery ya en lugar de acumular 30s más de timeouts.
+  // Esto cierra el gap que tenía el interceptor de console.error, que solo
+  // detectaba strings exactos ("Refresh Token Not Found") y no se activaba
+  // cuando el síntoma era un timeout genérico de withTimeout.
+  if (recentTimeoutTimestamps.length === 1 && supabase) {
+    supabase.auth
+      .getSession()
+      .then((result: { data: { session: { expires_at?: number } | null }; error: unknown }) => {
+        if (staleRecoveryInProgress) return;
+        const session = result.data?.session;
+        const expSec = session?.expires_at ?? 0;
+        const expiresInSec = expSec - Math.floor(Date.now() / 1000);
+        if (result.error || !session || expiresInSec < 60) {
+          triggerStaleRecovery(
+            `primer timeout + sesión inválida (error=${!!result.error}, hasSession=${!!session}, expiresIn=${expiresInSec}s)`,
+          );
+        }
+      })
+      .catch(() => {
+        /* getSession solo falla si supabase no está inicializado, ignorar */
+      });
+  }
+
   if (recentTimeoutTimestamps.length >= STALE_TIMEOUT_THRESHOLD) {
     triggerStaleRecovery(
       `${recentTimeoutTimestamps.length} timeouts en ${TIMEOUT_WINDOW_MS / 1000}s`,
@@ -148,6 +183,37 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
       },
     })
   : null as any;
+
+// Verificación sincrónica del JWT al cargar el módulo: si el access_token persistido
+// en localStorage ya está vencido (claim `exp` en el pasado, con 60s de margen),
+// disparar recovery ANTES de que cualquier query corra. Esto evita que el usuario
+// vea 10+ segundos de spinner antes de que el contador de timeouts active el signOut.
+function isPersistedJwtExpired(): boolean {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    const raw = localStorage.getItem('innovar-auth-token');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const token = parsed?.access_token;
+    if (typeof token !== 'string' || !token.includes('.')) return false;
+    const payloadB64 = token.split('.')[1];
+    // atob no soporta URL-safe base64, normalizamos.
+    const normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(normalized));
+    const expSec = payload?.exp;
+    if (typeof expSec !== 'number') return false;
+    return Date.now() / 1000 >= expSec - 60;
+  } catch {
+    return false;
+  }
+}
+
+if (supabase && isPersistedJwtExpired()) {
+  // Diferido al siguiente tick para que React esté listo y el toast tenga toaster montado.
+  setTimeout(() => {
+    triggerStaleRecovery('JWT exp vencido detectado en localStorage al iniciar');
+  }, 0);
+}
 
 // Listener global para purgar estado corrupto si Supabase emite un error de Refresh Token
 if (supabase) {
