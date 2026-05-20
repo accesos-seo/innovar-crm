@@ -184,6 +184,27 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
     })
   : null as any;
 
+// Limpieza preventiva de tokens huérfanos en localStorage.
+// Historia: en versiones tempranas de la app, el cliente Supabase NO tenía
+// `storageKey: 'innovar-auth-token'` custom, así que el SDK guardaba el token
+// con su nombre default `sb-{project-ref}-auth-token`. Cuando se agregó el
+// storageKey custom, los navegadores de usuarios existentes mantuvieron AMBOS
+// tokens — el viejo (default) y el nuevo (custom). El default queda vencido
+// con el tiempo y causa timeouts internos del SDK que NO emiten error legible,
+// solo se cuelgan 10s y disparan withTimeout. Borrarlo al iniciar previene
+// la desincronización entre ambos tokens.
+try {
+  if (typeof localStorage !== 'undefined') {
+    const orphanKey = 'sb-xdzbjptozeqcbnaqhtye-auth-token';
+    if (localStorage.getItem(orphanKey)) {
+      console.warn(`[supabase] Limpiando token huérfano legacy: ${orphanKey}`);
+      localStorage.removeItem(orphanKey);
+    }
+  }
+} catch {
+  /* ignore */
+}
+
 // Verificación sincrónica del JWT al cargar el módulo: si el access_token persistido
 // en localStorage ya está vencido (claim `exp` en el pasado, con 60s de margen),
 // disparar recovery ANTES de que cualquier query corra. Esto evita que el usuario
