@@ -4,6 +4,24 @@ import { CalculateItemRequestSchema, SaveQuotationSchema } from '../../src/schem
 import { supabase as defaultSupabase } from '../../src/lib/supabaseClient';
 import { createClient } from '@supabase/supabase-js';
 
+// Fallback hardcoded de las credenciales públicas para que el server NUNCA falle
+// con "supabaseUrl is required" cuando dotenv no carga el .env o lee otro archivo.
+// Las VITE_* son para el frontend; el server Node también las usa porque dotenv
+// las inyecta en process.env, pero si por alguna razón no llegan, los fallbacks
+// garantizan continuidad. Estos valores son PÚBLICOS (anon key), no son secretos.
+const FALLBACK_SUPABASE_URL = 'https://xdzbjptozeqcbnaqhtye.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkemJqcHRvemVxY2JuYXFodHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDU3MTQsImV4cCI6MjA5MTY4MTcxNH0.M4-nl-r-M3sMNGUoJoyRXar8dwdnUkAJGR9YGkV5bNk';
+
+const SUPABASE_URL =
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  FALLBACK_SUPABASE_URL;
+
+const SUPABASE_ANON_KEY =
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  FALLBACK_SUPABASE_ANON_KEY;
+
 export const calculateItemTotal = async (req: Request, res: Response) => {
   try {
     // 1. Validar la petición (asegura que el JSON esté bien formado)
@@ -11,8 +29,8 @@ export const calculateItemTotal = async (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
 
     // 2. Cliente Supabase (con JWT si existe, para RLS en catálogo)
-    const supabase = authHeader 
-      ? createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!, {
+    const supabase = authHeader
+      ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           global: { headers: { Authorization: authHeader } },
         })
       : defaultSupabase;
@@ -91,9 +109,11 @@ export const saveQuotation = async (req: Request, res: Response) => {
     }
 
     // 2. Cliente Supabase con el JWT del usuario para respetar RLS
+    // Usa las constantes SUPABASE_URL/SUPABASE_ANON_KEY con fallback hardcoded
+    // definidas al inicio del archivo, para no fallar si dotenv no carga las vars.
     const supabase = createClient(
-      process.env.VITE_SUPABASE_URL!,
-      process.env.VITE_SUPABASE_ANON_KEY!,
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
       {
         global: {
           headers: { Authorization: authHeader },
