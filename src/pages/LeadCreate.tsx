@@ -29,7 +29,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLeads } from "@/hooks/useLeads";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { FEATURES } from "@/lib/features";
 import { EmailInputField } from "@/components/shared/EmailInputField";
+import type { OpportunityPriority, OpportunityStatus } from "@/schemas/opportunity";
 
 const leadSchema = z.object({
   firstName: z.string().min(1, "El nombre es obligatorio"),
@@ -70,9 +73,25 @@ const URGENCY_MAP: Record<string, string> = {
   "Solo averiguando": "low",
 };
 
+// Mapeo del label de prioridad del form a opportunities.priority (CHECK constraint).
+const PRIORITY_MAP: Record<string, OpportunityPriority> = {
+  "Lo antes posible": "ASAP",
+  "Mediano plazo": "SHORT",
+  "Solo averiguando": "LON",
+};
+
+// Mapeo del status del form (legacy en clients) a opportunities.status.
+const STATUS_MAP: Record<string, OpportunityStatus> = {
+  pending: "new",
+  contacted: "contacted",
+  qualified: "quoted",
+  lost: "lost",
+};
+
 export default function LeadCreate() {
   const navigate = useNavigate();
   const { createLead } = useLeads();
+  const { createOpportunity } = useOpportunities();
   const [isSaving, setIsSaving] = React.useState(false);
 
   const form = useForm<LeadFormValues>({
@@ -94,19 +113,41 @@ export default function LeadCreate() {
   const onSubmit = async (values: LeadFormValues) => {
     setIsSaving(true);
     try {
-      // Transformation logic
-      const mappedLead = {
-        name: `${values.firstName} ${values.lastName}`.trim(),
-        email: values.email || null,
-        whatsapp_phone: `+57${values.phone}`,
-        services: values.services.join(", "),
-        city: values.city === "Otro" ? values.customCity : values.city,
-        address: values.address,
-        urgency: URGENCY_MAP[values.priority as string],
-        status: values.status,
-      };
+      const resolvedCity =
+        values.city === "Otro" ? values.customCity || null : values.city;
+      const fullName = `${values.firstName} ${values.lastName}`.trim();
+      const phoneWithCountry = `+57${values.phone}`;
 
-      await createLead(mappedLead);
+      if (FEATURES.opportunitiesEnabled) {
+        // Slice 2 cutover: el insert va a `opportunities` (que también crea
+        // o reutiliza el cliente según `whatsapp_phone` normalizado).
+        await createOpportunity({
+          clientName: fullName,
+          whatsappPhone: phoneWithCountry,
+          email: values.email || null,
+          address: values.address,
+          city: resolvedCity,
+          services: values.services,
+          priority: PRIORITY_MAP[values.priority] ?? "SHORT",
+          dataOrigin: "manual",
+          status: STATUS_MAP[values.status] ?? "new",
+          notes: null,
+        });
+      } else {
+        // Comportamiento legacy: insert plano en `clients`.
+        const mappedLead = {
+          name: fullName,
+          email: values.email || null,
+          whatsapp_phone: phoneWithCountry,
+          services: values.services.join(", "),
+          city: resolvedCity,
+          address: values.address,
+          urgency: URGENCY_MAP[values.priority as string],
+          status: values.status,
+        };
+        await createLead(mappedLead);
+      }
+
       navigate("/solicitudes/leads");
     } catch (error) {
       console.error("Error saving lead:", error);
