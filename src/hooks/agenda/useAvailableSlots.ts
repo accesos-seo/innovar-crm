@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { supabase } from '@/lib/supabaseClient';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
@@ -10,23 +11,53 @@ export interface AvailableSlot {
   staff_id: string;
 }
 
-export function useAvailableSlots(staffId: string | undefined, dateFrom: Date, dateTo: Date) {
+const SLOT_HOURS = ['08:30', '10:00', '14:00', '15:30'];
+
+function endOf(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m + 90, 0, 0);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+export function useAvailableSlots(staffId: string | undefined, date: Date) {
+  const dateStr = format(date, 'yyyy-MM-dd');
+
   return useQuery({
-    queryKey: ['availableSlots', staffId, dateFrom.toISOString(), dateTo.toISOString()],
+    queryKey: ['availableSlots', staffId, dateStr],
+    enabled: !!staffId,
     queryFn: async (): Promise<AvailableSlot[]> => {
       if (!staffId) return [];
       assertSupabase(supabase);
 
-      const { data, error } = await supabase.rpc("get_available_slots", {
-        p_staff_id: staffId,
-        p_date_from: dateFrom.toISOString().split('T')[0],
-        p_date_to: dateTo.toISOString().split('T')[0]
-      });
+      const dow = date.getDay();
+      if (dow !== 2 && dow !== 4) return [];
+
+      const { data: booked, error } = await supabase
+        .from('tasks')
+        .select('time_slot')
+        .eq('assigned_to', staffId)
+        .eq('due_date', dateStr)
+        .not('appointment_type', 'is', null)
+        .neq('status', 'cancelado');
 
       if (error) throw mapSupabaseError(error);
 
-      return (data || []) as AvailableSlot[];
+      const bookedTimes = new Set(
+        (booked || [])
+          .map((t: { time_slot: string | null }) => (t.time_slot || '').slice(0, 5))
+          .filter(Boolean)
+      );
+
+      return SLOT_HOURS
+        .filter((h) => !bookedTimes.has(h))
+        .map((h) => ({
+          slot_id: `${dateStr}_${h}_${staffId}`,
+          slot_date: dateStr,
+          start_time: h,
+          end_time: endOf(h),
+          staff_id: staffId,
+        }));
     },
-    enabled: !!staffId
   });
 }

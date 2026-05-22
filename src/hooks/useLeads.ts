@@ -31,7 +31,21 @@ export function useLeads(
     queryFn: async () => {
       assertSupabase(supabase);
 
+      const { data: projClients, error: projErr } = await supabase
+        .from("projects")
+        .select("client_id")
+        .not("client_id", "is", null);
+      if (projErr) throw mapSupabaseError(projErr);
+
+      const convertedIds = Array.from(
+        new Set((projClients || []).map((p: { client_id: string | null }) => p.client_id).filter(Boolean) as string[])
+      );
+
       let query = supabase.from("clients").select("*", { count: "exact" });
+
+      if (convertedIds.length > 0) {
+        query = query.not("id", "in", `(${convertedIds.join(",")})`);
+      }
 
       if (filters?.onlyArchived) {
         query = query.not("deleted_at", "is", null);

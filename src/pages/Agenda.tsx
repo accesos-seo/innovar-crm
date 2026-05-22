@@ -60,7 +60,13 @@ export default function AgendaPage() {
     setIsDetailModalOpen(true);
   };
 
-  const handleBook = async (data: { clientId: string; slotId: string; appointmentType: 'visita_tecnica' | 'cita_diseno' }) => {
+  const handleBook = async (data: {
+    clientId: string;
+    staffId: string;
+    date: string;
+    timeSlot: string;
+    appointmentType: 'visita_tecnica' | 'cita_diseno';
+  }) => {
     await bookMutation.mutateAsync(data);
     setIsNewModalOpen(false);
   };

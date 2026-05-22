@@ -132,11 +132,9 @@ export default function ClientsPage() {
   return (
     <ResourceListPage<Client>
       title="GESTIÓN DE CLIENTES"
-      subtitle="Directorio centralizado de clientes y solicitudes de asesoría."
+      subtitle="Directorio de clientes con cotización aprobada y proyectos activos."
       icon={Users}
       onBack={() => navigate("/")}
-      createLabel="Nuevo cliente"
-      onCreateClick={() => navigate("/clients/new")}
       useQueryHook={useClientsQuery}
       columns={clientColumns}
       searchPlaceholder="Buscar clientes por nombre, email o teléfono..."

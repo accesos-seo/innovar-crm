@@ -1,39 +1,42 @@
 import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { DetailModal } from "@/components/shared/DetailModal";
 import { Button } from "@/components/ui/button";
-import { 
-  Calendar as CalendarIcon, 
-  User, 
-  Users, 
-  Clock, 
-  CheckCircle2, 
-  MapPin, 
+import {
+  Calendar as CalendarIcon,
+  Users,
+  Clock,
+  CheckCircle2,
+  MapPin,
   Palette,
-  Briefcase,
-  Paperclip,
-  FileText,
-  Calculator
 } from "lucide-react";
 import { ClientSearchSelect } from "./ClientSearchSelect";
 import { SlotPicker } from "./SlotPicker";
 import { useActiveStaff } from "@/hooks/agenda/useActiveStaff";
 import { useAvailableSlots } from "@/hooks/agenda/useAvailableSlots";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatSentenceCase } from "@/lib/format-utils";
-import { cn } from "@/lib/utils";
 import { CalendarPopover } from "@/components/ui/calendar-popover";
+
+export interface BookAppointmentData {
+  clientId: string;
+  staffId: string;
+  date: string;
+  timeSlot: string;
+  appointmentType: 'visita_tecnica' | 'cita_diseno';
+}
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onBook: (data: { clientId: string; slotId: string; appointmentType: 'visita_tecnica' | 'cita_diseno' }) => void;
+  onBook: (data: BookAppointmentData) => void;
   isBooking: boolean;
   preselectedDate?: Date;
 }
@@ -49,33 +52,40 @@ export function NewAppointmentModal({
   const [clientId, setClientId] = useState<string>('');
   const [staffId, setStaffId] = useState<string>('');
   const [date, setDate] = useState<Date | undefined>(preselectedDate || new Date());
-  const [slotId, setSlotId] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
 
   const { data: staffList = [], isLoading: isLoadingStaff } = useActiveStaff();
-  
-  // We fetch slots for the selected date
+
   const { data: slots = [], isLoading: isLoadingSlots } = useAvailableSlots(
-    staffId || undefined, 
-    date || new Date(), 
+    staffId || undefined,
     date || new Date()
   );
 
   useEffect(() => {
-    if (isOpen && preselectedDate) {
+    if (!isOpen) return;
+    if (preselectedDate) {
       setDate(preselectedDate);
+      const h = preselectedDate.getHours();
+      const m = preselectedDate.getMinutes();
+      if (h !== 0 || m !== 0) {
+        setSelectedTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
     }
   }, [isOpen, preselectedDate]);
 
-  // Reset form when opened/closed
   useEffect(() => {
     if (!isOpen) {
       setAppointmentType('visita_tecnica');
       setClientId('');
       setStaffId('');
       setDate(new Date());
-      setSlotId('');
+      setSelectedTime('');
     }
   }, [isOpen]);
+
+  const selectedSlotId = selectedTime
+    ? slots.find((s) => s.start_time === selectedTime)?.slot_id ?? ''
+    : '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,15 +101,17 @@ export function NewAppointmentModal({
       toast.error('Selecciona una fecha');
       return;
     }
-    if (!slotId) {
+    if (!selectedTime) {
       toast.error('Selecciona un horario disponible');
       return;
     }
 
     onBook({
       clientId,
-      slotId,
-      appointmentType
+      staffId,
+      date: format(date, 'yyyy-MM-dd'),
+      timeSlot: selectedTime,
+      appointmentType,
     });
   };
 
@@ -123,7 +135,7 @@ export function NewAppointmentModal({
           <Button 
             type="submit"
             form="new-appointment-form"
-            disabled={isBooking || !clientId || !staffId || !date || !slotId} 
+            disabled={isBooking || !clientId || !staffId || !date || !selectedTime}
             className="flex-1 h-14 rounded-none bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all"
           >
             <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -190,11 +202,11 @@ export function NewAppointmentModal({
                       selected={date}
                       onSelect={(d) => {
                         setDate(d);
-                        setSlotId(''); // reset slot when date changes
+                        setSelectedTime('');
                       }}
                       disabled={(date) => {
                         const day = date.getDay();
-                        return day !== 2 && day !== 4; // Solo Martes (2) y Jueves (4)
+                        return day !== 2 && day !== 4;
                       }}
                       className="bg-background border-border/50 h-14 rounded-none focus:ring-primary font-bold w-full"
                     />
@@ -205,11 +217,11 @@ export function NewAppointmentModal({
                       {formatSentenceCase("Horario")} <span className="text-primary">*</span>
                     </label>
                     {staffId && date ? (
-                      <SlotPicker 
-                        slots={slots} 
-                        selectedSlotId={slotId} 
-                        onSelectSlot={(id) => setSlotId(id)} 
-                        isLoading={isLoadingSlots} 
+                      <SlotPicker
+                        slots={slots}
+                        selectedSlotId={selectedSlotId}
+                        onSelectSlot={(_id, _slotDate, startTime) => setSelectedTime(startTime)}
+                        isLoading={isLoadingSlots}
                       />
                     ) : (
                       <div className="p-4 border border-border/20 rounded-none text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 bg-muted/5 text-center min-h-[56px] flex items-center justify-center italic">

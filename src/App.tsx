@@ -22,7 +22,6 @@ const ProjectsPage          = lazy(() => import("./pages/Projects"));
 const ProjectCreatePage     = lazy(() => import("./pages/ProjectCreate"));
 const ProjectDetailPage     = lazy(() => import("./pages/ProjectDetail"));
 const ClientsPage           = lazy(() => import("./pages/Clients"));
-const ClientCreatePage      = lazy(() => import("./pages/ClientCreate"));
 const LeadsPage             = lazy(() => import("./pages/Leads"));
 const LeadCreatePage        = lazy(() => import("./pages/LeadCreate"));
 const InventoryPage         = lazy(() => import("./pages/Inventory"));
@@ -176,7 +175,6 @@ export default function App() {
 
                 {/* Clients */}
                 <Route path="/clients"     element={<Protected><ClientsPage /></Protected>} />
-                <Route path="/clients/new" element={<Protected><ClientCreatePage /></Protected>} />
 
                 {/* Leads */}
                 <Route path="/leads"     element={<Protected><LeadsPage /></Protected>} />
