@@ -53,7 +53,7 @@ export function useLeads(
         query = query.lte("created_at", filters.dateTo + "T23:59:59");
       }
 
-      let ordered = query.order("name", { ascending: true });
+      let ordered = query.order("created_at", { ascending: false });
 
       if (pagination) {
         const { pageIndex, pageSize } = pagination;
