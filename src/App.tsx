@@ -121,10 +121,11 @@ function Protected({ children, roles }: { children: React.ReactNode; roles?: any
 }
 
 export default function App() {
-  const initializeAuth = useAuthStore((state) => state.initializeAuth);
-
   useEffect(() => {
-    initializeAuth();
+    // Llamamos directo al store sin dependencia para evitar re-ejecutar el
+    // effect si la referencia de initializeAuth cambia. El store tiene guard
+    // interno (`if (get().initialized) return`) que previene doble init.
+    useAuthStore.getState().initializeAuth();
 
     if (!supabase) {
       notify.warning(
@@ -133,16 +134,16 @@ export default function App() {
       );
     }
 
-    // Diagnóstico de conexión — solo en dev. Escribe a consola.
-    // Permite identificar si el problema es auth, RLS o latencia de red.
-    if (import.meta.env.DEV) {
-      // Esperamos a que initializeAuth tenga oportunidad de cargar la sesión
-      const t = setTimeout(() => {
-        runConnectionDiagnostic().catch(err => console.error('[diag] crashed:', err));
-      }, 1500);
-      return () => clearTimeout(t);
+    // Diagnóstico de conexión — solo bajo demanda desde DevTools.
+    // ANTES corría automáticamente a los 1.5s del mount, lo que disparaba
+    // un segundo getSession() en paralelo al de initializeAuth() y causaba
+    // contención en el endpoint /auth/v1/session del SDK Supabase.
+    // AHORA queda expuesto en window.runConnectionDiagnostic() para invocar
+    // manualmente desde la consola si se necesita debuggear.
+    if (import.meta.env.DEV && typeof window !== "undefined") {
+      (window as any).runConnectionDiagnostic = runConnectionDiagnostic;
     }
-  }, [initializeAuth]);
+  }, []);
 
   return (
     <ErrorBoundary>

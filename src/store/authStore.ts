@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, resetTimeoutTracking } from "@/lib/supabaseClient";
 import { UserRole, UserProfile } from "@/types/auth";
 
 interface AuthState {
@@ -131,10 +131,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // Subscribe to auth state changes (login/logout/token-refresh).
+      // ÚNICO listener de la app — antes había otro en supabaseClient.ts que
+      // peleaba con este por race condition. Ahora éste invoca
+      // resetTimeoutTracking() para limpiar el estado del cliente Supabase.
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_OUT" || event === "USER_DELETED") {
+          try {
+            localStorage.removeItem("innovar-auth-token");
+          } catch {
+            /* ignore */
+          }
+          resetTimeoutTracking();
           set({ user: null, profile: null });
           return;
+        }
+
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          resetTimeoutTracking();
         }
 
         if (session?.user) {
