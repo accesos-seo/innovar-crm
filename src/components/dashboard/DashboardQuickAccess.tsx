@@ -28,7 +28,7 @@ interface QuickAccessItem {
 const modules: QuickAccessItem[] = [
   // Clientes & Ventas
   { 
-    title: "Directorio", 
+    title: "Clientes",
     description: "Gestión centralizada de contactos y obras.", 
     icon: Contact, 
     path: "/clients",
