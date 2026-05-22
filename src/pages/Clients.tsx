@@ -132,7 +132,7 @@ export default function ClientsPage() {
   return (
     <ResourceListPage<Client>
       title="GESTIÓN DE CLIENTES"
-      subtitle="Directorio centralizado de clientes y solicitudes de asesoría."
+      subtitle="Gestión centralizada de clientes y solicitudes de asesoría."
       icon={Users}
       onBack={() => navigate("/")}
       createLabel="Nuevo cliente"
