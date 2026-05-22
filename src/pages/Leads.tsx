@@ -29,8 +29,11 @@ function useLeadsQuery(
   pagination: { pageIndex: number; pageSize: number },
   hookParams?: unknown
 ): ResourceQueryResult<Lead> {
-  const { leads: data, isLoading, totalCount, deleteLeads } = useLeads(search, pagination, hookParams as LeadFilters | undefined);
-  return { data, isLoading, totalCount, deleteItems: deleteLeads };
+  const params = hookParams as LeadFilters | undefined;
+  const { leads: data, isLoading, totalCount, archiveLeads, restoreLeads } = useLeads(search, pagination, params);
+  // When viewing archived, the bulk action restores; otherwise it archives.
+  const deleteItems = params?.onlyArchived ? restoreLeads : archiveLeads;
+  return { data, isLoading, totalCount, deleteItems };
 }
 
 export default function LeadsPage() {
@@ -41,7 +44,8 @@ export default function LeadsPage() {
     urgency: [],
     city: "",
     dateFrom: "",
-    dateTo: ""
+    dateTo: "",
+    onlyArchived: false,
   });
 
   const metrics = React.useMemo<MetricData[]>(() => [
@@ -66,10 +70,14 @@ export default function LeadsPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ status: [], urgency: [], city: "", dateFrom: "", dateTo: "" });
+    setFilters({ status: [], urgency: [], city: "", dateFrom: "", dateTo: "", onlyArchived: false });
   };
 
-  const isFiltered = filters.status.length > 0 || filters.urgency.length > 0 || !!filters.city || !!filters.dateFrom || !!filters.dateTo;
+  const toggleOnlyArchived = () => {
+    setFilters(prev => ({ ...prev, onlyArchived: !prev.onlyArchived }));
+  };
+
+  const isFiltered = filters.status.length > 0 || filters.urgency.length > 0 || !!filters.city || !!filters.dateFrom || !!filters.dateTo || !!filters.onlyArchived;
 
   const handleSaveField = async (field: keyof Lead, value: string) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -94,6 +102,21 @@ export default function LeadsPage() {
       filterDescription="Segmenta tus solicitudes por estado, urgencia o fecha."
       filterContent={
         <div className="space-y-8">
+          <div className="space-y-4">
+            <label className="text-[10px] font-bold text-muted-foreground">{formatSentenceCase("Vista")}</label>
+            <Button
+              variant={filters.onlyArchived ? "default" : "outline"}
+              onClick={toggleOnlyArchived}
+              className={cn(
+                "w-full text-[10px] font-bold h-10 rounded-none border-border/30 justify-start gap-2",
+                filters.onlyArchived ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"
+              )}
+            >
+              <div className={cn("w-1.5 h-1.5 rounded-full", filters.onlyArchived ? "bg-white" : "bg-muted-foreground")} />
+              {formatSentenceCase(filters.onlyArchived ? "Mostrando solo archivados" : "Mostrar archivados")}
+            </Button>
+          </div>
+
           <div className="space-y-4">
             <label className="text-[10px] font-bold text-muted-foreground">{formatSentenceCase("Estado")}</label>
             <div className="grid grid-cols-2 gap-2">
@@ -171,8 +194,14 @@ export default function LeadsPage() {
       isFiltered={isFiltered}
       onClearFilters={clearFilters}
       onRowClick={setSelectedLead}
-      deleteTitle="¿Eliminar solicitudes?"
-      deleteDescription={(count) => `¿Estás seguro de que deseas eliminar ${count} solicitud(es)? Esta acción no se puede deshacer.`}
+      deleteTitle={filters.onlyArchived ? "¿Restaurar solicitudes?" : "¿Archivar solicitudes?"}
+      deleteDescription={(count) =>
+        filters.onlyArchived
+          ? `Vas a restaurar ${count} solicitud(es). Volverán a aparecer en el listado activo.`
+          : `Vas a archivar ${count} solicitud(es). Se ocultan del listado pero se conservan y podés recuperarlas en cualquier momento desde el filtro 'Mostrar archivados'.`
+      }
+      deleteConfirmText={filters.onlyArchived ? "Restaurar" : "Archivar"}
+      deleteButtonLabel={filters.onlyArchived ? "Restaurar" : "Archivar"}
       emptyTitle="No hay información actual"
       emptyDescription="No se encontraron solicitudes que coincidan con los filtros actuales. Comienza creando un nuevo lead."
     >
@@ -267,7 +296,7 @@ export default function LeadsPage() {
                 label={formatSentenceCase("Prioridad / Urgencia")}
                 value={selectedLead?.urgency || ""}
                 displayValue={(() => {
-                  const u = selectedLead?.urgency;
+                  const u = selectedLead?.urgency as string | undefined;
                   if (!u) return <span className="text-sm font-bold text-muted-foreground italic">{formatSentenceCase("Normal / No definida")}</span>;
                   const normalizedKey = u === "ASAP" ? "high" : u === "SHORT" ? "medium" : u === "LON" ? "low" : u;
                   const config = urgencyMap[normalizedKey] || { label: u, variant: "info" };

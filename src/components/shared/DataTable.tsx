@@ -54,6 +54,7 @@ interface DataTableProps<TData, TValue> {
   onPageSizeChange: (pageSize: number) => void;
   onRowClick?: (row: TData) => void;
   onDeleteSelected?: (selectedRows: TData[]) => void;
+  deleteButtonLabel?: string;
   emptyMessage?: React.ReactNode;
   onSortChange?: (sorting: SortingState) => void;
 }
@@ -70,6 +71,7 @@ function DataTableInner<TData, TValue>({
   onPageSizeChange,
   onRowClick,
   onDeleteSelected,
+  deleteButtonLabel,
   emptyMessage = "No se encontraron resultados.",
   onSortChange,
 }: DataTableProps<TData, TValue>) {
@@ -79,6 +81,7 @@ function DataTableInner<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    getRowId: (row: any) => row?.id ?? "",
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -145,7 +148,7 @@ function DataTableInner<TData, TValue>({
                   aria-label="Eliminar seleccionados"
                 >
                   <Trash2 className="w-4 h-4" aria-hidden="true" />
-                  {formatSentenceCase("Eliminar")}
+                  {formatSentenceCase(deleteButtonLabel ?? "Eliminar")}
                 </Button>
               )}
             </div>

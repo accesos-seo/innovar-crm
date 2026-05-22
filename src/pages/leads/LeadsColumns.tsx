@@ -106,7 +106,7 @@ export const columns: ColumnDef<Lead>[] = [
     accessorKey: "urgency",
     header: formatSentenceCase("Urgencia"),
     cell: ({ row }) => {
-      const raw = row.original.urgency;
+      const raw = row.original.urgency as string | undefined;
       const normalized = raw === "ASAP" ? "high" : raw === "SHORT" ? "medium" : raw === "LON" ? "low" : raw || "medium";
       const variant = normalized === "high" ? "error" : normalized === "medium" ? "warning" : "info";
       const label = normalized === "high" ? "Alta" : normalized === "medium" ? "Media" : "Baja";
