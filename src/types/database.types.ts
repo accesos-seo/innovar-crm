@@ -120,7 +120,9 @@ export interface Database {
           data_origin?: DataOrigin;
           created_by?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["clients"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["clients"]["Insert"]> & {
+          deleted_at?: string | null;
+        };
       };
 
       // ── projects ─────────────────────────────────────────────────────────
