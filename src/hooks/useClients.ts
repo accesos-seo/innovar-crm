@@ -19,7 +19,24 @@ export function useClients(
     queryFn: async () => {
       assertSupabase(supabase);
 
-      let query = supabase.from("clients").select("*", { count: "exact" });
+      const { data: projClients, error: projErr } = await supabase
+        .from("projects")
+        .select("client_id")
+        .not("client_id", "is", null);
+      if (projErr) throw mapSupabaseError(projErr);
+
+      const clientIds = Array.from(
+        new Set((projClients || []).map((p: { client_id: string | null }) => p.client_id).filter(Boolean) as string[])
+      );
+
+      if (clientIds.length === 0) {
+        return { data: [] as Client[], count: 0 };
+      }
+
+      let query = supabase
+        .from("clients")
+        .select("*", { count: "exact" })
+        .in("id", clientIds);
 
       if (searchTerm) {
         query = query.or(

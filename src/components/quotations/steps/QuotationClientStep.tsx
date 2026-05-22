@@ -193,10 +193,10 @@ export function QuotationClientStep({
                 <div className="text-center py-12 space-y-4">
                   <p className="text-muted-foreground text-sm">No encontramos resultados para su búsqueda.</p>
                   <Button
-                    onClick={() => navigate('/clients/new')}
+                    onClick={() => navigate('/leads/new')}
                     className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-xs font-bold uppercase tracking-widest h-12 px-8 rounded-none"
                   >
-                    Crear nuevo cliente
+                    Registrar nuevo lead
                   </Button>
                 </div>
               )}
