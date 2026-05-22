@@ -48,7 +48,7 @@ const navItems: NavItem[] = [
     icon: Users, 
     label: "Clientes & Ventas", 
     children: [
-      { label: "Directorio", path: "/clients", icon: UserCircle },
+      { label: "Clientes", path: "/clients", icon: UserCircle },
       { label: "Solicitudes/Leads", path: "/solicitudes/leads", icon: Briefcase },
       { label: "Cotizaciones", path: "/quotes", icon: FileText },
     ]
