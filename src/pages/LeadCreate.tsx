@@ -65,9 +65,9 @@ const STATUSES = [
 ];
 
 const URGENCY_MAP: Record<string, string> = {
-  "Lo antes posible": "ASAP",
-  "Mediano plazo": "SHORT",
-  "Solo averiguando": "LON",
+  "Lo antes posible": "high",
+  "Mediano plazo": "medium",
+  "Solo averiguando": "low",
 };
 
 export default function LeadCreate() {

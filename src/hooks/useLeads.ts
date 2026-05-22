@@ -14,6 +14,8 @@ export interface LeadFilters {
   city?: string;
   dateFrom?: string;
   dateTo?: string;
+  includeArchived?: boolean;
+  onlyArchived?: boolean;
 }
 
 export function useLeads(
@@ -45,6 +47,12 @@ export function useLeads(
         query = query.not("id", "in", `(${convertedIds.join(",")})`);
       }
 
+      if (filters?.onlyArchived) {
+        query = query.not("deleted_at", "is", null);
+      } else if (!filters?.includeArchived) {
+        query = query.is("deleted_at", null);
+      }
+
       if (searchTerm) {
         query = query.or(
           `name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,whatsapp_phone.ilike.%${searchTerm}%`
@@ -67,7 +75,7 @@ export function useLeads(
         query = query.lte("created_at", filters.dateTo + "T23:59:59");
       }
 
-      let ordered = query.order("name", { ascending: true });
+      let ordered = query.order("created_at", { ascending: false });
 
       if (pagination) {
         const { pageIndex, pageSize } = pagination;
@@ -83,17 +91,47 @@ export function useLeads(
     },
   });
 
-  const deleteMutation = useMutation({
+  const archiveMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       assertSupabase(supabase);
-      const { error } = await supabase.from("clients").delete().in("id", ids);
+      const { error } = await supabase
+        .from("clients")
+        .update({ deleted_at: new Date().toISOString() })
+        .in("id", ids);
       if (error) throw mapSupabaseError(error);
     },
-    onSuccess: () => {
-      toast.success("Solicitudes eliminadas correctamente");
+    onSuccess: (_data, ids) => {
+      toast.success(
+        ids.length === 1
+          ? "Solicitud archivada"
+          : `${ids.length} solicitudes archivadas`,
+        { description: "Podés recuperarlas activando 'Mostrar archivados' en filtros." }
+      );
       queryClient.invalidateQueries({ queryKey: [LEADS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
-    onError: (error) => notifyError(error, "Error al eliminar solicitudes"),
+    onError: (error) => notifyError(error, "Error al archivar solicitudes"),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      assertSupabase(supabase);
+      const { error } = await supabase
+        .from("clients")
+        .update({ deleted_at: null })
+        .in("id", ids);
+      if (error) throw mapSupabaseError(error);
+    },
+    onSuccess: (_data, ids) => {
+      toast.success(
+        ids.length === 1
+          ? "Solicitud restaurada"
+          : `${ids.length} solicitudes restauradas`
+      );
+      queryClient.invalidateQueries({ queryKey: [LEADS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (error) => notifyError(error, "Error al restaurar solicitudes"),
   });
 
   const createMutation = useMutation({
@@ -123,7 +161,9 @@ export function useLeads(
     isLoading,
     totalCount: data?.count || 0,
     refetch,
-    deleteLeads: async (ids: string[]) => deleteMutation.mutateAsync(ids),
+    deleteLeads: async (ids: string[]) => archiveMutation.mutateAsync(ids),
+    archiveLeads: async (ids: string[]) => archiveMutation.mutateAsync(ids),
+    restoreLeads: async (ids: string[]) => restoreMutation.mutateAsync(ids),
     createLead: async (leadData: Partial<ClientInsert>) => createMutation.mutateAsync(leadData),
   };
 }

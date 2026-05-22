@@ -106,12 +106,13 @@ export const columns: ColumnDef<Lead>[] = [
     accessorKey: "urgency",
     header: formatSentenceCase("Urgencia"),
     cell: ({ row }) => {
-      const urgency = row.original.urgency || "medium";
-      const variant = urgency === "high" ? "error" : urgency === "medium" ? "warning" : "primary";
-      const label = urgency === "high" ? "Alta" : urgency === "medium" ? "Media" : "Baja";
-      
+      const raw = row.original.urgency as string | undefined;
+      const normalized = raw === "ASAP" ? "high" : raw === "SHORT" ? "medium" : raw === "LON" ? "low" : raw || "medium";
+      const variant = normalized === "high" ? "error" : normalized === "medium" ? "warning" : "info";
+      const label = normalized === "high" ? "Alta" : normalized === "medium" ? "Media" : "Baja";
+
       return (
-        <StatusBadge variant={variant} dot animate={urgency === 'high' ? 'pulse' : 'none'}>
+        <StatusBadge variant={variant} dot animate={normalized === 'high' ? 'pulse' : 'none'}>
           {label}
         </StatusBadge>
       );

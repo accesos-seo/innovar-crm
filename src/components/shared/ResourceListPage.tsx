@@ -63,6 +63,7 @@ export interface ResourceListPageProps<TData> {
   deleteTitle?: string;
   deleteDescription?: (count: number) => string;
   deleteConfirmText?: string;
+  deleteButtonLabel?: string;
 
   // Empty state
   emptyTitle?: string;
@@ -97,6 +98,7 @@ export function ResourceListPage<TData>({
   deleteTitle,
   deleteDescription,
   deleteConfirmText,
+  deleteButtonLabel,
   emptyTitle = "Sin registros",
   emptyDescription = "No se encontraron elementos que coincidan con los filtros actuales.",
   emptyIcon,
@@ -208,6 +210,7 @@ export function ResourceListPage<TData>({
         onPageSizeChange={setPageSize}
         onRowClick={onRowClick}
         onDeleteSelected={effectiveDelete ? handleDeleteSelected : undefined}
+        deleteButtonLabel={deleteButtonLabel}
         emptyMessage={
           <EmptyState
             title={emptyTitle}
