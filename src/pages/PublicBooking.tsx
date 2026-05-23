@@ -44,6 +44,17 @@ function firstName(fullName?: string | null): string {
   return clean.split(/\s+/)[0].replace(/[.,;:]+$/, "");
 }
 
+// Formato 12h estilo Colombia: "9:00 AM", "1:30 PM", "12:00 PM".
+// En Colombia no se usa el formato 24h conversacional ("15:30") — siempre 12h con AM/PM.
+function formatColombianTime(date: Date): string {
+  const h24 = date.getHours();
+  const m = date.getMinutes();
+  const period = h24 < 12 ? "AM" : "PM";
+  const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+  const mm = m.toString().padStart(2, "0");
+  return `${h12}:${mm} ${period}`;
+}
+
 interface ConfirmedVisit {
   scheduled_at: string;
   staff_name: string | null;
@@ -357,7 +368,7 @@ function DayGroup({
       <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
         {slots.map((s) => {
           const isSelected = selectedSlot === s.slot_start;
-          const timeLabel = format(new Date(s.slot_start), "HH:mm");
+          const timeLabel = formatColombianTime(new Date(s.slot_start));
           return (
             <button
               key={s.slot_start}
@@ -414,7 +425,7 @@ function InvalidLinkCard() {
 function SuccessCard({ confirmed }: { confirmed: ConfirmedVisit }) {
   const date = new Date(confirmed.scheduled_at);
   const dayLabel = format(date, "EEEE d 'de' MMMM 'de' yyyy", { locale: es });
-  const timeLabel = format(date, "HH:mm");
+  const timeLabel = formatColombianTime(date);
 
   return (
     <motion.div
