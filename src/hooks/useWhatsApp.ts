@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { NotificationQueueRow, MetaWhatsappStatusEvent, ProcessWhatsappNotificationsResponse } from '@/types/whatsapp';
 import { notify } from '@/components/ui/PremiumToast';
-import { withTimeout } from '@/lib/timeout';
 import { assertSupabase, mapSupabaseError, notifyError } from '@/lib/errors';
 
 export function useWhatsApp(filters?: { status?: string; delivery_status?: string; searchTerm?: string }) {

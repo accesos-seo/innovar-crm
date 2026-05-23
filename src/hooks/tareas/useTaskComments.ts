@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { withTimeout } from '@/lib/timeout';
 import { useAuthStore } from '@/store/authStore';
 import { assertSupabase, mapSupabaseError, notifyError, AppError } from '@/lib/errors';
 
@@ -21,7 +20,7 @@ export function useTaskComments(taskId: string) {
         .eq('task_id', taskId)
         .order('created_at', { ascending: true });
 
-      const response = (await withTimeout(q as any)) as any;
+      const response = (await q) as any;
       const { data, error } = response;
 
       if (error) throw mapSupabaseError(error);

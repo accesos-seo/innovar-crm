@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Expense } from "@/types/database";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
 
 export function useExpenses(
@@ -57,7 +56,7 @@ export function useExpenses(
         query = query.range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
       }
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error, count } = response;
       if (error) throw mapSupabaseError(error);
       return { data: (data as Expense[]) || [], count: count || 0 };

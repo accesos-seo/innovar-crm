@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import {
   holidayInsertSchema,
@@ -21,9 +20,7 @@ export function useHolidays() {
     staleTime: 1000 * 60 * 60, // 1 h — holidays rarely change
     queryFn: async (): Promise<Holiday[]> => {
       assertSupabase(supabase);
-      const response = (await withTimeout(
-        supabase.from("holidays").select("*").order("date", { ascending: true }) as any
-      )) as any;
+      const response = (await (supabase.from("holidays").select("*").order("date", { ascending: true }) as any)) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as Holiday[]) || [];

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { Client as Lead } from "@/types/database";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import { clientSchema, type ClientInsert } from "@/schemas/client";
@@ -82,7 +81,7 @@ export function useLeads(
         ordered = ordered.range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
       }
 
-      const response = (await withTimeout(ordered)) as any;
+      const response = (await ordered) as any;
       const { data, error, count } = response;
 
       if (error) throw mapSupabaseError(error);

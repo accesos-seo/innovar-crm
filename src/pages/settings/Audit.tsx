@@ -33,7 +33,6 @@ import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { parseISO } from "date-fns";
 
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 interface AuditLog {
@@ -119,7 +118,7 @@ export default function AuditSettingsPage() {
         .select('*')
         .order('timestamp', { ascending: false });
 
-      const response = await withTimeout(query as any);
+      const response = await query;
       const { data, error } = response as any;
 
       if (error) {

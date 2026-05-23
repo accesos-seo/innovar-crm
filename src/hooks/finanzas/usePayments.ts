@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Payment } from "@/types/database";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
 
 export function usePayments(filters?: {
@@ -44,7 +43,7 @@ export function usePayments(filters?: {
         query = query.lte("received_at", filters.date_to);
       }
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as Payment[]) || [];

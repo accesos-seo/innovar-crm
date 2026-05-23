@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import { toast } from "sonner";
 import {
@@ -107,7 +106,7 @@ export function useOpportunities(
         );
       }
 
-      const response = (await withTimeout(ordered)) as any;
+      const response = (await ordered) as any;
       const { data, error, count } = response;
       if (error) throw mapSupabaseError(error);
 

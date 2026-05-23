@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import {
   projectInsertSchema,
   projectUpdateSchema,
@@ -53,7 +52,7 @@ export const useProjects = (filters?: {
         query = query.eq("is_archived", false);
       }
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as Project[]) || [];
@@ -84,7 +83,7 @@ export const useProject = (id: string | null) => {
         .eq("id", id)
         .single();
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) {
         const mapped = mapSupabaseError(error);

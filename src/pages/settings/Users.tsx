@@ -72,7 +72,6 @@ import {
 import { Loader2, Save, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { formatDate } from "@/lib/format-utils";
-import { withTimeout } from "@/lib/timeout";
 
 const userSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -184,7 +183,7 @@ export default function UsersSettingsPage() {
         .select('*')
         .order('full_name', { ascending: true });
 
-      const response = await withTimeout(query as any);
+      const response = await query;
       const { data, error } = response as any;
 
       if (error) {

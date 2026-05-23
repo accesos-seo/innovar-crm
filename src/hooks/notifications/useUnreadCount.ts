@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { withTimeout } from '@/lib/timeout';
 import { useAuthStore } from '@/store/authStore';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
@@ -21,7 +20,7 @@ export function useUnreadCount() {
         .eq('user_id', user.id)
         .eq('is_read', false);
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { count, error } = response;
 
       if (error) throw mapSupabaseError(error);

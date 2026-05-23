@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { withTimeout } from '@/lib/timeout';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 export function useProjectBalance(projectId?: string) {
@@ -13,7 +12,7 @@ export function useProjectBalance(projectId?: string) {
       if (!projectId) return null;
 
       const rpcCall = supabase.rpc('get_project_balance', { p_project_id: projectId });
-      const response = (await withTimeout(rpcCall as any)) as any;
+      const response = (await rpcCall) as any;
       const { data, error } = response;
 
       if (error) throw mapSupabaseError(error);

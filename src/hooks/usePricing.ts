@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import {
   pricingInsertSchema,
@@ -22,12 +21,10 @@ export function usePricing() {
     gcTime: 1000 * 60 * 30,
     queryFn: async (): Promise<PricingItem[]> => {
       assertSupabase(supabase);
-      const response = (await withTimeout(
-        supabase
-          .from("pricing_catalog")
-          .select("*")
-          .order("category", { ascending: true }) as any
-      )) as any;
+      const response = (await (supabase
+        .from("pricing_catalog")
+        .select("*")
+        .order("category", { ascending: true }) as any)) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as PricingItem[]) || [];

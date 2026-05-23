@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { Task } from '@/types/database';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { withTimeout } from '@/lib/timeout';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
@@ -31,7 +30,7 @@ export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
         .order('due_date', { ascending: true })
         .order('time_slot', { ascending: true });
 
-      const response = await withTimeout(query as any);
+      const response = await query;
       const { data, error } = response as any;
 
       if (error) throw mapSupabaseError(error);

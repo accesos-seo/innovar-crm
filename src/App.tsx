@@ -10,8 +10,7 @@ import ScrollToTop from "./components/shared/ScrollToTop";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
-import { supabase, recordSupabaseTimeout, recordSupabaseSuccess } from "@/lib/supabaseClient";
-import { runConnectionDiagnostic } from "@/lib/connection-diagnostic";
+import { supabase } from "@/lib/supabaseClient";
 
 // ── Static imports (critical path — always needed) ─────────────────────────
 import LoginPage from "./pages/Login";
@@ -62,36 +61,17 @@ function PageLoader() {
   );
 }
 
-// Reporter global de errores de queries — hace visibles los timeouts/RLS
-// errors en lugar de dejar skeletons infinitos.
-//
-// Además, alimenta al contador de "timeouts consecutivos" del cliente Supabase
-// (recordSupabaseTimeout). Esto cubre el caso donde el timeout viene del
-// `withTimeout` externo (no del fetch interno con AbortController), que es lo
-// más común porque el SDK de Supabase atrapa los AbortError internamente.
 const queryErrorCache = new QueryCache({
   onError: (error, query) => {
     const msg = (error as Error)?.message ?? String(error);
     const tableHint = JSON.stringify(query.queryKey).slice(0, 80);
     console.error(`[query-error] ${tableHint} → ${msg}`);
-
-    const isTimeout = /timed out|timeout/i.test(msg);
-    if (isTimeout) {
-      recordSupabaseTimeout();
+    if (/network|fetch/i.test(msg)) {
       notify.error(
-        'Error al cargar datos',
-        `${msg.split('.')[0]}. Verifica la consola para más detalles.`
-      );
-    } else if (/network|fetch/i.test(msg)) {
-      notify.error(
-        'Error al cargar datos',
-        `${msg.split('.')[0]}. Verifica la consola para más detalles.`
+        'Error de conexión',
+        `${msg.split('.')[0]}. Verifica tu conexión a internet.`
       );
     }
-  },
-  onSuccess: () => {
-    // Cualquier query exitosa confirma que el cliente Supabase funciona — reset contador.
-    recordSupabaseSuccess();
   },
 });
 
@@ -99,15 +79,10 @@ const queryClient = new QueryClient({
   queryCache: queryErrorCache,
   defaultOptions: {
     queries: {
-      // Reintenta 2 veces antes de mostrar error (cubre cold starts de Supabase)
-      retry: 2,
-      retryDelay: (attempt) => Math.min(3000 * (attempt + 1), 10000),
+      retry: 1,
+      retryDelay: 2000,
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5,
-      networkMode: "always",
-    },
-    mutations: {
-      networkMode: "always",
     },
   },
 });
@@ -131,16 +106,6 @@ export default function App() {
         "Modo Demostración Activo",
         "Supabase no está configurado. Se están usando datos locales de prueba."
       );
-    }
-
-    // Diagnóstico de conexión — solo en dev. Escribe a consola.
-    // Permite identificar si el problema es auth, RLS o latencia de red.
-    if (import.meta.env.DEV) {
-      // Esperamos a que initializeAuth tenga oportunidad de cargar la sesión
-      const t = setTimeout(() => {
-        runConnectionDiagnostic().catch(err => console.error('[diag] crashed:', err));
-      }, 1500);
-      return () => clearTimeout(t);
     }
   }, [initializeAuth]);
 
