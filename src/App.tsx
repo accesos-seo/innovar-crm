@@ -55,6 +55,7 @@ const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
 const PublicBookingByCodePage = lazy(() => import("./pages/PublicBookingByCode"));
+const PublicQuotationPage   = lazy(() => import("./pages/PublicQuotation"));
 
 // ── Route-level loading fallback ───────────────────────────────────────────
 function PageLoader() {
@@ -128,6 +129,9 @@ export default function App() {
                 <Route path="/agendar/:token" element={<PublicBookingPage />} />
                 {/* URL corta /v/:code → resuelve el short_code y reusa el flujo. */}
                 <Route path="/v/:code" element={<PublicBookingByCodePage />} />
+                {/* Cotización pública (Fase 4 Slice 2). Standalone, sin auth, sin Layout.
+                    Si VITE_FF_PHASE_4_QUOTATION_PUBLIC=false la página devuelve 404. */}
+                <Route path="/cotizacion/:token" element={<PublicQuotationPage />} />
 
                 {/* ── Dev/admin tooling ── */}
                 <Route

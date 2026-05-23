@@ -26,8 +26,14 @@ import { QuotationStatus } from "@/types/database";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { formatDate, formatDateTime } from "@/lib/format-utils";
 import { DateDisplay } from "@/components/shared/DateDisplay";
+import { useAuthStore } from "@/store/authStore";
+import { FEATURES } from "@/lib/features";
+import { SendQuotationButton } from "@/components/quotations/SendQuotationButton";
+import { QuotationLockBadge } from "@/components/quotations/QuotationLockBadge";
+import { QuotationViewTracking } from "@/components/quotations/QuotationViewTracking";
+import { CreateNewVersionButton } from "@/components/quotations/CreateNewVersionButton";
 
-const statusMap: Record<QuotationStatus, { label: string; variant: "success" | "info" | "warning" | "error" | "purple" | "primary" }> = {
+const statusMap: Record<string, { label: string; variant: "success" | "info" | "warning" | "error" | "purple" | "primary" }> = {
   draft: { label: "Borrador", variant: "info" },
   sent: { label: "Enviada", variant: "primary" },
   viewed: { label: "Vista por Cliente", variant: "purple" },
@@ -36,7 +42,12 @@ const statusMap: Record<QuotationStatus, { label: string; variant: "success" | "
   rejected: { label: "Rechazada", variant: "error" },
   expired: { label: "Vencida", variant: "error" },
   replaced: { label: "Reemplazada", variant: "info" },
+  // Fase 4 — flujo cotización pública
+  client_approved: { label: "Aceptada por cliente", variant: "purple" },
+  pending_payment_verification: { label: "Pago por verificar", variant: "warning" },
 };
+
+const FALLBACK_STATUS = { label: "Sin estado", variant: "info" as const };
 
 export default function QuotationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -90,7 +101,11 @@ export default function QuotationDetailPage() {
     }
   };
 
-  const statusConfig = statusMap[quotation.status];
+  const statusConfig = statusMap[quotation.status as string] ?? FALLBACK_STATUS;
+  const profile = useAuthStore((s) => s.profile);
+  const phase4On = FEATURES.phase4QuotationPublicEnabled;
+  const isHistorical = (quotation as any).is_historical_copy === true;
+  const clientHasWa = !!(quotation as any).client?.whatsapp_phone;
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-8 pb-32">
@@ -103,7 +118,7 @@ export default function QuotationDetailPage() {
         </span>
       </div>
 
-      <CategoryHeader 
+      <CategoryHeader
         title={`Cotización ${quotation.id.split('-')[0].toUpperCase()}`}
         subtitle={`Versión ${quotation.version_number} | Cliente: ${(quotation as any).client?.name || 'Desconocido'}`}
         icon={FileText}
@@ -112,6 +127,39 @@ export default function QuotationDetailPage() {
           variant: statusConfig.variant
         }}
       />
+
+      {phase4On && isHistorical && (
+        <div className="rounded-md border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          Esta versión quedó marcada como <strong>histórica</strong>. Hay una versión más
+          reciente activa.
+        </div>
+      )}
+
+      {phase4On && (
+        <div className="flex flex-wrap items-center gap-3 bg-card p-4 border border-border/10 rounded-sm">
+          <QuotationLockBadge
+            quotationId={quotation.id}
+            isLocked={!!(quotation as any).is_locked}
+            currentUserRole={profile?.role}
+          />
+          <QuotationViewTracking
+            viewCount={Number((quotation as any).view_count ?? 0)}
+            viewedAt={(quotation as any).viewed_at ?? null}
+          />
+          <div className="flex-1" />
+          <SendQuotationButton
+            quotationId={quotation.id}
+            status={quotation.status as string}
+            currentUserRole={profile?.role}
+            clientHasWhatsapp={clientHasWa}
+          />
+          <CreateNewVersionButton
+            quotationId={quotation.id}
+            status={quotation.status as string}
+            currentUserRole={profile?.role}
+          />
+        </div>
+      )}
 
       {/* Acciones Rápidas */}
       <div className="flex flex-wrap gap-4 bg-card p-4 border border-border/10 rounded-sm">

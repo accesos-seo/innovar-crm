@@ -9,6 +9,10 @@ export const FEATURES = {
   quotationVersionsEnabled:   import.meta.env.VITE_FF_QUOTATION_VERSIONS === 'true',
   paymentVerificationEnabled: import.meta.env.VITE_FF_PAYMENT_VERIFICATION === 'true',
   agentA05Enabled:            import.meta.env.VITE_FF_AGENT_A05 === 'true',
+  // Fase 4 — Cotización y Aprobación del Proyecto (cubre Slices 2-5 completos).
+  // Cuando OFF: la ruta /cotizacion/:token devuelve 404, los botones de envío/lock
+  // no aparecen en el CRM, y el flujo legacy (WhatsApp manual) sigue funcionando igual.
+  phase4QuotationPublicEnabled: import.meta.env.VITE_FF_PHASE_4_QUOTATION_PUBLIC === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURES;
