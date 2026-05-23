@@ -29,6 +29,14 @@ Migrations are written to be idempotent — safe to re-run if you're not sure wh
 | `010_lead_to_project_triggers.sql` | ✅ Applied 2026-05-22 | **Lead→Project · Triggers**: cablea las funciones de 009 a las tablas correspondientes |
 | `011_lead_to_project_rls.sql` | ✅ Applied 2026-05-22 | **Lead→Project · RLS**: políticas estrictas (comercial solo ve lo suyo, admin todo). Endurece `payments` |
 | `012_lead_to_project_seed.sql` | ✅ Applied 2026-05-22 | **Lead→Project · Seed**: configuración inicial en `system_settings` |
+| `013_fix_notification_action_urls.sql` | ✅ Applied 2026-05-23 | Fix de rutas legacy en triggers de notificación (`/agenda/citas` → `/agenda`, `/agenda/tareas` → `/tasks`) + backfill |
+| `014_whatsapp_lead_followup_flow.sql` | ✅ Applied 2026-05-23 | **Slice 3 (parcial)** · WhatsApp lead follow-up + booking público: `opportunities.public_token_expires_at`, trigger AFTER INSERT que encola welcome_lead_v1 + booking_link_v1 en `notification_queue`, RPCs `get_public_booking_context`/`get_public_visit_slots`/`book_public_visit`. Probado E2E: cliente puede agendar desde link público y token se autoinvalida |
+| `014a_fix_opportunity_transitions.sql` | ✅ Applied 2026-05-23 | **Fix 009** · Agrega transiciones `new → visit_scheduled` (self-booking público) y `contacted → quoted` (bypass admin) al CASE de `validate_opportunity_transition`. Sin esto era imposible insertar una visita sobre opportunity recién creada |
+| `015_fix_visit_to_task_mirror.sql` | ✅ Applied 2026-05-23 | **Fix 009** · Corrige `visit_to_task_mirror`: enum values masculino (`completado`/`cancelado` en vez de `completada`/`cancelada`), cast `::task_status` final del CASE, `task_category = 'cita'::task_category` (en vez del valor inexistente `'visit_mirror'`) |
+| `016_fix_visit_to_task_mirror_timeslot.sql` | ✅ Applied 2026-05-23 | **Fix 009** · `tasks.time_slot` es `time without time zone`; reemplaza `to_char(scheduled_at,'HH24:MI')` (TEXT) por `scheduled_at::time` |
+| `017_fix_auto_generate_quotation.sql` | ✅ Applied 2026-05-23 | **Fix 009** · Quita `created_by` del INSERT en quotations — la columna no existe; el comercial se deriva vía `opportunity_id → opportunities.assigned_to` |
+| `018_fix_visit_to_task_mirror_availability.sql` | ✅ Applied 2026-05-23 | **Fix 009** · `visit_to_task_mirror` pre-crea row en `availability_slots` (UPSERT) antes del INSERT en tasks. Sin esto el trigger legacy `sync_task_availability_booking` abortaba la cadena porque no encontraba slot precargado |
+| `019_fix_get_visit_slots_timezone.sql` | ✅ Applied 2026-05-23 | **Fix 009** · `get_visit_slots` casteaba `(date + time)::TIMESTAMPTZ` interpretando como UTC. Resultado: slots 09:00 SQL llegaban al cliente como 04:00 Colombia. Fix: `AT TIME ZONE 'America/Bogota'`. Validado en UI con click real |
 | `ROLLBACK_lead_to_project.sql` | — | Revierte 008→012. ⚠️ DESTRUCTIVO: borra opportunities/visits/payments verificados |
 
 When you apply one, change its status to ✅.
