@@ -23,6 +23,23 @@ export interface BookPublicVisitResult {
   client_name: string;
 }
 
+// 0. Resuelve un short_code (URL corta /v/:code) a su public_token (32 chars).
+//    Devuelve null si el código no existe, expiró, o la opp ya no es agendable.
+export function useResolveShortCode(code: string | undefined) {
+  return useQuery({
+    queryKey: ['public-resolve-short', code],
+    enabled: !!code,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+    queryFn: async (): Promise<string | null> => {
+      assertSupabase(supabase);
+      const { data, error } = await supabase.rpc('resolve_short_code', { p_code: code });
+      if (error) throw mapSupabaseError(error);
+      return (data as string | null) ?? null;
+    },
+  });
+}
+
 // 1. Contexto del booking (cliente + comercial asignado) desde un token público.
 //    Se ejecuta sin auth — la RPC valida el token y la expiración internamente.
 export function useBookingContext(token: string | undefined) {

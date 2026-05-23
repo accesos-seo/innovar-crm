@@ -6,6 +6,47 @@
 
 ---
 
+## 📌 ACTUALIZACIÓN 2026-05-23 (segunda sesión) — UX fixes + Short URLs
+
+Sobre el flujo público funcionando: 3 mejoras visuales + URL corta brandeada.
+
+### UX fixes en `src/pages/PublicBooking.tsx`
+- Helpers `cleanName()` + `firstName()` quitan prefijos `[QA-...]`, `(...)` y devuelven solo el primer nombre limpio.
+- Cliente label muestra primer nombre limpio.
+- Thank-you "¡Listo, X!" usa firstName limpio.
+- Botón CTA al sitio web institucional `https://cocinasintegralespereira.co/` (target=_blank) en la SuccessCard con separador "Mientras tanto" + URL en footer.
+
+### Short URLs (`/v/:code` en lugar de `/agendar/<32-char-token>`)
+- **Migración 019** aplicada: `opportunities.short_code` (6 chars base62 con alfabeto sin chars confusos), trigger BEFORE INSERT auto-genera, backfill OK.
+- RPC pública `resolve_short_code(p_code) → public_token` valida estado de la opp.
+- Trigger 014 (`notify_lead_followup_flow`) **actualizado** para enviar `/v/<short_code>` por WhatsApp.
+- Frontend: nueva ruta `/v/:code`, hook `useResolveShortCode`, componente wrapper `PublicBookingByCode.tsx` que resuelve y delega al `PublicBooking` existente con prop `token`.
+
+### Subdomain `agenda.cocinasintegralespereira.co` (pendiente DNS del usuario)
+Agregado al proyecto Vercel `crm-innovar-app-2026` via API. Estado `verified: false` hasta que el usuario configure 2 records DNS en el provider del dominio:
+
+```
+Type: TXT
+Name: _vercel
+Value: vc-domain-verify=agenda.cocinasintegralespereira.co,472fe8f5d025f5259235
+
+Type: CNAME
+Name: agenda
+Value: cname.vercel-dns.com
+```
+
+Una vez propagado (~5min a 1h), `agenda.cocinasintegralespereira.co/v/<code>` apunta al deployment automáticamente con SSL emitido por Vercel.
+
+### Verificación E2E ejecutada
+- Opp QA "Felaipe Diaz Demo" creada → short_code `bGUa6x`.
+- Build estático servido en `localhost:4173`, navegación a `/v/bGUa6x`:
+  - Página carga, h1 "Agenda tu visita técnica", cliente "Felaipe" (firstName limpio).
+  - 24 slots Mar/Jue x 4 horas x 3 semanas.
+  - Click slot 09:00 → "Confirmar visita" → success con "¡Listo, Felaipe!".
+  - CTA href correcto a `cocinasintegralespereira.co/`, target=_blank.
+
+---
+
 ## ⚠️ ACTUALIZACIÓN 2026-05-23 (sesión vespertina) — Decisión arquitectónica
 
 Tras aplicar la migración 014 se descubrió que **el plan original asumía greenfield, pero ya existe un sistema WhatsApp activo en producción**:

@@ -53,6 +53,7 @@ const DictionaryPage        = lazy(() => import("./pages/Dictionary"));
 const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
+const PublicBookingByCodePage = lazy(() => import("./pages/PublicBookingByCode"));
 
 // ── Route-level loading fallback ───────────────────────────────────────────
 function PageLoader() {
@@ -124,6 +125,8 @@ export default function App() {
                 {/* Link público que el cliente recibe por WhatsApp para
                     agendar su visita técnica. Sin ProtectedRoute, sin Layout. */}
                 <Route path="/agendar/:token" element={<PublicBookingPage />} />
+                {/* URL corta /v/:code → resuelve el short_code y reusa el flujo. */}
+                <Route path="/v/:code" element={<PublicBookingByCodePage />} />
 
                 {/* ── Dev/admin tooling ── */}
                 <Route

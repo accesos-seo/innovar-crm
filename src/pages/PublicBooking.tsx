@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   UserRound,
   CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,7 +24,25 @@ import {
 
 const LOGO_URL =
   "https://stjugsrkrweakvzmizpq.supabase.co/storage/v1/object/public/Logos%20Marcas/finallogo-fondo%20(1).png";
+const WEBSITE_URL = "https://cocinasintegralespereira.co/";
 const WINDOW_DAYS = 21; // mostramos próximas 3 semanas de martes/jueves
+
+// Limpia prefijos tipo "[QA-...]" / "(test)" del nombre del cliente.
+function cleanName(fullName?: string | null): string {
+  if (!fullName) return "";
+  return fullName
+    .replace(/\s*\[[^\]]*\]\s*/g, " ")
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Devuelve el primer nombre "limpio", sin tags ni iniciales sueltas con punto.
+function firstName(fullName?: string | null): string {
+  const clean = cleanName(fullName);
+  if (!clean) return "";
+  return clean.split(/\s+/)[0].replace(/[.,;:]+$/, "");
+}
 
 interface ConfirmedVisit {
   scheduled_at: string;
@@ -31,8 +50,14 @@ interface ConfirmedVisit {
   client_name: string;
 }
 
-export default function PublicBooking() {
-  const { token } = useParams<{ token: string }>();
+interface PublicBookingProps {
+  /** Si viene por prop, ignora useParams (usado por el wrapper /v/:code que ya resolvió el code). */
+  token?: string;
+}
+
+export default function PublicBooking({ token: tokenProp }: PublicBookingProps = {}) {
+  const params = useParams<{ token: string }>();
+  const token = tokenProp ?? params.token;
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedVisit | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -139,7 +164,7 @@ export default function PublicBooking() {
             <InfoBlock
               icon={<UserRound className="w-3 h-3 text-primary" />}
               label="Cliente"
-              value={ctx.client_name}
+              value={firstName(ctx.client_name) || cleanName(ctx.client_name)}
             />
             <InfoBlock
               icon={<ShieldCheck className="w-3 h-3 text-primary" />}
@@ -417,7 +442,7 @@ function SuccessCard({ confirmed }: { confirmed: ConfirmedVisit }) {
 
         <div className="space-y-2">
           <h2 className="text-xl font-black uppercase tracking-tighter text-foreground">
-            ¡Listo, {confirmed.client_name.split(" ")[0]}!
+            ¡Listo{firstName(confirmed.client_name) ? `, ${firstName(confirmed.client_name)}` : ""}!
           </h2>
           <p className="text-[11px] text-muted-foreground uppercase tracking-[0.25em] font-bold">
             Visita técnica confirmada
@@ -453,6 +478,39 @@ function SuccessCard({ confirmed }: { confirmed: ConfirmedVisit }) {
           Te confirmaremos por WhatsApp un recordatorio el día anterior. Si necesitas reagendar,
           contáctanos directamente.
         </p>
+
+        <div className="w-full pt-2 space-y-3">
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-[1px] flex-1 bg-border/30" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
+              Mientras tanto
+            </span>
+            <div className="h-[1px] flex-1 bg-border/30" />
+          </div>
+
+          <a
+            href={WEBSITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "w-full h-14 relative overflow-hidden group/cta transition-all duration-500",
+              "bg-primary text-primary-foreground font-black text-xs uppercase tracking-[0.2em]",
+              "hover:bg-foreground hover:text-background",
+              "rounded-none shadow-xl active:scale-[0.98]",
+              "flex items-center justify-center gap-3",
+            )}
+          >
+            Conoce más sobre Innovar
+            <ArrowUpRight
+              size={16}
+              className="group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5 transition-transform"
+            />
+          </a>
+
+          <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-bold">
+            cocinasintegralespereira.co
+          </p>
+        </div>
       </div>
 
       <div className="px-10 py-5 bg-muted/30 border-t border-border/10 flex items-center justify-between">
