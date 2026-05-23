@@ -28,6 +28,7 @@ const InventoryCreatePage   = lazy(() => import("./pages/InventoryCreate"));
 const ProfilePage           = lazy(() => import("./pages/Profile"));
 const SettingsPage          = lazy(() => import("./pages/Settings"));
 const AgendaPage            = lazy(() => import("./pages/Agenda"));
+const MyDayPage             = lazy(() => import("./pages/MyDay"));
 const NotificationsPage     = lazy(() => import("./pages/Notifications"));
 const TareasPage            = lazy(() => import("./pages/Tareas"));
 const PagosPage             = lazy(() => import("./pages/Pagos"));
@@ -162,8 +163,9 @@ export default function App() {
                 <Route path="/quotes"          element={<Navigate to="/quotations" replace />} />
 
                 {/* Agenda & Tasks */}
-                <Route path="/agenda" element={<Protected><AgendaPage /></Protected>} />
-                <Route path="/tasks"  element={<Protected><TareasPage /></Protected>} />
+                <Route path="/agenda"      element={<Protected><AgendaPage /></Protected>} />
+                <Route path="/agenda/hoy"  element={<Protected><MyDayPage /></Protected>} />
+                <Route path="/tasks"       element={<Protected><TareasPage /></Protected>} />
 
                 {/* Notifications */}
                 <Route path="/notifications"          element={<Protected><NotificationsPage /></Protected>} />

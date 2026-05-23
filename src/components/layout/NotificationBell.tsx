@@ -23,6 +23,8 @@ export const getNotificationIcon = (type: string) => {
       return <CheckCircle className="w-5 h-5 text-green-500" />;
     case 'booking_cancelled':
       return <AlertCircle className="w-5 h-5 text-destructive" />;
+    case 'visit_overdue':
+      return <Clock className="w-5 h-5 text-orange-500" />;
     case 'project_status':
       return <RefreshCcw className="w-5 h-5 text-primary" />;
     case 'system':
@@ -59,7 +61,7 @@ export function NotificationBell() {
 
   const handleViewAll = () => {
     setOpen(false);
-    navigate('/agenda/recordatorios');
+    navigate('/notifications');
   };
 
   return (

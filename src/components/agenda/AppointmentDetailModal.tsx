@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Task } from "@/types/database";
 import { User, MapPin, Phone, Calendar as CalendarIcon, Tag, AlertCircle } from "lucide-react";
+import { VisitOwnerPicker } from "./VisitOwnerPicker";
 
 interface AppointmentDetailModalProps {
   isOpen: boolean;
@@ -92,11 +93,24 @@ export function AppointmentDetailModal({
               <div className="flex items-start gap-3 mt-3 pt-3 border-t border-border/50">
                 <User className="w-4 h-4 text-muted-foreground mt-0.5" />
                 <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">Comercial asignado</span>
+                  <span className="text-xs text-muted-foreground">
+                    {appointment.appointment_type === 'visita_tecnica' ? 'Visitante asignado' : 'Comercial asignado'}
+                  </span>
                   <span className="text-sm font-medium text-foreground">{appointment.profiles?.full_name || "Sin asignar"}</span>
                 </div>
               </div>
           </div>
+
+          {appointment.appointment_type === 'visita_tecnica' && (
+            <div className="bg-muted/30 p-4 rounded-md border border-border/50">
+              <VisitOwnerPicker
+                visitId={appointment.id}
+                currentVisitorId={appointment.assigned_to}
+                currentVisitorName={appointment.profiles?.full_name}
+                disabled={isCompleted}
+              />
+            </div>
+          )}
 
           <div className="space-y-3">
               <div className="flex items-center gap-2">
