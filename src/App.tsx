@@ -28,6 +28,7 @@ const InventoryCreatePage   = lazy(() => import("./pages/InventoryCreate"));
 const ProfilePage           = lazy(() => import("./pages/Profile"));
 const SettingsPage          = lazy(() => import("./pages/Settings"));
 const AgendaPage            = lazy(() => import("./pages/Agenda"));
+const NotificationsPage     = lazy(() => import("./pages/Notifications"));
 const TareasPage            = lazy(() => import("./pages/Tareas"));
 const PagosPage             = lazy(() => import("./pages/Pagos"));
 const GastosPage            = lazy(() => import("./pages/Gastos"));
@@ -51,6 +52,7 @@ const MaintenanceSettingsPage   = lazy(() => import("./pages/settings/Maintenanc
 const DictionaryPage        = lazy(() => import("./pages/Dictionary"));
 const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
+const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
 
 // ── Route-level loading fallback ───────────────────────────────────────────
 function PageLoader() {
@@ -119,6 +121,9 @@ export default function App() {
               <Routes>
                 {/* ── Public routes ── */}
                 <Route path="/login" element={<LoginPage />} />
+                {/* Link público que el cliente recibe por WhatsApp para
+                    agendar su visita técnica. Sin ProtectedRoute, sin Layout. */}
+                <Route path="/agendar/:token" element={<PublicBookingPage />} />
 
                 {/* ── Dev/admin tooling ── */}
                 <Route
@@ -156,6 +161,11 @@ export default function App() {
                 {/* Agenda & Tasks */}
                 <Route path="/agenda" element={<Protected><AgendaPage /></Protected>} />
                 <Route path="/tasks"  element={<Protected><TareasPage /></Protected>} />
+
+                {/* Notifications */}
+                <Route path="/notifications"          element={<Protected><NotificationsPage /></Protected>} />
+                <Route path="/notificaciones"         element={<Navigate to="/notifications" replace />} />
+                <Route path="/agenda/recordatorios"   element={<Navigate to="/notifications" replace />} />
 
                 {/* Inventory */}
                 <Route path="/inventory"     element={<Protected><InventoryPage /></Protected>} />
