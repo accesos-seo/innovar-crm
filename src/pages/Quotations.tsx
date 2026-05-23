@@ -47,7 +47,7 @@ import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
 
-import { useQuotations } from "@/hooks/useQuotations";
+import { useQuotations, useUpdateQuotation } from "@/hooks/useQuotations";
 
 import { statusMap, columns } from "./quotations/QuotationsColumns";
 
@@ -72,6 +72,8 @@ export default function QuotationsPage() {
   const { data, isLoading, isError, error } = useQuotations(
     filters.status.length > 0 ? { status: filters.status[0] } : undefined
   );
+
+  const updateQuotation = useUpdateQuotation();
 
   React.useEffect(() => {
     if (isError) {
@@ -118,9 +120,36 @@ export default function QuotationsPage() {
 
   const navigate = useNavigate();
 
-  const handleSaveField = async (field: string, value: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    notify.success("Campo actualizado", `Información actualizada.`);
+  /**
+   * Solo permitimos editar inline los campos seguros: notes y valid_until.
+   * client_id, total_amount y version_number tienen restricciones (FK,
+   * calculado, system-managed) — se editan desde la página "Edición completa".
+   */
+  const handleSaveField = async (field: "notes" | "valid_until", value: string) => {
+    if (!selectedQuotation?.id) {
+      notify.error("Error", "No se puede actualizar: cotización sin ID");
+      return;
+    }
+
+    try {
+      const updates: any = { id: selectedQuotation.id };
+      updates[field] = field === "valid_until" && !value ? null : value;
+
+      const updated = await updateQuotation.mutateAsync(updates);
+      // Mantener el join client/items que tenía el panel — el update solo
+      // devuelve la fila plana, así que re-mergeamos lo que ya teníamos.
+      setSelectedQuotation((prev: any) => prev ? {
+        ...prev,
+        ...updated,
+        client: prev.client,
+        items: prev.items,
+      } : prev);
+      notify.success("Cotización actualizada", `${field} guardado correctamente`);
+    } catch (e: any) {
+      // notifyError ya disparó toast desde el hook; re-throw para que
+      // InlineEditField NO cierre el modo edición silenciosamente.
+      throw e;
+    }
   };
 
   const toggleStatusFilter = (status: string) => {
@@ -318,24 +347,32 @@ export default function QuotationsPage() {
               <InlineEditField
                 label={formatSentenceCase("Cliente asignado")}
                 value={selectedQuotation?.client?.name || ""}
-                onSave={(v) => handleSaveField("client", v)}
+                emptyLabel="Sin cliente asignado"
+                // FK a clients. Cambiar el cliente requiere reasignación
+                // (edición completa), no edición inline del nombre.
+                editable={false}
+                onSave={async () => {}}
               />
               <InlineEditField
                 label={formatSentenceCase("Monto total")}
                 value={`$${(selectedQuotation?.total_amount || 0).toLocaleString()}`}
-                onSave={(v) => handleSaveField("total_amount", v)}
+                // Se calcula automáticamente de quotation_items. Editar el
+                // total a mano causaría inconsistencia con las líneas.
+                editable={false}
+                onSave={async () => {}}
               />
               <div className="col-span-2">
                 <InlineEditField
                   label={formatSentenceCase("Notas / Descripción del presupuesto")}
-                  value={selectedQuotation?.notes || formatSentenceCase("---")}
+                  value={selectedQuotation?.notes || ""}
+                  emptyLabel="Sin notas adicionales"
                   onSave={(v) => handleSaveField("notes", v)}
                 />
               </div>
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: CONTROL DE VERSIONES Y VALIDEZ */}
           <div className="space-y-6">
@@ -347,7 +384,11 @@ export default function QuotationsPage() {
               <InlineEditField
                 label={formatSentenceCase("Versión de documento")}
                 value={`v${selectedQuotation?.version_number || 1}`}
-                onSave={(v) => handleSaveField("version", v)}
+                // version_number lo administra el sistema cuando se crea una
+                // nueva versión de la cotización. Editar a mano rompería la
+                // cadena de versiones.
+                editable={false}
+                onSave={async () => {}}
               />
               <InlineEditDateField
                 label={formatSentenceCase("Válido hasta")}
@@ -357,7 +398,7 @@ export default function QuotationsPage() {
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 4: AUDITORÍA */}
           <div className="grid grid-cols-2 gap-x-12 gap-y-12 bg-muted/5 p-8 border border-border/10">

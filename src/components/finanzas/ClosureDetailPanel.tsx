@@ -116,7 +116,7 @@ export function ClosureDetailPanel({ closure, isOpen, onClose }: ClosureDetailPa
           </div>
         </div>
 
-        <div className="h-[1px] w-full bg-border/10" />
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* SECCIÓN 3: INFORMACIÓN DEL PROYECTO */}
         <div className="space-y-6">
@@ -147,7 +147,7 @@ export function ClosureDetailPanel({ closure, isOpen, onClose }: ClosureDetailPa
           </div>
         </div>
 
-        <div className="h-[1px] w-full bg-border/10" />
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* SECCIÓN 4: REGISTRO Y AUDITORÍA */}
         <div className="space-y-6">

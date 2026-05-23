@@ -115,7 +115,7 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: DESCRIPCIÓN */}
           <div className="space-y-6">
@@ -130,12 +130,12 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 3: ADJUNTOS Y COMENTARIOS */}
           <div className="space-y-8">
             <TaskAttachments taskId={task.id} />
-            <div className="h-px bg-border/10 w-full" />
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <TaskComments taskId={task.id} />
           </div>
         </div>

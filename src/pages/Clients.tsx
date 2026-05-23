@@ -17,11 +17,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DetailModal, InlineEditField, InlineEditPhoneField } from "@/components/shared/DetailModal";
 import { formatSentenceCase, formatDate, formatDateTime } from "@/lib/format-utils";
 import { notify } from "@/components/ui/PremiumToast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { MetricData } from "@/components/shared/MetricsGrid";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { useClients } from "@/hooks/useClients";
+import { useClients, useUpdateClient } from "@/hooks/useClients";
 import { ResourceListPage, ResourceQueryResult } from "@/components/shared/ResourceListPage";
 
 const clientColumns: ColumnDef<Client>[] = [
@@ -96,10 +96,26 @@ function useClientsQuery(
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
 
   const { clients: allClients, deleteClients } = useClients("");
+  const updateClient = useUpdateClient();
+
+  // Deep-link: si llegamos con ?clientId=X (p.ej. desde el modal de Pago),
+  // abrir el modal de ese cliente automáticamente y limpiar el param.
+  const deepLinkClientId = searchParams.get("clientId");
+  React.useEffect(() => {
+    if (!deepLinkClientId || selectedClient?.id === deepLinkClientId) return;
+    const target = allClients.find((c) => c.id === deepLinkClientId);
+    if (target) {
+      setSelectedClient(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete("clientId");
+      setSearchParams(next, { replace: true });
+    }
+  }, [deepLinkClientId, allClients, selectedClient?.id, searchParams, setSearchParams]);
 
   const metrics = React.useMemo<MetricData[]>(() => {
     const oneWeekAgo = new Date();
@@ -119,8 +135,26 @@ export default function ClientsPage() {
   }, [allClients]);
 
   const handleSaveField = async (field: keyof Client, value: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    notify.success("Campo actualizado", `Cliente: ${field} actualizado.`);
+    if (!selectedClient?.id) {
+      notify.error("Error", "No se puede actualizar: cliente sin ID");
+      return;
+    }
+
+    try {
+      const updates = { [field]: value } as Partial<Client>;
+      const updated = await updateClient.mutateAsync({
+        id: selectedClient.id,
+        updates,
+      });
+      // Refrescar el panel con la fila actualizada para que próximos edits
+      // partan del estado real (y no del initial render).
+      setSelectedClient(updated);
+      notify.success("Cliente actualizado", `${field} guardado correctamente`);
+    } catch (e: any) {
+      // notifyError ya disparó toast desde el hook; re-throw para que
+      // InlineEditField NO cierre el modo edición silenciosamente al fallar.
+      throw e;
+    }
   };
 
   const toggleFilter = (city: string) => {
@@ -210,7 +244,7 @@ export default function ClientsPage() {
               onSave={(v) => handleSaveField("email", v)}
             />
           </div>
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <div className="grid grid-cols-2 gap-x-12 gap-y-12 py-8">
             <InlineEditPhoneField
               label={formatSentenceCase("WhatsApp / teléfono")}
@@ -223,7 +257,7 @@ export default function ClientsPage() {
               onSave={(v) => handleSaveField("address", v)}
             />
           </div>
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <div className="grid grid-cols-2 gap-x-12 gap-y-12 pt-8">
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">{formatSentenceCase("Fecha de registro")}</p>

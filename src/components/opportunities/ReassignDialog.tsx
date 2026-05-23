@@ -13,13 +13,12 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
-import { formatSentenceCase } from "@/lib/format-utils";
+import { formatSentenceCase, formatPersonName } from "@/lib/format-utils";
 import { useReassignOpportunity } from "@/hooks/useReassignOpportunity";
 
 interface ReassignDialogProps {
@@ -35,6 +34,18 @@ interface ProfileOption {
   email: string | null;
   role: string;
   is_active: boolean;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super admin",
+  admin: "Admin",
+  comercial: "Comercial",
+};
+
+function profileDisplayName(p: ProfileOption): string {
+  const name = formatPersonName(p.full_name || p.email, "Usuario sin nombre");
+  const role = ROLE_LABELS[p.role] ?? formatSentenceCase(p.role);
+  return `${name} · ${role}`;
 }
 
 function useActiveComerciales() {
@@ -106,19 +117,32 @@ export function ReassignDialog({
               value={selected}
               onValueChange={(v) => setSelected(v ?? "")}
             >
-              <SelectTrigger className="h-12 rounded-none">
-                <SelectValue
-                  placeholder={
-                    isLoading
-                      ? formatSentenceCase("Cargando...")
-                      : formatSentenceCase("Selecciona un comercial")
-                  }
-                />
+              <SelectTrigger className="w-full !h-12 px-4 rounded-none border border-border/50 bg-background text-sm font-bold">
+                <span className="truncate flex-1 text-left">
+                  {(() => {
+                    if (isLoading) {
+                      return (
+                        <span className="text-muted-foreground/60 font-normal italic">
+                          {formatSentenceCase("Cargando...")}
+                        </span>
+                      );
+                    }
+                    const current = profiles.find((p) => p.id === selected);
+                    if (!current) {
+                      return (
+                        <span className="text-muted-foreground/60 font-normal italic">
+                          {formatSentenceCase("Selecciona un comercial")}
+                        </span>
+                      );
+                    }
+                    return profileDisplayName(current);
+                  })()}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {profiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.full_name || p.email} ({p.role})
+                    {profileDisplayName(p)}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -85,3 +85,11 @@ export const opportunityPriorityConfig: Record<
   SHORT: { label: "Media", variant: "warning", dot: "bg-amber-500" },
   LON: { label: "Baja", variant: "info", dot: "bg-blue-500" },
 };
+
+export const opportunityDataOriginLabels: Record<OpportunityDataOrigin, string> = {
+  wordpress: "Sitio web",
+  referido: "Referido",
+  "walk-in": "Visita en showroom",
+  whatsapp: "WhatsApp",
+  manual: "Carga manual",
+};

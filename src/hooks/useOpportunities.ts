@@ -27,6 +27,7 @@ export interface OpportunityWithClient extends OpportunityRow {
     id: string;
     full_name: string | null;
     email: string | null;
+    avatar_url: string | null;
   } | null;
 }
 
@@ -59,7 +60,7 @@ export function useOpportunities(
         .select(
           `*,
            client:clients!opportunities_client_id_fkey(id,name,email,whatsapp_phone,address),
-           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email)`,
+           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email,avatar_url)`,
           { count: "exact" },
         );
 
@@ -267,4 +268,40 @@ export function useOpportunities(
       restoreMutation.mutateAsync(ids),
     createOpportunity: createOpportunityMutation.mutateAsync,
   };
+}
+
+/**
+ * Mutación standalone para editar campos de una oportunidad desde el modal de
+ * detalle (Servicios, Ciudad, Dirección, Urgencia, Notas).
+ *
+ * Para transiciones de status usar `useOpportunityTransition` — ese hook valida
+ * los estados permitidos y dispara side-effects (notificaciones, history).
+ */
+export function useUpdateOpportunity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<OpportunityRow>;
+    }) => {
+      assertSupabase(supabase);
+      const { data, error } = await supabase
+        .from("opportunities")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw mapSupabaseError(error);
+      return data as OpportunityRow;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITIES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["opportunity", vars.id] });
+    },
+    onError: (error) => notifyError(error, "Error al actualizar oportunidad"),
+  });
 }

@@ -55,7 +55,7 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: NOTAS Y COMPROBANTE */}
           <div className="space-y-8">
@@ -103,7 +103,10 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
             <div className="space-y-2">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Entidad / Cliente</p>
               {payment.clients && (
-                <a href={`/directory/${payment.clients.id}`} className="flex items-center gap-2 text-primary hover:underline group">
+                <a
+                  href={`/clients?clientId=${payment.clients.id}`}
+                  className="flex items-center gap-2 text-primary hover:underline group"
+                >
                   <User className="w-3 h-3" />
                   <span className="text-xs font-bold truncate">{payment.clients.name}</span>
                 </a>

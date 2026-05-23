@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { MessageSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   opportunityStatusConfig,
   opportunityPriorityConfig,
@@ -143,12 +144,17 @@ export const opportunityColumns: ColumnDef<OpportunityRowView>[] = [
       }
       const display = u.full_name || u.email || "—";
       return (
-        <div className="flex items-center gap-2">
-          <UserAvatar name={display} />
-          <span className="text-xs font-bold text-muted-foreground">
+        <Link
+          to={`/settings/users?userId=${u.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2 hover:text-primary transition-colors group/asg"
+          title={formatSentenceCase(`Ver perfil de ${display}`)}
+        >
+          <UserAvatar name={display} image={u.avatar_url ?? undefined} />
+          <span className="text-xs font-bold text-muted-foreground group-hover/asg:text-primary group-hover/asg:underline transition-colors">
             {display}
           </span>
-        </div>
+        </Link>
       );
     },
   },

@@ -28,7 +28,7 @@ export function useOpportunity(opportunityId: string | null | undefined) {
         .select(
           `*,
            client:clients!opportunities_client_id_fkey(id,name,email,whatsapp_phone,address),
-           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email),
+           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email,avatar_url),
            history:opportunity_assignment_history(
              *,
              to_profile:profiles!opportunity_assignment_history_to_user_fkey(full_name,email),
