@@ -67,69 +67,161 @@
 
 ---
 
-## 3 · Qué es la Fase 3 (alcance a ratificar con el usuario en el grill)
+## 3 · Qué es la Fase 3 (modelo mental del usuario — leer entero)
 
-**Definición operativa**: el período entre que la visita queda agendada (`visit_scheduled`) y el momento en que el asesor regresa al CRM con las mediciones tomadas. Esto es el **día de la visita técnica**.
+**Punto de partida**: el cliente ya confirmó la fecha (Fase 2 cerrada → `opportunities.status='visit_scheduled'`, `visits` insertada, token invalidado).
 
-**Hipótesis de sub-fases** (úsalas como punto de partida en `/grill-me`, no como diseño final):
+**Punto de cierre**: el visitante regresa al CRM con las mediciones cargadas y la opp avanza al siguiente estado (probablemente `measurements_taken` o `quotation_pending`).
 
-### 3.1 · Día anterior — Recordatorios
-- WhatsApp al cliente: recordatorio 24h antes ("Mañana te visita Leo a las 9:00 AM en …")
-- Notificación in-app al asesor: "Mañana tienes visita: Carolina, dirección X, 9:00 AM"
-- ¿También recordatorio 2h antes?
-- ¿El cliente puede reprogramar desde el recordatorio o no?
+### 3.A · Lo que el usuario dijo textual (no inventar, no recortar)
 
-### 3.2 · Día de la visita — Asesor en movimiento
-- Vista del asesor: "Mi agenda de hoy" con lista de visitas + ruta sugerida
-- Botón "En camino" → WhatsApp al cliente ("Salí hacia tu casa, llego en ~X min") + opp `in_transit`
-- Botón "Llegué" → check-in + opp `in_visit` + (opcional) geo-validación
-- Durante la visita: panel para capturar medidas, fotos, notas estructuradas
-  - ¿Qué medidas exactamente? (largo × ancho × alto del espacio, tipo de pared, presencia de gas, voltaje, etc. — el usuario tiene que dictar el formulario)
-  - ¿Fotos obligatorias? ¿cuántas mínimo?
-- Botón "Visita finalizada" → opp `measurements_taken` + WhatsApp resumen al cliente ("Gracias Carolina, en 48h te enviamos cotización") + tarea automática "Generar cotización" asignada al asesor
+> "Una vez que el usuario haya registrado, viene la visita. Se generan automatizaciones:
+> un mensaje para el administrador indicándole que ya se ha creado esa visita.
+> Tal vez automáticamente le debe poner ya en la mano a él, en el sistema, la
+> posibilidad del flujo de evaluar quién es el que va a visitar. En este caso por
+> defecto sale el administrador, que es quien hace siempre la visita, con la opción
+> de que vaya un comerciante. Sin embargo el administrador es el que realmente
+> visita al cliente con el objetivo de agregarle esto como una tarea, también
+> mantenerle informado de esa actividad y subirla en su calendario como fecha
+> prevista. Luego cuando se va la visita, se atiende al cliente y se pasa la
+> información a través del sistema."
 
-### 3.3 · Sincronización / fallos
-- ¿Qué pasa si el asesor está sin internet en la visita? (offline-first del formulario de medidas?)
-- ¿Qué pasa si el cliente cancela 30min antes? (workflow de cancelación)
-- ¿Qué pasa si el asesor no llega? (alerta admin tras X min de tolerancia)
+### 3.B · Lectura operativa de lo anterior
 
-### 3.4 · Cierre — preparar Fase 4
-- ¿La generación de quotation es Fase 3 o Fase 4? (Felipe lo decide en el grill)
-- Si es Fase 4: cerrar Fase 3 dejando una tarea limpia "Generar cotización" que el asesor abre en otro flujo.
+Hay **dos roles diferentes** en juego que el modelo actual NO separa bien:
 
-**Open questions críticas que el usuario debe responder en el grill**:
-1. ¿Los asesores tienen smartphone propio o tablet de la empresa? (impacta el diseño mobile-first)
-2. ¿Cuál es la fricción aceptable para el asesor? (¿formulario de 30 campos o flow rápido de 5 pasos?)
-3. ¿Hay rol "supervisor de visitas" que ve a todos los asesores en tiempo real, o cada asesor sólo ve la suya?
-4. ¿El cliente firma algo en sitio (presupuesto preliminar, autorización de toma de medidas)?
-5. ¿Los precios/cotización los puede dar el asesor en sitio o siempre vienen de oficina?
+| Rol | Función | Estado actual |
+|---|---|---|
+| **Asesor comercial** | Atiende el lead por WhatsApp, recibe el booking link asignado por round-robin, queda como `opportunities.assigned_to`. | ✅ Modelado en `profiles` con `role='comercial'` |
+| **Administrador (el que visita)** | Es **el que físicamente va a la casa del cliente**. Por defecto va él; ocasionalmente delega en un comercial. | ❓ Posiblemente no separado del `opportunities.assigned_to` |
+
+→ **Riesgo de modelo**: la `tasks` espejo de la visita y el `availability_slot` reservado actualmente apuntan al **comercial** (`opp.assigned_to`) — pero según el usuario, el que va es el **admin**. Hay que validar en la auditoría (sección 3.D) si esto es un bug latente o si los IDs ya coinciden por casualidad.
+
+### 3.C · Automatizaciones que el usuario pide explícitamente
+
+1. **Al confirmar visita** (trigger `AFTER INSERT ON visits` o reuso del que ya espeja a `tasks`):
+   - 📲 **WhatsApp al administrador** notificándole la nueva visita (no solo notificación in-app).
+   - 🖥️ **UI in-app** que le ponga "en la mano" al admin un panel para decidir **quién va a visitar** (default = admin, dropdown = lista de comerciales).
+   - ✅ **Tarea automática** para el admin (o para quien finalmente se asigne) con la visita como contexto.
+   - 📅 **Entrada en su calendario** como fecha prevista (debe aparecer en `/agenda` filtrable por el admin).
+
+2. **Día de la visita** (a definir en el grill — el usuario no fue explícito, así que las hipótesis quedan abajo en 3.E):
+   - Recordatorios + WhatsApp en camino + check-in + captura de info.
+
+3. **Cierre** (a definir en el grill):
+   - WhatsApp resumen al cliente + transición de estado de la opp + tarea de seguimiento.
+
+### 3.D · Auditoría OBLIGATORIA antes de diseñar (entregable previo al grill)
+
+Antes de ejecutar `/grill-me`, el próximo agente DEBE entregar al usuario un documento corto (máx 1 página) que responda con SQL y lectura de código:
+
+**Sobre la estructura actual** (queries listas):
+
+1. ¿`visits` tiene algún campo "asignado a la visita" distinto de `opportunities.assigned_to`?
+   ```sql
+   SELECT column_name, data_type, is_nullable
+   FROM information_schema.columns
+   WHERE table_schema='public' AND table_name='visits' ORDER BY ordinal_position;
+   ```
+
+2. ¿La `task` espejo a la visita se asigna a quién? (Leer trigger `mirror_visit_to_task` aplicado en alguna de las migraciones 014-019)
+   ```sql
+   SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname LIKE '%mirror_visit%' OR proname LIKE '%visit_to_task%';
+   ```
+
+3. ¿Qué roles existen en `profiles` y cuántos usuarios hay por rol?
+   ```sql
+   SELECT role, COUNT(*) FROM profiles WHERE deleted_at IS NULL GROUP BY role;
+   ```
+
+4. ¿`opportunities.status` qué valores acepta? ¿Hay un `in_transit` / `in_visit` / `measurements_taken` previsto?
+   ```sql
+   SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname LIKE '%opportunities_status%';
+   ```
+
+5. ¿`/agenda` muestra `tasks` o `visits` o ambos? Buscar el hook que pinta el calendario:
+   ```
+   src/hooks/agenda/useAppointments.ts
+   src/pages/Agenda.tsx
+   ```
+
+6. ¿`notification_queue` ya soporta templates con destinatario interno (admin), o sólo cliente?
+   ```sql
+   SELECT column_name FROM information_schema.columns WHERE table_name='notification_queue' ORDER BY ordinal_position;
+   ```
+
+**Sobre los handoffs anteriores**: leer los relevantes y reportar si ya hay decisiones tomadas sobre Fase 3 que no estén en este briefing.
+
+**Sobre las oportunidades de automatización adicional**: el usuario pidió analizar **qué más se puede automatizar para optimizar**. Ejemplos a evaluar:
+- Auto-asignación admin/comercial basada en zona geográfica.
+- Cancelación automática + reprogramación si el cliente no responde al recordatorio.
+- Alerta al supervisor si una visita está en estado `in_transit` por más de 2h sin pasar a `in_visit`.
+- Pre-llenar el formulario de medición con datos del lead (servicios marcados, ubicación, presupuesto aproximado).
+- Sugerencia automática de slot alternativo si el admin no puede asistir.
+
+### 3.E · Hipótesis de sub-fases del día de la visita (para el grill, NO para construir)
+
+1. **Día anterior — Recordatorios**
+   - WhatsApp al cliente 24h antes ("Mañana te visita Leo a las 9:00 AM en …").
+   - Notif in-app al visitante ("Mañana tienes visita: Carolina, dirección X, 9:00 AM").
+   - ¿Recordatorio 2h antes? ¿El cliente puede reprogramar desde ahí?
+
+2. **Día de la visita — En movimiento**
+   - Vista "Mi agenda de hoy" del visitante con lista + ruta sugerida.
+   - Botón "En camino" → WhatsApp al cliente + opp `in_transit`.
+   - Botón "Llegué" → check-in + opp `in_visit` + (opcional) geo-validación.
+   - Panel de captura: medidas, fotos, notas. **¿Qué medidas exactamente?** (Felipe debe dictar el formulario en el grill: largo × ancho × alto, tipo de pared, gas, voltaje, etc.)
+   - Botón "Visita finalizada" → opp `measurements_taken` + WhatsApp resumen al cliente + tarea automática "Generar cotización".
+
+3. **Sincronización / fallos**
+   - Offline-first del form de medidas (smartphone sin señal en casa del cliente).
+   - Cancelación 30min antes — workflow.
+   - Visitante no llega — alerta al admin tras X min.
+
+4. **Cierre — preparar Fase 4**
+   - ¿Generación de quotation es Fase 3 o Fase 4? Decisión del usuario en el grill.
+
+### 3.F · Open questions críticas que el grill debe sacar
+
+1. ¿El admin y el comercial son **usuarios distintos en `profiles`** o el admin tiene rol `super_admin`/`admin` y el comercial tiene rol `comercial`? ¿Cómo los distingue el sistema hoy?
+2. ¿Cuántos admins hay activos en producción? ¿Sólo Felipe o hay más?
+3. ¿Los visitantes (admin + comerciales) tienen smartphone propio o tablet de la empresa? Mobile-first vs tablet-first.
+4. ¿Fricción aceptable del form de medidas? (5 pasos rápidos vs 30 campos exhaustivos)
+5. ¿Hay rol "supervisor de visitas" que ve a todos en tiempo real, o cada visitante sólo ve la suya?
+6. ¿El cliente firma algo en sitio (presupuesto preliminar, autorización)?
+7. ¿Los precios/cotización los puede dar el visitante en sitio o siempre vienen de oficina?
+8. ¿La opción "quién va" (admin vs comercial) se decide automáticamente o el admin la confirma manualmente cada visita?
 
 ---
 
-## 4 · Cómo arrancar (orden estricto)
+## 4 · Cómo arrancar (orden estricto — no saltar pasos)
 
-1. **Lee este documento entero** (sin saltarte secciones).
-2. **Lee `MEMORY.md`** en `C:\Users\ceoel\.claude\projects\C--Users-ceoel\memory\` para contexto cross-sesión.
-3. **Lee los 3 handoffs más recientes** de `docs/handover/`:
-   - `2026-05-23_PHASE-3-VISITA-EN-SITIO_BRIEFING.md` (este)
+1. **Leé este documento entero**, sin saltarte secciones.
+2. **Leé `MEMORY.md`** en `C:\Users\ceoel\.claude\projects\C--Users-ceoel\memory\`.
+3. **Leé los handoffs anteriores relevantes**:
    - `2026-05-23_WHATSAPP-PUBLIC-BOOKING.md` (Fases 1-2 completas)
-   - `2026-05-23_NOTIFICATIONS-PAGE.md` (cómo se construyó `/notifications`, útil de plantilla)
-4. **Inspecciona el schema en producción** con Management API:
-   ```
-   SELECT column_name, data_type FROM information_schema.columns
-   WHERE table_schema='public' AND table_name IN
-   ('opportunities','visits','tasks','clients','notification_queue','availability_slots','holidays')
-   ORDER BY table_name, ordinal_position;
-   ```
-   Especialmente revisa los CHECK constraints en `opportunities.status` y `tasks.status` para saber qué valores son válidos.
-5. **Listá triggers vivos** en producción:
-   ```
-   SELECT trigger_name, event_object_table, action_timing, event_manipulation
-   FROM information_schema.triggers
-   WHERE trigger_schema='public' ORDER BY event_object_table;
-   ```
-6. **Ejecuta `/grill-me`** con este documento como input. La skill auto-orquesta: grill → PRD → schema review (si aplica) → architecture → handoff + entrada en MEMORY.md. **No saltes pasos**. Si el usuario dice "para ahí", paras; si no, completas el ciclo.
-7. **No escribas código de Fase 3 hasta cerrar el grill + PRD**. El grill saca decisiones que pueden cambiar todo el alcance.
+   - `2026-05-23_NOTIFICATIONS-PAGE.md` (patrón de página con sidebar + búsqueda + realtime, útil de referencia)
+4. **Ejecutá la auditoría de la sección 3.D**: corré las 6 queries, leé los 2 archivos de código del calendario, y entregá al usuario un documento corto (máx 1 página) que responda:
+   - ✅ Qué del flujo ya está cubierto por el modelo actual.
+   - ⚠️ Qué hay que agregar (columnas nuevas, triggers nuevos, RPCs, UI).
+   - 🚨 Qué inconsistencias o bugs latentes encontraste (ej. quién es realmente el dueño de la `task` espejo).
+   - 💡 Qué oportunidades de automatización adicional detectaste.
+5. **Esperá feedback del usuario sobre la auditoría**. Felipe debe ratificar o corregir tu lectura del modelo antes de avanzar.
+6. **Ejecutá `/grill-me`** con este documento + tu auditoría como input. La skill auto-orquesta: grill → PRD → schema review → architecture → handoff + entrada en MEMORY.md. No saltes pasos del ciclo.
+7. **Cerrá el grill con una lista de tareas planificadas y validadas** (slices en orden) que Felipe apruebe antes de codear nada.
+8. **Sólo entonces empezás a construir**. Si dudás sobre el orden de un slice, preguntale a Felipe.
+
+---
+
+## 4.5 · URLs y dashboards a tener a mano
+
+- **Producción Vercel**: https://crm-innovar-app-2026.vercel.app
+- **QA viva (Carolina Pruebas Demo)**: https://crm-innovar-app-2026.vercel.app/v/W3Aszv
+- **Subdominio brand (pendiente DNS)**: https://agenda.cocinasintegralespereira.co
+- **Dashboard Supabase Innovar**: https://supabase.com/dashboard/project/xdzbjptozeqcbnaqhtye
+- **Dashboard Vercel proyecto**: https://vercel.com/rvironas-projects/crm-innovar-app-2026
+- **Sitio web del cliente** (también dueño del subdominio brand): https://cocinasintegralespereira.co
+- **Repo GitHub**: https://github.com/accesos-seo/Innovar-App-main
 
 ---
 
