@@ -7,6 +7,12 @@ import { Calendar, User, ExternalLink, Receipt, CreditCard, Tag, HandCoins, Calc
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatSentenceCase } from '@/lib/format-utils';
+import {
+  PAYMENT_METHOD_LABELS_ES,
+  PAYMENT_TYPE_LABELS_ES,
+  type PaymentMethod,
+  type PaymentType,
+} from '@/schemas/payment';
 
 interface PaymentDetailPanelProps {
   payment: Payment | null;
@@ -26,9 +32,11 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
       title={formatCurrency(payment.amount)}
       icon={HandCoins}
       subtitle={formatSentenceCase(`FINANZAS > INGRESOS > COMPROBANTE DE PAGO`)}
-      status={{ 
-        label: formatSentenceCase(payment.payment_type.replace('_', ' ')), 
-        variant: "secondary" 
+      status={{
+        label:
+          PAYMENT_TYPE_LABELS_ES[payment.payment_type as PaymentType] ??
+          formatSentenceCase(payment.payment_type ?? '---'),
+        variant: "secondary"
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -49,7 +57,10 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Método de pago</p>
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold uppercase">{payment.payment_method.replace('_', ' ')}</span>
+                  <span className="text-sm font-bold uppercase">
+                    {PAYMENT_METHOD_LABELS_ES[payment.payment_method as PaymentMethod] ??
+                      payment.payment_method?.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
             </div>

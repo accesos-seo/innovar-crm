@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Receipt, HandCoins, Plus } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { PAYMENT_TYPE_LABELS_ES } from '@/schemas/payment';
 
 interface PaymentsListProps {
   payments: Payment[];
@@ -40,10 +41,10 @@ export function PaymentsList({ payments, onPaymentClick, onRegister }: PaymentsL
 
   const getTypeBadge = (type: string) => {
     switch (type) {
-      case 'anticipo': return <Badge className="bg-primary/20 text-primary border-primary/30 shadow-[0_0_8px_rgba(0,255,200,0.15)] uppercase text-[10px] rounded-none">Anticipo</Badge>;
-      case 'abono': return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30 shadow-[0_0_8px_rgba(59,130,246,0.2)] uppercase text-[10px] rounded-none">Abono</Badge>;
-      case 'pago_final': return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.2)] uppercase text-[10px] rounded-none">Final</Badge>;
-      case 'reembolso': return <Badge variant="destructive" className="shadow-[0_0_8px_rgba(239,68,68,0.2)] uppercase text-[10px] rounded-none">Reembolso</Badge>;
+      case 'advance': return <Badge className="bg-primary/20 text-primary border-primary/30 shadow-[0_0_8px_rgba(0,255,200,0.15)] uppercase text-[10px] rounded-none">{PAYMENT_TYPE_LABELS_ES.advance}</Badge>;
+      case 'installment': return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30 shadow-[0_0_8px_rgba(59,130,246,0.2)] uppercase text-[10px] rounded-none">{PAYMENT_TYPE_LABELS_ES.installment}</Badge>;
+      case 'final': return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.2)] uppercase text-[10px] rounded-none">{PAYMENT_TYPE_LABELS_ES.final}</Badge>;
+      case 'refund': return <Badge variant="destructive" className="shadow-[0_0_8px_rgba(239,68,68,0.2)] uppercase text-[10px] rounded-none">{PAYMENT_TYPE_LABELS_ES.refund}</Badge>;
       default: return <Badge variant="secondary" className="shadow-[0_0_8px_rgba(100,100,100,0.2)] uppercase text-[10px] rounded-none">{type}</Badge>;
     }
   };

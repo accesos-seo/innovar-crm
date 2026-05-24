@@ -15,6 +15,12 @@ import { formatSentenceCase } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
 import { notify } from '@/components/ui/PremiumToast';
 import { PrimaryButton } from '@/components/shared/PrimaryButton';
+import {
+  PAYMENT_METHOD_LABELS_ES,
+  PAYMENT_TYPE_LABELS_ES,
+  paymentMethodSchema,
+  paymentTypeSchema,
+} from '@/schemas/payment';
 
 export default function PagosPage() {
   const [filters, setFilters] = useState({
@@ -114,13 +120,9 @@ export default function PagosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los métodos</SelectItem>
-                  <SelectItem value="efectivo">Efectivo</SelectItem>
-                  <SelectItem value="transferencia">Transferencia</SelectItem>
-                  <SelectItem value="credito">Crédito</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                  <SelectItem value="nequi">Nequi</SelectItem>
-                  <SelectItem value="daviplata">Daviplata</SelectItem>
-                  <SelectItem value="pse">PSE</SelectItem>
+                  {paymentMethodSchema.options.map((m) => (
+                    <SelectItem key={m} value={m}>{PAYMENT_METHOD_LABELS_ES[m]}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -133,10 +135,9 @@ export default function PagosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="anticipo">Anticipo</SelectItem>
-                  <SelectItem value="abono">Abono</SelectItem>
-                  <SelectItem value="pago_final">Pago Final</SelectItem>
-                  <SelectItem value="reembolso">Reembolso</SelectItem>
+                  {paymentTypeSchema.options.map((t) => (
+                    <SelectItem key={t} value={t}>{PAYMENT_TYPE_LABELS_ES[t]}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

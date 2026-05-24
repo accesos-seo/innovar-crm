@@ -146,7 +146,7 @@ export interface Payment {
   client_id: string;
   amount: number;
   payment_method: 'efectivo' | 'transferencia' | 'credito' | 'cheque' | 'nequi' | 'daviplata' | 'pse' | string;
-  payment_type: 'anticipo' | 'abono' | 'pago_final' | 'reembolso' | string;
+  payment_type: 'advance' | 'installment' | 'final' | 'refund' | string;
   received_at: string;
   receipt_url?: string | null;
   registered_by: string;
