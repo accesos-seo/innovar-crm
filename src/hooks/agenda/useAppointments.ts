@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { Task } from '@/types/database';
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, startOfMonth, endOfMonth, format } from 'date-fns';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
@@ -9,12 +9,19 @@ export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
     queryKey: ['appointments', date.toISOString(), view],
     queryFn: async (): Promise<Task[]> => {
       assertSupabase(supabase);
-      const from = view === 'week' ? startOfWeek(date, { weekStartsOn: 1 }) : startOfMonth(date);
-      const to = view === 'week' ? endOfWeek(date, { weekStartsOn: 1 }) : endOfMonth(date);
+      // CitasCalendarView renderiza 7 días empezando LITERALMENTE en `date`
+      // (no snapea a lunes). Antes este hook usaba startOfWeek(weekStartsOn:1)
+      // y desalineaba: cuando `date` era sábado, la view mostraba Sab-Vie pero
+      // la query fetcheaba Lun anterior-Dom → bookings en Mar/Jue de la view
+      // visible caían FUERA del rango y no aparecían tras el invalidate.
+      // Fix: usar el mismo rango que la view (date → date+6).
+      const from = view === 'week' ? date : startOfMonth(date);
+      const to = view === 'week' ? addDays(date, 6) : endOfMonth(date);
 
-      // Using YYYY-MM-DD for date comparison
-      const fromStr = from.toISOString().split('T')[0];
-      const toStr = to.toISOString().split('T')[0];
+      // Usamos format() local (no toISOString que convierte a UTC y puede
+      // shiftear el día en zonas con offset negativo como Colombia UTC-5).
+      const fromStr = format(from, 'yyyy-MM-dd');
+      const toStr = format(to, 'yyyy-MM-dd');
 
       const query = supabase
         .from('tasks')
@@ -25,6 +32,7 @@ export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
           profiles:assigned_to(id, full_name)
         `)
         .not('appointment_type', 'is', null)
+        .neq('status', 'cancelado')
         .gte('due_date', fromStr)
         .lte('due_date', toStr)
         .order('due_date', { ascending: true })

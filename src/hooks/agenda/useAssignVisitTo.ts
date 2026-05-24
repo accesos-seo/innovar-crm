@@ -39,6 +39,20 @@ export function useAssignVisitTo() {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       queryClient.invalidateQueries({ queryKey: ['myVisitsToday'] });
     },
-    onError: (error) => notifyError(error, 'No se pudo reasignar la visita'),
+    onError: (error) => {
+      const appErr = mapSupabaseError(error);
+      const isGone =
+        appErr.message.toLowerCase().includes('no existe') ||
+        appErr.message.toLowerCase().includes('eliminada') ||
+        appErr.code === 'NOT_FOUND';
+      if (isGone) {
+        toast.error('Visita no disponible', {
+          description:
+            'Esta visita ya no está registrada en el sistema. Recarga el calendario para ver el estado actualizado.',
+        });
+      } else {
+        notifyError(error, 'No se pudo reasignar la visita');
+      }
+    },
   });
 }

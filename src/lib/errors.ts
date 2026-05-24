@@ -135,8 +135,30 @@ export function mapSupabaseError(error: unknown): AppError {
     });
   }
 
+  // ── Custom Postgres RAISE EXCEPTION (P0001) ─────────────────────────────
+  // Stored procedures use RAISE EXCEPTION with messages that may contain
+  // internal data (UUIDs, table names). Strip UUIDs before showing to user.
+  if (pgCode === "P0001") {
+    const cleanMsg = msg
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    return new AppError("UNKNOWN", cleanMsg || "Ocurrió un error en el servidor.", {
+      cause: error,
+      pgCode,
+      userFacing: true,
+    });
+  }
+
   // ── Fallback ─────────────────────────────────────────────────────────────
-  return new AppError("UNKNOWN", msg || "Ocurrió un error inesperado.", {
+  // Strip any UUIDs that may have leaked into the raw Postgres message before
+  // showing it to the user.
+  const safeMsg = (msg || "Ocurrió un error inesperado.")
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return new AppError("UNKNOWN", safeMsg || "Ocurrió un error inesperado.", {
     cause: error,
     pgCode,
     userFacing: true,
