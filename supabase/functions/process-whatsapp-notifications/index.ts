@@ -26,6 +26,13 @@
 //   - visit_reminder_2h_client_v1    · 2 vars {{1}}=nombre, {{2}}=hora
 //   - visit_reminder_2h_internal_v1  · 4 vars {{1}}=hora, {{2}}=cliente, {{3}}=dirección, {{4}}=tel
 //   - visit_summary_client_v1        · 2 vars {{1}}=nombre, {{2}}=plazo_horas (S5)
+//
+//   Fase 4 · Slice 3 · Pago → Proyecto (migraciones 037 + 038):
+//   - payment_proof_rejected_v1      · 4 vars {{1}}=nombre cliente, {{2}}=número cotización, {{3}}=motivo, {{4}}=link reintento
+//   - project_assigned_designer_v1   · 3 vars {{1}}=primer nombre diseñador, {{2}}=cliente, {{3}}=path proyecto
+//   - project_fully_paid_v1          · 2 vars {{1}}=primer nombre cliente, {{2}}=nombre proyecto
+//   - quotation_v2_sent_v1           · 3 vars {{1}}=cliente, {{2}}=número cotización, {{3}}=link
+//   - admin_quotation_expired_v1     · 4 vars {{1}}=primer nombre admin, {{2}}=cliente, {{3}}=número cotización, {{4}}=días vencida
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -92,6 +99,13 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   visit_reminder_2h_client_v1: bodyBuilder("visit_reminder_2h_client_v1", 2),
   visit_reminder_2h_internal_v1: bodyBuilder("visit_reminder_2h_internal_v1", 4),
   visit_summary_client_v1: bodyBuilder("visit_summary_client_v1", 2),
+
+  // — Fase 4 · Slice 3 · Pago → Proyecto —
+  payment_proof_rejected_v1: bodyBuilder("payment_proof_rejected_v1", 4),
+  project_assigned_designer_v1: bodyBuilder("project_assigned_designer_v1", 3),
+  project_fully_paid_v1: bodyBuilder("project_fully_paid_v1", 2),
+  quotation_v2_sent_v1: bodyBuilder("quotation_v2_sent_v1", 3),
+  admin_quotation_expired_v1: bodyBuilder("admin_quotation_expired_v1", 4),
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -181,15 +195,18 @@ Deno.serve(async (req: Request) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return jsonResponse({ error: "Edge Function mal configurada (secrets Supabase faltantes)" }, 500);
     }
-    if (!META_ACCESS_TOKEN || !META_PHONE_NUMBER_ID) {
-      return jsonResponse({
-        error: "Faltan secrets META_WABA_ACCESS_TOKEN y/o META_PHONE_NUMBER_ID en Vault",
-      }, 500);
-    }
 
     const body = await req.json().catch(() => ({}));
     const dryRun = Boolean(body.dry_run ?? false);
     const limit = Math.min(Math.max(1, Number(body.limit) || 20), 100);
+
+    // Meta secrets solo son obligatorios cuando vamos a llamar a la Graph API.
+    // En dry_run validamos TEMPLATE_REGISTRY sin tocar Meta ni mutar la queue.
+    if (!dryRun && (!META_ACCESS_TOKEN || !META_PHONE_NUMBER_ID)) {
+      return jsonResponse({
+        error: "Faltan secrets META_WABA_ACCESS_TOKEN y/o META_PHONE_NUMBER_ID en Vault",
+      }, 500);
+    }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
