@@ -136,12 +136,6 @@ export default function WhatsAppSettingsPage() {
         subtitle={formatSentenceCase("Monitoreo en tiempo real de la cola de envíos y estados de Meta.")}
         icon={MessageSquare}
         onBack={() => navigate("/settings")}
-        action={{
-          label: formatSentenceCase(isProcessing ? "Procesando..." : "Procesar Pendientes"),
-          icon: isProcessing ? RefreshCw : Send,
-          onClick: handleProcess,
-          className: isProcessing ? "opacity-50 pointer-events-none" : ""
-        }}
       />
 
       {isLoading ? (
