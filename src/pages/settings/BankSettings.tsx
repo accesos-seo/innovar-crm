@@ -1,109 +1,47 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
-import { Landmark, Save, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Landmark, Plus } from "lucide-react";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PrimaryButton } from "@/components/shared/PrimaryButton";
 import { PremiumLoader } from "@/components/shared/PremiumLoader";
-import { supabase } from "@/lib/supabaseClient";
-import { assertSupabase, mapSupabaseError } from "@/lib/errors";
-import { useUpdateSetting } from "@/hooks/settings/useSystemSettings";
-
-interface BankField {
-  key: string;
-  label: string;
-  placeholder?: string;
-  helper?: string;
-}
-
-const BANK_FIELDS: BankField[] = [
-  { key: "bank_name", label: "Banco", placeholder: "Ej: Bancolombia" },
-  {
-    key: "bank_account_number",
-    label: "Número de cuenta",
-    placeholder: "Solo números, sin guiones",
-  },
-  {
-    key: "bank_account_type",
-    label: "Tipo de cuenta",
-    placeholder: "Ahorros / Corriente",
-  },
-  {
-    key: "bank_holder_name",
-    label: "Titular de la cuenta",
-    placeholder: "Nombre completo / Razón social",
-  },
-  {
-    key: "bank_holder_id",
-    label: "Cédula o NIT del titular",
-    placeholder: "Sin puntos ni guiones",
-  },
-  {
-    key: "nequi_phone",
-    label: "Nequi (celular)",
-    placeholder: "+57 300 000 0000",
-    helper: "Dejar vacío si no se usa.",
-  },
-  {
-    key: "daviplata_phone",
-    label: "Daviplata (celular)",
-    placeholder: "+57 300 000 0000",
-    helper: "Dejar vacío si no se usa.",
-  },
-];
-
-const KEYS = BANK_FIELDS.map((f) => f.key);
-
-function useBankSettings() {
-  return useQuery({
-    queryKey: ["system_settings", "bank_block"],
-    staleTime: 60_000,
-    queryFn: async (): Promise<Record<string, string>> => {
-      assertSupabase(supabase);
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("key, value")
-        .in("key", KEYS);
-      if (error) throw mapSupabaseError(error);
-      const out: Record<string, string> = {};
-      for (const row of data ?? []) {
-        const v = (row as { key: string; value: unknown }).value;
-        out[(row as { key: string }).key] =
-          typeof v === "string" ? v : v == null ? "" : String(v);
-      }
-      return out;
-    },
-  });
-}
+import { BankDetailModal } from "@/components/finanzas/BankDetailModal";
+import { BankDetailCard } from "@/components/finanzas/BankDetailCard";
+import { useBankDetails } from "@/hooks/useBankDetails";
+import {
+  useCreateBankDetail,
+  useDeleteBankDetail,
+  useSetActiveBankDetail,
+  type CreateBankDetailInput,
+} from "@/hooks/useBankDetailsMutations";
 
 export default function BankSettingsPage() {
   const navigate = useNavigate();
-  const { data: settings, isLoading } = useBankSettings();
-  const updateSetting = useUpdateSetting();
+  const { data: bankDetails, isLoading } = useBankDetails();
+  const createBankDetail = useCreateBankDetail();
+  const deleteBankDetail = useDeleteBankDetail();
+  const setActiveBankDetail = useSetActiveBankDetail();
 
-  const [draft, setDraft] = React.useState<Record<string, string>>({});
-  const [hydrated, setHydrated] = React.useState(false);
+  const [modalOpen, setModalOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isLoading || hydrated || !settings) return;
-    const next: Record<string, string> = {};
-    BANK_FIELDS.forEach((f) => {
-      next[f.key] = settings[f.key] ?? "";
-    });
-    setDraft(next);
-    setHydrated(true);
-  }, [isLoading, hydrated, settings]);
-
-  const isSaving = updateSetting.isPending;
-
-  const handleSave = async () => {
-    for (const f of BANK_FIELDS) {
-      const value = (draft[f.key] ?? "").trim();
-      await updateSetting.mutateAsync({ key: f.key, value });
-    }
+  const handleCreateBankDetail = async (input: CreateBankDetailInput) => {
+    await createBankDetail.mutateAsync(input);
+    setModalOpen(false);
   };
+
+  const handleDeleteBankDetail = async (id: string) => {
+    await deleteBankDetail.mutateAsync(id);
+  };
+
+  const handleSetActive = async (id: string) => {
+    await setActiveBankDetail.mutateAsync(id);
+  };
+
+  const activeDetail = bankDetails?.find((d) => d.is_active);
+  const isProcessing =
+    createBankDetail.isPending ||
+    deleteBankDetail.isPending ||
+    setActiveBankDetail.isPending;
 
   if (isLoading) {
     return (
@@ -117,65 +55,89 @@ export default function BankSettingsPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-3xl mx-auto w-full space-y-8 pb-20"
+      className="max-w-3xl mx-auto w-full space-y-10 pb-20"
     >
       <CategoryHeader
         title="Datos Bancarios"
-        subtitle="Cuenta de cobro mostrada al cliente en su cotización pública aprobada."
+        subtitle="Cuentas de cobro mostradas al cliente en su cotización pública aprobada."
         icon={Landmark}
         onBack={() => navigate("/settings")}
       />
 
-      <div className="bg-card border border-border/10 p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {BANK_FIELDS.map((f) => (
-            <div key={f.key} className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                {f.label}
-              </label>
-              <Input
-                value={draft[f.key] ?? ""}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
-                }
-                placeholder={f.placeholder}
-                disabled={isSaving}
-                className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary font-medium"
-              />
-              {f.helper && (
-                <p className="text-[10px] text-muted-foreground italic">
-                  {f.helper}
-                </p>
-              )}
+      {/* Lista de datos bancarios o empty state */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
+        {bankDetails && bankDetails.length > 0 ? (
+          <div className="space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+              Cuentas Configuradas
+            </h3>
+            <AnimatePresence mode="popLayout">
+              {bankDetails.map((detail) => (
+                <BankDetailCard
+                  key={detail.id}
+                  detail={detail}
+                  isActive={detail.id === activeDetail?.id}
+                  onSetActive={handleSetActive}
+                  onDelete={handleDeleteBankDetail}
+                  isLoading={isProcessing}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="border border-dashed border-border/50 rounded-sm p-12 text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center">
+                <Landmark className="w-6 h-6 text-muted-foreground" />
+              </div>
             </div>
-          ))}
-        </div>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Sin Datos Bancarios
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Agrega una cuenta bancaria para mostrarla en las cotizaciones públicas.
+              </p>
+            </div>
+          </div>
+        )}
+      </motion.div>
 
-        <div className="pt-6 border-t border-border/10 flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="h-12 rounded-none bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 px-8"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Guardar
-          </Button>
-        </div>
+      {/* Botón agregar */}
+      <div className="pt-6 flex justify-center">
+        <PrimaryButton
+          onClick={() => setModalOpen(true)}
+          label="Agregar Datos Bancarios"
+          icon={Plus}
+          className="h-14 px-8 rounded-none"
+        />
       </div>
 
-      <div className="p-6 bg-primary/5 border border-primary/20 rounded-sm">
+      {/* Modal */}
+      <BankDetailModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSubmit={handleCreateBankDetail}
+        isLoading={createBankDetail.isPending}
+      />
+
+      {/* Información importante */}
+      <div className="p-6 bg-primary/5 border border-primary/20 rounded-sm space-y-3">
         <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80">
           Importante
         </p>
-        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-          Estos datos se muestran únicamente cuando el cliente acepta la
-          cotización y el flujo de pago público está activo. Si querés ocultar
-          una billetera digital, dejá el campo vacío.
-        </p>
+        <ul className="text-xs text-muted-foreground space-y-2 leading-relaxed">
+          <li>
+            • Solo la cuenta marcada como <strong>Activa</strong> se muestra al cliente.
+          </li>
+          <li>• Estos datos aparecen cuando el cliente acepta una cotización.</li>
+          <li>• Dejar campos opcionales (Nequi, Daviplata) vacíos si no se usan.</li>
+          <li>• Puedes eliminar cuentas antiguas para mantener la lista organizada.</li>
+        </ul>
       </div>
     </motion.div>
   );
