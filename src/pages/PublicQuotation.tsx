@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { FEATURES } from '@/lib/features';
 import {
   usePublicQuotation,
@@ -7,6 +7,9 @@ import {
   isErrorResponse,
   isQuotationData,
 } from '@/hooks/quotations/usePublicQuotation';
+import { useFeatureFlag } from '@/hooks/settings/useFeatureFlag';
+import { useSetting } from '@/hooks/settings/useSystemSettings';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 import { PublicLayout } from '@/components/quotations/public/PublicLayout';
 import { QuotationPublicView } from '@/components/quotations/public/QuotationPublicView';
 import { QuotationActionButtons } from '@/components/quotations/public/QuotationActionButtons';
@@ -14,12 +17,18 @@ import { QuotationVersionsDiff } from '@/components/quotations/public/QuotationV
 import { QuotationExpiredView } from '@/components/quotations/public/QuotationExpiredView';
 import { QuotationRedirectView } from '@/components/quotations/public/QuotationRedirectView';
 import { QuotationRejectedView } from '@/components/quotations/public/QuotationRejectedView';
+import { BankDetailsCard, type BankDetails } from '@/components/quotations/public/BankDetailsCard';
+import { PaymentProofUploader } from '@/components/quotations/public/PaymentProofUploader';
 import NotFoundPage from '@/pages/NotFound';
 
 export default function PublicQuotation() {
   const { token } = useParams<{ token: string }>();
+  const slice3 = useFeatureFlag('slice_3_enabled');
+  const { data: bankDetails, isLoading: bankDetailsLoading } = useSetting<BankDetails>(
+    'bank_block'
+  );
+  const { data: suggestedMinPct } = useSetting<number>('suggested_min_advance_pct');
 
-  // Feature flag — si está OFF, la ruta no existe.
   if (!FEATURES.phase4QuotationPublicEnabled) {
     return <NotFoundPage />;
   }
@@ -37,10 +46,10 @@ export default function PublicQuotation() {
   if (isLoading) {
     return (
       <PublicLayout>
-        <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center gap-3 text-gray-500">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          <span className="text-xs font-bold uppercase tracking-widest">
-            Cargando cotización...
+        <div className="bg-card border border-border/40 rounded-sm p-16 flex flex-col items-center gap-4 shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
+          <span className="text-[10px] font-black uppercase tracking-[0.35em] text-muted-foreground">
+            Cargando tu propuesta...
           </span>
         </div>
       </PublicLayout>
@@ -51,7 +60,7 @@ export default function PublicQuotation() {
     return (
       <PublicLayout>
         <ErrorCard
-          message={error instanceof Error ? error.message : 'No pudimos cargar la cotización.'}
+          message={error instanceof Error ? error.message : 'No pudimos cargar la propuesta.'}
         />
       </PublicLayout>
     );
@@ -60,7 +69,7 @@ export default function PublicQuotation() {
   if (isErrorResponse(data)) {
     return (
       <PublicLayout>
-        <ErrorCard message="No encontramos esta cotización. Verificá el link." />
+        <ErrorCard message="No encontramos esta propuesta. Verificá el link." />
       </PublicLayout>
     );
   }
@@ -81,7 +90,6 @@ export default function PublicQuotation() {
     );
   }
 
-  // Cotización vencida (por valid_until pasado o status='expired')
   if (data.is_expired) {
     return (
       <PublicLayout>
@@ -90,7 +98,6 @@ export default function PublicQuotation() {
     );
   }
 
-  // Rechazada → vista cerrada (read-only)
   if (data.status === 'rejected') {
     return (
       <PublicLayout>
@@ -107,74 +114,150 @@ export default function PublicQuotation() {
         <QuotationVersionsDiff currentQuotationId={data.id} />
       )}
 
-      {data.status === 'sent' && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 sm:p-6 space-y-3">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-700">
-            ¿Qué te parece?
-          </h2>
-          <QuotationActionButtons token={token} />
-        </div>
-      )}
+      {data.status === 'sent' && <QuotationActionButtons token={token} />}
 
-      {/* Slice 3 agregará aquí QuotationPaymentSection cuando status ∈ {client_approved, pending_payment_verification} */}
-      {data.status === 'client_approved' && (
-        <PendingPaymentNotice />
-      )}
+      {data.status === 'client_approved' &&
+        (slice3 ? (
+          <div className="space-y-6">
+            {bankDetailsLoading ? (
+              <div className="h-32 flex items-center justify-center">
+                <PremiumLoader size="md" text="Cargando datos de pago" />
+              </div>
+            ) : (
+              <>
+                <BankDetailsCard details={bankDetails ?? {}} isLoading={false} />
+                <PaymentProofUploader
+                  token={token}
+                  quotationId={data.id}
+                  quotationTotal={data.total_amount ?? 0}
+                  suggestedMinAdvancePct={
+                    typeof suggestedMinPct === 'number' ? suggestedMinPct : 30
+                  }
+                />
+              </>
+            )}
+          </div>
+        ) : (
+          <PendingPaymentNotice />
+        ))}
 
-      {data.status === 'pending_payment_verification' && (
-        <UnderReviewNotice />
-      )}
+      {data.status === 'pending_payment_verification' && <UnderReviewNotice />}
 
-      {/* Slice 5 agregará QuotationApprovedView con botón de PDF */}
       {data.status === 'approved' && <ApprovedNotice />}
     </PublicLayout>
   );
 }
 
+function StatusCard({
+  tone,
+  icon,
+  eyebrow,
+  title,
+  body,
+}: {
+  tone: 'primary' | 'blue' | 'success';
+  icon: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  body: string;
+}) {
+  const accent =
+    tone === 'primary'
+      ? 'via-primary/80'
+      : tone === 'blue'
+      ? 'via-blue-400/80'
+      : 'via-emerald-400/80';
+
+  const iconBg =
+    tone === 'primary'
+      ? 'bg-primary/10 border-primary/30 text-primary'
+      : tone === 'blue'
+      ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+
+  return (
+    <div className="bg-card border border-border/40 rounded-sm overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+      <div className={`h-1 w-full bg-gradient-to-r from-transparent ${accent} to-transparent`} />
+      <div className="px-6 sm:px-10 py-8 flex flex-col sm:flex-row items-start gap-5">
+        <div
+          className={`w-12 h-12 rounded-full border flex items-center justify-center shrink-0 ${iconBg}`}
+        >
+          {icon}
+        </div>
+        <div className="space-y-2 min-w-0">
+          <span className={`block text-[10px] font-black uppercase tracking-[0.35em] ${
+            tone === 'primary'
+              ? 'text-primary/80'
+              : tone === 'blue'
+              ? 'text-blue-400/80'
+              : 'text-emerald-400/80'
+          }`}>
+            {eyebrow}
+          </span>
+          <h3 className="font-heading text-xl font-black tracking-tight text-foreground">
+            {title}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PendingPaymentNotice() {
   return (
-    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-emerald-900">
-      <h3 className="text-sm font-bold mb-1">¡Aceptaste la propuesta!</h3>
-      <p className="text-sm">
-        Te enviamos un WhatsApp con los datos bancarios para hacer el abono inicial.
-        Cuando estés listo, vas a poder subir el comprobante acá mismo.
-      </p>
-    </div>
+    <StatusCard
+      tone="primary"
+      icon={<CheckCircle2 className="w-6 h-6" />}
+      eyebrow="Propuesta aceptada"
+      title="¡Recibimos tu confirmación!"
+      body="Te enviamos un WhatsApp con los datos bancarios para el abono inicial. Cuando estés listo vas a poder subir el comprobante acá mismo."
+    />
   );
 }
 
 function UnderReviewNotice() {
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-blue-900">
-      <h3 className="text-sm font-bold mb-1">Comprobante en revisión</h3>
-      <p className="text-sm">
-        Recibimos tu pago. Nuestro equipo lo está verificando — apenas confirmemos te
-        contactamos para arrancar con el diseño.
-      </p>
-    </div>
+    <StatusCard
+      tone="blue"
+      icon={<Clock className="w-6 h-6" />}
+      eyebrow="Pago en revisión"
+      title="Estamos verificando tu comprobante"
+      body="Recibimos tu pago y nuestro equipo lo está revisando. Apenas lo confirmemos te contactamos para arrancar con el diseño."
+    />
   );
 }
 
 function ApprovedNotice() {
   return (
-    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-emerald-900">
-      <h3 className="text-sm font-bold mb-1">¡Tu proyecto arrancó!</h3>
-      <p className="text-sm">
-        Pago confirmado. En las próximas horas un diseñador toma tu proyecto y empezamos
-        con el primer borrador.
-      </p>
-    </div>
+    <StatusCard
+      tone="success"
+      icon={<Sparkles className="w-6 h-6" />}
+      eyebrow="Proyecto activo"
+      title="¡Tu cocina arrancó!"
+      body="Pago confirmado. En las próximas horas un diseñador toma tu proyecto y empezamos con el primer borrador."
+    />
   );
 }
 
 function ErrorCard({ message }: { message: string }) {
   return (
-    <div className="bg-white rounded-lg border border-red-200 shadow-sm p-7 text-center space-y-3">
-      <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-        <AlertCircle className="w-6 h-6 text-red-600" />
+    <div className="bg-card border border-red-500/40 rounded-sm overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+      <div className="h-1 w-full bg-gradient-to-r from-red-600/20 via-red-500 to-red-600/20" />
+      <div className="px-6 sm:px-10 py-10 flex flex-col items-center text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-red-400" />
+        </div>
+        <div className="space-y-2 max-w-md">
+          <span className="block text-[10px] font-black uppercase tracking-[0.35em] text-red-400/80">
+            No pudimos abrirla
+          </span>
+          <h2 className="font-heading text-xl font-black tracking-tight text-foreground">
+            Algo salió mal
+          </h2>
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
       </div>
-      <h2 className="text-lg font-bold text-gray-900">No pudimos abrir la cotización</h2>
-      <p className="text-sm text-gray-600">{message}</p>
     </div>
   );
 }
