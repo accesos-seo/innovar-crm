@@ -9,6 +9,7 @@ import {
 } from '@/hooks/quotations/usePublicQuotation';
 import { useFeatureFlag } from '@/hooks/settings/useFeatureFlag';
 import { useSetting } from '@/hooks/settings/useSystemSettings';
+import { useBankDetails } from '@/hooks/settings/useBankDetails';
 import { PremiumLoader } from '@/components/shared/PremiumLoader';
 import { PublicLayout } from '@/components/quotations/public/PublicLayout';
 import { QuotationPublicView } from '@/components/quotations/public/QuotationPublicView';
@@ -17,16 +18,15 @@ import { QuotationVersionsDiff } from '@/components/quotations/public/QuotationV
 import { QuotationExpiredView } from '@/components/quotations/public/QuotationExpiredView';
 import { QuotationRedirectView } from '@/components/quotations/public/QuotationRedirectView';
 import { QuotationRejectedView } from '@/components/quotations/public/QuotationRejectedView';
-import { BankDetailsCard, type BankDetails } from '@/components/quotations/public/BankDetailsCard';
+import { BankDetailsCard } from '@/components/quotations/public/BankDetailsCard';
 import { PaymentProofUploader } from '@/components/quotations/public/PaymentProofUploader';
+import { CompanyTrustSection } from '@/components/quotations/public/CompanyTrustSection';
 import NotFoundPage from '@/pages/NotFound';
 
 export default function PublicQuotation() {
   const { token } = useParams<{ token: string }>();
   const slice3 = useFeatureFlag('slice_3_enabled');
-  const { data: bankDetails, isLoading: bankDetailsLoading } = useSetting<BankDetails>(
-    'bank_block'
-  );
+  const { data: bankDetails, isLoading: bankDetailsLoading } = useBankDetails();
   const { data: suggestedMinPct } = useSetting<number>('suggested_min_advance_pct');
 
   if (!FEATURES.phase4QuotationPublicEnabled) {
@@ -144,6 +144,8 @@ export default function PublicQuotation() {
       {data.status === 'pending_payment_verification' && <UnderReviewNotice />}
 
       {data.status === 'approved' && <ApprovedNotice />}
+
+      <CompanyTrustSection />
     </PublicLayout>
   );
 }
