@@ -2,16 +2,12 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
-import { 
-  CreditCard, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  Upload, 
-  History, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  CreditCard,
+  Plus,
+  Search,
+  History,
+  TrendingUp,
   DollarSign,
   Tag,
   FileText,
@@ -98,41 +94,53 @@ const columns: ColumnDef<PricingItem>[] = [
   {
     accessorKey: "code",
     header: "Código",
-    cell: ({ row }) => <span className="text-xs font-mono font-bold text-primary">{row.original.code}</span>,
+    size: 160,
+    cell: ({ row }) => (
+      <span className="text-xs font-mono font-bold text-primary whitespace-nowrap">
+        {row.original.code}
+      </span>
+    ),
   },
   {
     accessorKey: "name",
     header: "Concepto",
     cell: ({ row }) => (
-      <div className="flex flex-col">
-        <span className="text-sm font-bold text-foreground">{row.original.name}</span>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{categoryMap[row.original.category]}</span>
-      </div>
+      <span className="text-sm font-bold text-foreground">{row.original.name}</span>
+    ),
+  },
+  {
+    accessorKey: "category",
+    header: "Categoría",
+    size: 160,
+    cell: ({ row }) => (
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+        {categoryMap[row.original.category]}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "description",
+    header: "Descripción",
+    cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground max-w-[280px] truncate block">
+        {row.original.description || "—"}
+      </span>
     ),
   },
   {
     accessorKey: "value",
-    header: "Precio / Valor",
+    header: () => <div className="text-right">Precio / Valor</div>,
+    size: 140,
     cell: ({ row }) => (
-      <div className="flex flex-col text-right">
-        <span className="text-sm font-mono font-bold text-foreground">${row.original.value.toLocaleString()}</span>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">por {row.original.unit}</span>
+      <div className="flex flex-col items-end text-right">
+        <span className="text-sm font-mono font-bold text-foreground">
+          ${row.original.value.toLocaleString("es-CO")}
+        </span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+          POR {row.original.unit}
+        </span>
       </div>
     ),
-  },
-  {
-    accessorKey: "previousValue",
-    header: "Anterior",
-    cell: ({ row }) => (
-      <div className="flex flex-col text-right opacity-50">
-        <span className="text-xs font-mono">${row.original.previousValue?.toLocaleString() || "---"}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "lastUpdated",
-    header: "Actualización",
-    cell: ({ row }) => <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{row.original.lastUpdated}</span>,
   },
 ];
 
@@ -221,16 +229,6 @@ export default function PricingSettingsPage() {
               </div>
             </FilterSheet>
 
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2 border-border/50 font-bold uppercase text-xs tracking-widest h-10 rounded-none">
-                <Upload className="w-4 h-4" />
-                Importar
-              </Button>
-              <Button variant="outline" className="gap-2 border-border/50 font-bold uppercase text-xs tracking-widest h-10 rounded-none">
-                <Download className="w-4 h-4" />
-                Exportar
-              </Button>
-            </div>
           </div>
 
           <DataTable
