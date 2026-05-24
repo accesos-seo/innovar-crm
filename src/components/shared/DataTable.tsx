@@ -57,6 +57,7 @@ interface DataTableProps<TData, TValue> {
   deleteButtonLabel?: string;
   emptyMessage?: React.ReactNode;
   onSortChange?: (sorting: SortingState) => void;
+  pageSizeOptions?: number[];
 }
 
 function DataTableInner<TData, TValue>({
@@ -74,6 +75,7 @@ function DataTableInner<TData, TValue>({
   deleteButtonLabel,
   emptyMessage = "No se encontraron resultados.",
   onSortChange,
+  pageSizeOptions = [25, 50, 100, 250],
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -244,7 +246,7 @@ function DataTableInner<TData, TValue>({
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top" className="bg-card border-border/50">
-                {[10, 20, 50].map((size) => (
+                {pageSizeOptions.map((size) => (
                   <SelectItem key={size} value={`${size}`} className="text-xs font-bold">
                     {size}
                   </SelectItem>

@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { 
-  Calendar, 
-  Plus, 
-  Search, 
-  Download, 
-  Upload, 
-  Trash2, 
+  Calendar,
+  Plus,
+  Search,
+  Trash2,
   Info,
   CheckCircle2,
   AlertCircle,
@@ -206,14 +204,6 @@ export default function HolidaysSettingsPage() {
                 </div>
               </FilterSheet>
 
-              <Button variant="outline" className="gap-2 border-border/50 font-bold text-xs h-10 rounded-none">
-                <Upload className="w-4 h-4" />
-                {formatSentenceCase("Importar")}
-              </Button>
-              <Button variant="outline" className="gap-2 border-border/50 font-bold text-xs h-10 rounded-none">
-                <Download className="w-4 h-4" />
-                {formatSentenceCase("Exportar")}
-              </Button>
             </div>
           </div>
 
