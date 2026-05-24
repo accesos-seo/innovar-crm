@@ -21,7 +21,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { MetricData } from "@/components/shared/MetricsGrid";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { useClients, useUpdateClient } from "@/hooks/useClients";
+import { useClients, useUpdateClient, type ClientsFilters } from "@/hooks/useClients";
 import { ResourceListPage, ResourceQueryResult } from "@/components/shared/ResourceListPage";
 
 const clientColumns: ColumnDef<Client>[] = [
@@ -88,19 +88,30 @@ const clientColumns: ColumnDef<Client>[] = [
 
 function useClientsQuery(
   search: string,
-  pagination: { pageIndex: number; pageSize: number }
+  pagination: { pageIndex: number; pageSize: number },
+  hookParams?: unknown,
 ): ResourceQueryResult<Client> {
-  const { clients: data, isLoading, totalCount } = useClients(search, pagination);
-  return { data, isLoading, totalCount };
+  const filters = hookParams as ClientsFilters | undefined;
+  const {
+    clients: data,
+    isLoading,
+    totalCount,
+    archiveClients,
+    restoreClients,
+  } = useClients(search, pagination, filters);
+  const deleteItems = filters?.onlyArchived ? restoreClients : archiveClients;
+  return { data, isLoading, totalCount, deleteItems };
 }
 
 export default function ClientsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
+  const [onlyArchived, setOnlyArchived] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
 
-  const { clients: allClients, deleteClients } = useClients("");
+  // Lista completa (sin filtros) usada solo para métricas — siempre cuenta los activos.
+  const { clients: allClients } = useClients("");
   const updateClient = useUpdateClient();
 
   // Deep-link: si llegamos con ?clientId=X (p.ej. desde el modal de Pago),
@@ -170,6 +181,7 @@ export default function ClientsPage() {
       icon={Users}
       onBack={() => navigate("/")}
       useQueryHook={useClientsQuery}
+      hookParams={{ onlyArchived } satisfies ClientsFilters}
       columns={clientColumns}
       searchPlaceholder="Buscar clientes por nombre, email o teléfono..."
       metrics={metrics}
@@ -177,38 +189,79 @@ export default function ClientsPage() {
       filterTitle="Filtros de clientes"
       filterDescription="Segmenta tu base de clientes por ubicación o actividad."
       filterContent={
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-primary">
-            <MapPin className="w-4 h-4" />
-            <label className="text-xs font-bold uppercase tracking-widest">{formatSentenceCase("Ubicación")}</label>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {["Bogotá", "Medellín", "Cali", "Barranquilla"].map((city) => (
-              <Button
-                key={city}
-                variant={activeFilters.includes(city) ? "default" : "outline"}
-                onClick={() => toggleFilter(city)}
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <label className="text-[10px] font-bold text-muted-foreground">
+              {formatSentenceCase("Vista")}
+            </label>
+            <Button
+              variant={onlyArchived ? "default" : "outline"}
+              onClick={() => setOnlyArchived((v) => !v)}
+              className={cn(
+                "w-full text-[10px] font-bold h-10 rounded-none border-border/30 justify-start gap-2",
+                onlyArchived
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "text-muted-foreground",
+              )}
+            >
+              <div
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-widest h-10 rounded-none transition-all",
-                  activeFilters.includes(city)
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border/30 text-muted-foreground hover:border-primary/50"
+                  "w-1.5 h-1.5 rounded-full",
+                  onlyArchived ? "bg-white" : "bg-muted-foreground",
                 )}
-              >
-                {city}
-              </Button>
-            ))}
+              />
+              {formatSentenceCase(
+                onlyArchived ? "Mostrando archivados" : "Mostrar archivados",
+              )}
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-primary">
+              <MapPin className="w-4 h-4" />
+              <label className="text-xs font-bold uppercase tracking-widest">{formatSentenceCase("Ubicación")}</label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {["Bogotá", "Medellín", "Cali", "Barranquilla"].map((city) => (
+                <Button
+                  key={city}
+                  variant={activeFilters.includes(city) ? "default" : "outline"}
+                  onClick={() => toggleFilter(city)}
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest h-10 rounded-none transition-all",
+                    activeFilters.includes(city)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border/30 text-muted-foreground hover:border-primary/50"
+                  )}
+                >
+                  {city}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       }
-      isFiltered={activeFilters.length > 0}
-      onClearFilters={() => setActiveFilters([])}
+      isFiltered={activeFilters.length > 0 || onlyArchived}
+      onClearFilters={() => {
+        setActiveFilters([]);
+        setOnlyArchived(false);
+      }}
       onRowClick={setSelectedClient}
-      onConfirmDelete={async (rows) => deleteClients(rows.map(c => c.id))}
-      deleteTitle="¿Eliminar clientes?"
-      deleteDescription={(count) => `¿Estás seguro de que deseas eliminar ${count} cliente(s)? Esta acción no se puede deshacer y afectará a sus proyectos asociados.`}
-      emptyTitle="No hay información actual"
-      emptyDescription="No se encontraron clientes que coincidan con los filtros actuales. Comienza creando un nuevo cliente."
+      deleteTitle={onlyArchived ? "¿Restaurar clientes?" : "¿Archivar clientes?"}
+      deleteDescription={(count) =>
+        onlyArchived
+          ? `Vas a restaurar ${count} cliente(s). Volverán al listado activo.`
+          : `Vas a archivar ${count} cliente(s). Se ocultan del listado pero los pagos, proyectos y cotizaciones asociados se conservan. Podés recuperarlos desde el filtro 'Mostrar archivados'.`
+      }
+      deleteConfirmText={onlyArchived ? "Restaurar" : "Archivar"}
+      deleteButtonLabel={onlyArchived ? "Restaurar" : "Archivar"}
+      deleteVariant={onlyArchived ? "default" : "warning"}
+      emptyTitle={onlyArchived ? "Sin clientes archivados" : "No hay información actual"}
+      emptyDescription={
+        onlyArchived
+          ? "No hay clientes archivados que coincidan con los filtros."
+          : "No se encontraron clientes que coincidan con los filtros actuales. Comienza creando un nuevo cliente."
+      }
     >
       <DetailModal
         open={!!selectedClient}

@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, Pencil, XCircle, Loader2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  Pencil,
+  XCircle,
+  Loader2,
+  ChevronRight,
+  ChevronDown,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAcceptQuotation } from '@/hooks/quotations/useAcceptQuotation';
 import { useRejectQuotation } from '@/hooks/quotations/useRejectQuotation';
 import {
@@ -43,33 +41,33 @@ export function QuotationActionButtons({ token }: Props) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <Button
-          size="lg"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-          onClick={() => setOpen('accept')}
-        >
-          <CheckCircle2 className="w-4 h-4 mr-2" />
-          Aceptar propuesta
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="border-amber-500 text-amber-700 hover:bg-amber-50 font-semibold"
-          onClick={() => setOpen('adjustments')}
-        >
-          <Pencil className="w-4 h-4 mr-2" />
-          Solicitar ajustes
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold"
-          onClick={() => setOpen('reject')}
-        >
-          <XCircle className="w-4 h-4 mr-2" />
-          Rechazar
-        </Button>
+      <div className="bg-card border border-border/40 rounded-sm overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+        <div className="h-[2px] w-full bg-gradient-to-r from-primary/20 via-primary/80 to-primary/20" />
+        <div className="px-6 sm:px-10 py-7">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/80 mb-1">
+            Tu decisión
+          </h2>
+          <p className="text-sm text-muted-foreground/80 mb-6">
+            Cuando estés listo, elegí una opción. Recibimos tu respuesta al instante.
+          </p>
+
+          <PrimaryAction onClick={() => setOpen('accept')} />
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <SecondaryAction
+              tone="warning"
+              icon={<Pencil className="w-3.5 h-3.5" />}
+              label="Solicitar ajustes"
+              onClick={() => setOpen('adjustments')}
+            />
+            <SecondaryAction
+              tone="muted"
+              icon={<XCircle className="w-3.5 h-3.5" />}
+              label="Rechazar"
+              onClick={() => setOpen('reject')}
+            />
+          </div>
+        </div>
       </div>
 
       <AcceptModal open={open === 'accept'} onClose={() => setOpen(null)} token={token} />
@@ -82,6 +80,211 @@ export function QuotationActionButtons({ token }: Props) {
     </>
   );
 }
+
+function PrimaryAction({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full h-14 relative overflow-hidden group/btn transition-all duration-500',
+        'bg-primary text-primary-foreground font-black text-xs uppercase tracking-[0.3em]',
+        'hover:bg-primary/90 rounded-sm shadow-lg shadow-primary/20 active:scale-[0.98]',
+      )}
+    >
+      <div className="relative z-10 flex items-center justify-center gap-2">
+        <CheckCircle2 className="w-4 h-4" />
+        Aceptar propuesta
+        <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+      </div>
+    </button>
+  );
+}
+
+function SecondaryAction({
+  tone,
+  icon,
+  label,
+  onClick,
+}: {
+  tone: 'warning' | 'muted';
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'h-12 px-4 flex items-center justify-center gap-2 border transition-all',
+        'text-[11px] font-black uppercase tracking-[0.2em] rounded-sm',
+        tone === 'warning'
+          ? 'border-amber-500/40 text-amber-300/90 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/60'
+          : 'border-border/40 text-muted-foreground hover:text-foreground hover:border-border/70 hover:bg-muted/20',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal shell común — grande, con header + cuerpo + footer separados
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PremiumModalShell({
+  open,
+  onClose,
+  eyebrow,
+  title,
+  description,
+  accent,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  eyebrow: string;
+  title: string;
+  description: string;
+  accent: 'primary' | 'amber' | 'destructive';
+  children: React.ReactNode;
+}) {
+  const accentClass =
+    accent === 'primary'
+      ? 'via-primary/80'
+      : accent === 'amber'
+      ? 'via-amber-400/80'
+      : 'via-red-500/80';
+  const eyebrowClass =
+    accent === 'primary'
+      ? 'text-primary'
+      : accent === 'amber'
+      ? 'text-amber-400'
+      : 'text-red-400';
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-[92vw] sm:max-w-2xl p-0 overflow-hidden gap-0 bg-card border-border/40">
+        {/* Top accent */}
+        <div
+          className={`h-1 w-full bg-gradient-to-r from-transparent ${accentClass} to-transparent`}
+        />
+
+        {/* Header — bien espaciado */}
+        <DialogHeader className="px-7 sm:px-10 pt-8 pb-2 space-y-3 text-left">
+          <span
+            className={`text-[10px] font-black uppercase tracking-[0.35em] ${eyebrowClass}`}
+          >
+            {eyebrow}
+          </span>
+          <DialogTitle className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Cuerpo */}
+        <div className="px-7 sm:px-10 py-7">{children}</div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ModalFooter({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-7 pt-6 border-t border-border/20 flex flex-col sm:flex-row gap-3 justify-end">
+      {children}
+    </div>
+  );
+}
+
+function CancelButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-11 px-5 text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground transition-colors"
+    >
+      Cancelar
+    </button>
+  );
+}
+
+function SubmitButton({
+  pending,
+  pendingLabel,
+  label,
+  tone,
+}: {
+  pending: boolean;
+  pendingLabel: string;
+  label: string;
+  tone: 'primary' | 'amber' | 'destructive';
+}) {
+  const toneClass =
+    tone === 'primary'
+      ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
+      : tone === 'amber'
+      ? 'bg-amber-500 hover:bg-amber-500/90 text-black shadow-amber-500/20'
+      : 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20';
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={cn(
+        'h-11 px-7 rounded-sm text-xs font-black uppercase tracking-[0.25em] transition-all',
+        'flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]',
+        toneClass,
+        'disabled:opacity-60 disabled:cursor-not-allowed',
+      )}
+    >
+      {pending ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          {pendingLabel}
+        </>
+      ) : (
+        label
+      )}
+    </button>
+  );
+}
+
+function FieldLabel({
+  children,
+  required,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/80">
+        {children}
+      </span>
+      {required && (
+        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-400/80">
+          Obligatorio
+        </span>
+      )}
+    </div>
+  );
+}
+
+const TEXTAREA_CLS =
+  'w-full rounded-sm border border-border/40 bg-background/60 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 resize-none transition-colors';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: ACEPTAR
+// ─────────────────────────────────────────────────────────────────────────────
 
 function AcceptModal({
   open,
@@ -105,52 +308,48 @@ function AcceptModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Aceptar esta cotización</DialogTitle>
-          <DialogDescription>
-            Confirmás que aceptás los términos y precios. Te llegará un WhatsApp con los
-            datos bancarios para hacer el abono inicial.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="accept-note">¿Querés dejar un comentario? (opcional)</Label>
-            <Textarea
-              id="accept-note"
-              placeholder="Por ejemplo: «¿cuándo viene el diseñador?»"
-              rows={3}
-              {...register('note')}
-            />
-            {formState.errors.note && (
-              <p className="mt-1 text-xs text-red-600">{formState.errors.note.message}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={accept.isPending}
-            >
-              {accept.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Confirmando...
-                </>
-              ) : (
-                'Confirmar aceptación'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <PremiumModalShell
+      open={open}
+      onClose={onClose}
+      eyebrow="Confirmar aceptación"
+      title="Aceptar esta propuesta"
+      description="Confirmás los términos y el alcance. Te llegará un WhatsApp con los datos bancarios para el abono inicial."
+      accent="primary"
+    >
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div>
+          <FieldLabel>¿Querés dejar un comentario para el equipo?</FieldLabel>
+          <Textarea
+            placeholder="Ejemplo: «¿Cuándo viene el diseñador a hacer las medidas finales?»"
+            rows={4}
+            className={TEXTAREA_CLS}
+            {...register('note')}
+          />
+          {formState.errors.note && (
+            <p className="mt-2 text-xs text-red-400">{formState.errors.note.message}</p>
+          )}
+          <p className="mt-2 text-[11px] text-muted-foreground/60">
+            Es opcional. Si lo dejás vacío, igual avanza el proceso.
+          </p>
+        </div>
+
+        <ModalFooter>
+          <CancelButton onClick={onClose} />
+          <SubmitButton
+            pending={accept.isPending}
+            pendingLabel="Confirmando..."
+            label="Sí, acepto la propuesta"
+            tone="primary"
+          />
+        </ModalFooter>
+      </form>
+    </PremiumModalShell>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: SOLICITAR AJUSTES
+// ─────────────────────────────────────────────────────────────────────────────
 
 function AdjustmentsModal({
   open,
@@ -178,52 +377,49 @@ function AdjustmentsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Solicitar ajustes</DialogTitle>
-          <DialogDescription>
-            Contanos qué te gustaría cambiar. El asesor recibirá tu mensaje y te prepara una
-            nueva versión.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="adj-reason">¿Qué te gustaría ajustar?</Label>
-            <Textarea
-              id="adj-reason"
-              placeholder="Por ejemplo: «Saquen el ítem de la isla. Necesito un descuento del 10%»"
-              rows={5}
-              {...register('reason')}
-            />
-            {formState.errors.reason && (
-              <p className="mt-1 text-xs text-red-600">{formState.errors.reason.message}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-              disabled={reject.isPending}
-            >
-              {reject.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                'Enviar ajustes'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <PremiumModalShell
+      open={open}
+      onClose={onClose}
+      eyebrow="Pedir nueva versión"
+      title="Solicitar ajustes"
+      description="Contanos qué te gustaría cambiar. Tu asesor recibe tu mensaje y prepara una nueva versión basada en tu feedback."
+      accent="amber"
+    >
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div>
+          <FieldLabel required>¿Qué te gustaría ajustar?</FieldLabel>
+          <Textarea
+            placeholder="Ejemplo: «Saquen la isla central, no la voy a usar. Necesito que apliquen un descuento del 10% sobre el subtotal.»"
+            rows={6}
+            className={TEXTAREA_CLS}
+            {...register('reason')}
+          />
+          {formState.errors.reason && (
+            <p className="mt-2 text-xs text-red-400">{formState.errors.reason.message}</p>
+          )}
+          <p className="mt-2 text-[11px] text-muted-foreground/60">
+            Sé específico: ítems, precios, plazos, materiales. Mientras más detalle, mejor la
+            próxima versión.
+          </p>
+        </div>
+
+        <ModalFooter>
+          <CancelButton onClick={onClose} />
+          <SubmitButton
+            pending={reject.isPending}
+            pendingLabel="Enviando..."
+            label="Enviar mis ajustes"
+            tone="amber"
+          />
+        </ModalFooter>
+      </form>
+    </PremiumModalShell>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: RECHAZAR — incluye reason picker custom (no Radix Select, full control)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function RejectModal({
   open,
@@ -235,16 +431,19 @@ function RejectModal({
   token: string;
 }) {
   const reject = useRejectQuotation();
+  const [reasonOpen, setReasonOpen] = useState(false);
   const { register, handleSubmit, formState, setValue, watch, reset } =
     useForm<RejectQuotationFormValues>({
       resolver: zodResolver(rejectQuotationSchema),
       defaultValues: { reason_code: 'price', reason_extra: '' },
     });
   const reasonCode = watch('reason_code');
+  const selectedReason = REJECTION_REASONS.find((r) => r.value === reasonCode);
 
   const onSubmit = async (values: RejectQuotationFormValues) => {
     const reasonLabel =
-      REJECTION_REASONS.find((r) => r.value === values.reason_code)?.label ?? values.reason_code;
+      REJECTION_REASONS.find((r) => r.value === values.reason_code)?.label ??
+      values.reason_code;
     const composedReason = [reasonLabel, values.reason_extra?.trim()]
       .filter(Boolean)
       .join(' — ');
@@ -253,73 +452,104 @@ function RejectModal({
       subtype: 'declined',
       reason: composedReason,
     });
+    setReasonOpen(false);
     reset();
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Rechazar propuesta</DialogTitle>
-          <DialogDescription>
-            Elegí el motivo principal. Si querés, podés agregar un comentario.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label>Motivo</Label>
-            <Select
-              value={reasonCode}
-              onValueChange={(v) =>
-                setValue('reason_code', v as RejectQuotationFormValues['reason_code'], {
-                  shouldValidate: true,
-                })
-              }
+    <PremiumModalShell
+      open={open}
+      onClose={() => {
+        setReasonOpen(false);
+        onClose();
+      }}
+      eyebrow="No vamos a avanzar"
+      title="Rechazar propuesta"
+      description="Elegí el motivo principal. Tu respuesta nos ayuda a mejorar futuras propuestas."
+      accent="destructive"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Reason picker custom (más legible que Radix Select) */}
+        <div>
+          <FieldLabel required>Motivo principal</FieldLabel>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setReasonOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 h-12 px-4 rounded-sm border border-border/40 bg-background/60 text-left transition-colors hover:border-border/70 focus-visible:outline-none focus-visible:border-primary/50"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+              <span className="text-sm font-medium text-foreground">
+                {selectedReason?.label ?? 'Elegí un motivo'}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-muted-foreground transition-transform ${
+                  reasonOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            {reasonOpen && (
+              <ul
+                className="absolute z-50 left-0 right-0 mt-1 rounded-sm border border-border/40 bg-card shadow-xl overflow-hidden"
+                role="listbox"
+              >
                 {REJECTION_REASONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
+                  <li key={r.value}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('reason_code', r.value, { shouldValidate: true });
+                        setReasonOpen(false);
+                      }}
+                      className={cn(
+                        'w-full text-left px-4 py-3 text-sm transition-colors',
+                        r.value === reasonCode
+                          ? 'bg-primary/10 text-primary font-bold'
+                          : 'text-foreground hover:bg-muted/30',
+                      )}
+                      role="option"
+                      aria-selected={r.value === reasonCode}
+                    >
+                      {r.label}
+                    </button>
+                  </li>
                 ))}
-              </SelectContent>
-            </Select>
-            <input type="hidden" {...register('reason_code')} />
-          </div>
-          <div>
-            <Label htmlFor="reject-extra">Comentario adicional (opcional)</Label>
-            <Textarea id="reject-extra" rows={3} {...register('reason_extra')} />
-            {formState.errors.reason_extra && (
-              <p className="mt-1 text-xs text-red-600">
-                {formState.errors.reason_extra.message}
-              </p>
+              </ul>
             )}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={reject.isPending}
-            >
-              {reject.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                'Rechazar'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <input type="hidden" {...register('reason_code')} />
+        </div>
+
+        <div>
+          <FieldLabel>Comentario adicional</FieldLabel>
+          <Textarea
+            placeholder="Ejemplo: «Encontré otra opción más cerca de mi presupuesto.» (opcional)"
+            rows={4}
+            className={TEXTAREA_CLS}
+            {...register('reason_extra')}
+          />
+          {formState.errors.reason_extra && (
+            <p className="mt-2 text-xs text-red-400">
+              {formState.errors.reason_extra.message}
+            </p>
+          )}
+        </div>
+
+        <ModalFooter>
+          <CancelButton
+            onClick={() => {
+              setReasonOpen(false);
+              onClose();
+            }}
+          />
+          <SubmitButton
+            pending={reject.isPending}
+            pendingLabel="Enviando..."
+            label="Rechazar propuesta"
+            tone="destructive"
+          />
+        </ModalFooter>
+      </form>
+    </PremiumModalShell>
   );
 }

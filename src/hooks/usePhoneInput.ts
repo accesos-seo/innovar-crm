@@ -41,6 +41,20 @@ interface UsePhoneInputProps {
   initialValue?: string;
 }
 
+/**
+ * Formato visual progresivo para celulares de 10 dígitos:
+ *   1-3:  XXX
+ *   4-6:  (XXX) XXX
+ *   7-10: (XXX) XXX XXXX
+ * El valor almacenado sigue siendo solo dígitos — esto es display only.
+ */
+export function formatColombianPhone(digits: string): string {
+  const d = digits.replace(/\D/g, "").slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)} ${d.slice(6, 10)}`;
+}
+
 export function usePhoneInput({ countries, onPhoneChange, initialValue = "" }: UsePhoneInputProps) {
   // Parse initial value if exists (e.g., "+573001234567")
   const parseInitial = () => {
@@ -95,6 +109,7 @@ export function usePhoneInput({ countries, onPhoneChange, initialValue = "" }: U
       code: `+${selectedCountry.phone_code}`
     },
     phoneNumberBody,
+    formattedPhone: formatColombianPhone(phoneNumberBody),
     isPhoneDropdownOpen,
     setIsPhoneDropdownOpen,
     phoneDropdownRef,

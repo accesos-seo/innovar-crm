@@ -10,6 +10,7 @@ import { formatSentenceCase } from '@/lib/format-utils';
 import {
   PAYMENT_METHOD_LABELS_ES,
   PAYMENT_TYPE_LABELS_ES,
+  PAYMENT_TYPE_NEON_COLORS,
   type PaymentMethod,
   type PaymentType,
 } from '@/schemas/payment';
@@ -35,8 +36,8 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
       status={{
         label:
           PAYMENT_TYPE_LABELS_ES[payment.payment_type as PaymentType] ??
-          formatSentenceCase(payment.payment_type ?? '---'),
-        variant: "secondary"
+          payment.payment_type ?? '---',
+        variant: `${payment.payment_type}-neon` as any
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">

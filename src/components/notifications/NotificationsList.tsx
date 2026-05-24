@@ -11,10 +11,11 @@ import { Loader2, BellOff } from 'lucide-react';
 
 interface NotificationsListProps {
   filterType: string;
+  searchQuery?: string;
 }
 
-export function NotificationsList({ filterType }: NotificationsListProps) {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useNotifications(filterType);
+export function NotificationsList({ filterType, searchQuery }: NotificationsListProps) {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useNotifications(filterType, searchQuery);
   const markAsRead = useMarkAsRead();
   const navigate = useNavigate();
 
@@ -35,11 +36,17 @@ export function NotificationsList({ filterType }: NotificationsListProps) {
         <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
           <BellOff className="w-8 h-8 text-muted-foreground opacity-50" />
         </div>
-        <h3 className="text-lg font-bold text-foreground">No tienes notificaciones</h3>
+        <h3 className="text-lg font-bold text-foreground">
+          {searchQuery && searchQuery.trim().length > 0 ? 'Sin resultados' : 'No tienes notificaciones'}
+        </h3>
         <p className="text-muted-foreground max-w-sm mt-1">
-          {filterType === 'all' 
-            ? 'Estás al día. Aquí aparecerán las alertas sobre tus visitas y proyectos.'
-            : 'No hay notificaciones para este filtro.'}
+          {searchQuery && searchQuery.trim().length > 0
+            ? `No se encontraron notificaciones que coincidan con "${searchQuery.trim()}".`
+            : filterType === 'all'
+              ? 'Estás al día. Aquí aparecerán las alertas sobre tus visitas y proyectos.'
+              : filterType === 'unread'
+                ? 'No tienes notificaciones pendientes. Buen trabajo.'
+                : 'No hay notificaciones para este filtro.'}
         </p>
       </div>
     );

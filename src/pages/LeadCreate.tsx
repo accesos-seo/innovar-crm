@@ -32,13 +32,15 @@ import { useLeads } from "@/hooks/useLeads";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { FEATURES } from "@/lib/features";
 import { EmailInputField } from "@/components/shared/EmailInputField";
+import { WhatsAppField } from "@/components/shared/WhatsAppField";
+import { DEFAULT_COUNTRIES } from "@/hooks/usePhoneInput";
 import type { OpportunityPriority, OpportunityStatus } from "@/schemas/opportunity";
 
 const leadSchema = z.object({
   firstName: z.string().min(1, "El nombre es obligatorio"),
   lastName: z.string().min(1, "El apellido es obligatorio"),
   email: z.string().email("Formato de email inválido").optional().or(z.literal("")),
-  phone: z.string().length(10, "El teléfono debe tener exactamente 10 dígitos").regex(/^\d+$/, "Solo números"),
+  phone: z.string().regex(/^\+\d{11,15}$/, "Teléfono incompleto (formato +código país + número)"),
   services: z.array(z.string()).min(1, "Selecciona al menos un servicio"),
   city: z.string().min(1, "La ciudad es obligatoria"),
   customCity: z.string().optional(),
@@ -116,7 +118,8 @@ export default function LeadCreate() {
       const resolvedCity =
         values.city === "Otro" ? values.customCity || null : values.city;
       const fullName = `${values.firstName} ${values.lastName}`.trim();
-      const phoneWithCountry = `+57${values.phone}`;
+      // values.phone ya viene como "+57XXXXXXXXXX" (o el código país que el usuario eligió) desde WhatsAppField
+      const phoneWithCountry = values.phone;
 
       if (FEATURES.opportunitiesEnabled) {
         // Slice 2 cutover: el insert va a `opportunities` (que también crea
@@ -242,19 +245,13 @@ export default function LeadCreate() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase tracking-widest">{formatSentenceCase("Teléfono WhatsApp *")}</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <div className="absolute left-0 top-0 h-12 w-12 flex items-center justify-center bg-muted border-r border-border/50 text-xs font-bold text-muted-foreground">
-                            +57
-                          </div>
-                          <Input 
-                            placeholder="3001234567" 
-                            {...field} 
-                            maxLength={10}
-                            className="h-12 pl-16 rounded-none border-border/50 bg-background/50 focus:bg-background font-bold transition-all" 
-                          />
-                        </div>
+                        <WhatsAppField
+                          countries={DEFAULT_COUNTRIES}
+                          initialValue={field.value}
+                          onChange={(fullPhone) => field.onChange(fullPhone)}
+                          label="Teléfono WhatsApp *"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -351,7 +348,9 @@ export default function LeadCreate() {
                         <FormLabel className="text-[10px] font-bold uppercase tracking-widest">{formatSentenceCase("Ciudad *")}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger className="h-12 rounded-none border-border/50 bg-background font-bold">
+                            {/* w-full anula el w-fit del SelectTrigger base (se encogía a "Pereira").
+                                !h-12 fuerza el override del data-[size=default]:h-8 del componente shadcn. */}
+                            <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
                               <SelectValue placeholder={formatSentenceCase("Selecciona una ciudad")}>
                                 {field.value ? formatSentenceCase(field.value) : undefined}
                               </SelectValue>
@@ -453,7 +452,7 @@ export default function LeadCreate() {
                     <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{formatSentenceCase("Estado inicial del embudo *")}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-14 rounded-none border-border/50 bg-background px-6 font-bold shadow-sm">
+                        <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background px-6 font-bold shadow-sm">
                           <SelectValue placeholder={formatSentenceCase("Asignar estado")}>
                             {field.value ? formatSentenceCase(STATUSES.find(s => s.value === field.value)?.label || field.value) : undefined}
                           </SelectValue>

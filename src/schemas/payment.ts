@@ -57,6 +57,25 @@ export const PAYMENT_METHOD_LABELS_ES: Record<PaymentMethod, string> = {
   pse: "PSE",
 };
 
+// ─── Neon color classes for payment types (Tailwind) ───────────────────────────
+export const PAYMENT_TYPE_NEON_COLORS: Record<PaymentType, { bg: string; text: string; border: string }> = {
+  advance: { bg: "bg-cyan-950/30", text: "text-cyan-400", border: "border-cyan-500/50" },
+  installment: { bg: "bg-pink-950/30", text: "text-pink-400", border: "border-pink-500/50" },
+  final: { bg: "bg-emerald-950/30", text: "text-emerald-400", border: "border-emerald-500/50" },
+  refund: { bg: "bg-amber-950/30", text: "text-amber-400", border: "border-amber-500/50" },
+};
+
+// ─── Neon color classes for payment methods (Tailwind) ─────────────────────────
+export const PAYMENT_METHOD_NEON_COLORS: Record<PaymentMethod, { bg: string; text: string; border: string }> = {
+  transferencia: { bg: "bg-cyan-950/30", text: "text-cyan-400", border: "border-cyan-500/50" },
+  efectivo: { bg: "bg-amber-950/30", text: "text-amber-400", border: "border-amber-500/50" },
+  credito: { bg: "bg-pink-950/30", text: "text-pink-400", border: "border-pink-500/50" },
+  cheque: { bg: "bg-purple-950/30", text: "text-purple-400", border: "border-purple-500/50" },
+  nequi: { bg: "bg-emerald-950/30", text: "text-emerald-400", border: "border-emerald-500/50" },
+  daviplata: { bg: "bg-indigo-950/30", text: "text-indigo-400", border: "border-indigo-500/50" },
+  pse: { bg: "bg-rose-950/30", text: "text-rose-400", border: "border-rose-500/50" },
+};
+
 export const VERIFICATION_STATUS_LABELS_ES: Record<VerificationStatus, string> = {
   pending: "Por verificar",
   verified: "Verificado",

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { FilterSheet, FilterSection, FilterOption } from "@/components/shared/FilterSheet";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { formatSentenceCase } from "@/lib/format-utils";
+import { formatSentenceCase, formatPersonName } from "@/lib/format-utils";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/PremiumToast";
 import { Task } from "@/types/database";
@@ -107,27 +107,36 @@ export function TaskFilters({ filters, setFilters, staff, tasks, usersCanFilterA
               >
                 <SelectTrigger className="bg-background border-border/50 h-12 rounded-none focus:ring-primary font-bold">
                   <SelectValue placeholder={formatSentenceCase("Todos los colaboradores")}>
-                    {filters.assigned_to !== 'all' ? (
-                      <div className="flex items-center gap-2">
-                        <UserAvatar name={staff.find(s => s.id === filters.assigned_to)?.full_name || "U"} className="w-6 h-6" />
-                        <span>{staff.find(s => s.id === filters.assigned_to)?.full_name}</span>
-                      </div>
-                    ) : formatSentenceCase("Todos los colaboradores")}
+                    {filters.assigned_to !== 'all' ? (() => {
+                      const display = formatPersonName(
+                        staff.find(s => s.id === filters.assigned_to)?.full_name,
+                        "Usuario sin nombre"
+                      );
+                      return (
+                        <div className="flex items-center gap-2">
+                          <UserAvatar name={display} className="w-6 h-6" />
+                          <span>{display}</span>
+                        </div>
+                      );
+                    })() : formatSentenceCase("Todos los colaboradores")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border/50">
                   <SelectItem value="all">{formatSentenceCase("Todos los colaboradores")}</SelectItem>
-                  {staff.map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-2">
-                        <UserAvatar name={member.full_name} className="w-6 h-6" />
-                        <span>
-                          {member.full_name} 
-                          <span className="ml-1 text-muted-foreground font-medium">({getTaskCountForStaff(member.id)})</span>
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {staff.map(member => {
+                    const display = formatPersonName(member.full_name, "Usuario sin nombre");
+                    return (
+                      <SelectItem key={member.id} value={member.id}>
+                        <div className="flex items-center gap-2">
+                          <UserAvatar name={display} className="w-6 h-6" />
+                          <span>
+                            {display}
+                            <span className="ml-1 text-muted-foreground font-medium">({getTaskCountForStaff(member.id)})</span>
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

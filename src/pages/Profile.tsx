@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { EmailInputField } from "@/components/shared/EmailInputField";
+import { WhatsAppField } from "@/components/shared/WhatsAppField";
+import { DEFAULT_COUNTRIES } from "@/hooks/usePhoneInput";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,7 +38,9 @@ import { es } from "date-fns/locale";
 const profileSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Correo electrónico inválido"),
-  phone: z.string().optional(),
+  // Coincide con la columna `whatsapp_phone` (text, nullable) de public.profiles.
+  // Formato esperado cuando hay valor: +<código país><10 dígitos>, ej. +573181234567
+  whatsapp_phone: z.string().optional().or(z.literal("")),
 });
 
 const passwordSchema = z.object({
@@ -61,12 +65,23 @@ export default function ProfilePage() {
   const [newProjectsAlerts, setNewProjectsAlerts] = React.useState(true);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Si full_name viene como email (residuo de auto-creación del profile
+  // en authStore.deriveFullName), lo tratamos como "sin nombre real" para
+  // que el usuario complete con su nombre verdadero. Esto evita mostrar
+  // "robert@seolabagency.com" como si fuera el nombre.
+  const looksLikeEmail = (s: string | null | undefined) =>
+    !!s && /@/.test(s);
+  const cleanFullName =
+    profile?.full_name && !looksLikeEmail(profile.full_name)
+      ? profile.full_name
+      : "";
+
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: profile?.full_name || user?.email?.split('@')[0] || "",
+      name: cleanFullName,
       email: user?.email || "",
-      phone: (profile as any)?.phone || "",
+      whatsapp_phone: profile?.whatsapp_phone || "",
     }
   });
 
@@ -74,12 +89,13 @@ export default function ProfilePage() {
   React.useEffect(() => {
     if (profile || user) {
       profileForm.reset({
-        name: profile?.full_name || user?.email?.split('@')[0] || "",
+        name: cleanFullName,
         email: user?.email || "",
-        phone: (profile as any)?.phone || "",
+        whatsapp_phone: profile?.whatsapp_phone || "",
       });
     }
-  }, [profile, user, profileForm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, user, profileForm, cleanFullName]);
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
@@ -88,12 +104,31 @@ export default function ProfilePage() {
   const onProfileSubmit = async (data: ProfileFormData) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      // Usamos .select() para que Postgrest devuelva las filas afectadas.
+      // Si RLS bloquea silenciosamente (0 filas), `updated` viene vacío y
+      // detectamos el caso aunque `error` sea null.
+      const { data: updated, error } = await supabase
         .from('profiles')
-        .update({ full_name: data.name, phone: data.phone ?? null })
-        .eq('id', user.id);
+        .update({
+          full_name: data.name,
+          whatsapp_phone: data.whatsapp_phone || null,
+        })
+        .eq('id', user.id)
+        .select();
+
       if (error) throw error;
+
+      if (!updated || updated.length === 0) {
+        throw new Error(
+          "No se actualizó ningún registro. Posible causa: tu sesión no coincide con el id del perfil, o las RLS bloquean este update. Cerrá sesión y volvé a entrar."
+        );
+      }
+
       toast.success("Perfil actualizado correctamente");
+
+      // Refrescar el store de auth con el profile nuevo para que el resto
+      // de la app (sidebar, NavBar, etc.) vea el cambio sin recargar.
+      useAuthStore.setState({ profile: updated[0] as any });
     } catch (err: any) {
       toast.error("Error al guardar el perfil", { description: err.message });
     }
@@ -165,13 +200,13 @@ export default function ProfilePage() {
     }
   };
 
-  const getFriendlyName = (input: string | null | undefined) => {
-    if (!input) return "";
-    const name = input.includes('@') ? input.split('@')[0] : input;
-    return name.split(/[\s._-]+/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  };
-
-  const displayName = getFriendlyName(profile?.full_name || user?.email);
+  // displayName: muestra el full_name solo si es un nombre real.
+  // Si está vacío o parece email (ej. profile.full_name === "robert@x.com"),
+  // mostramos "Sin nombre" para invitar al usuario a completarlo desde el form.
+  const displayName =
+    profile?.full_name?.trim() && !looksLikeEmail(profile.full_name)
+      ? profile.full_name.trim()
+      : "Sin nombre";
 
   return (
     <motion.div 
@@ -299,7 +334,17 @@ export default function ProfilePage() {
                 Actualiza tu nombre y dirección de correo electrónico institucional.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative">
+              {profileForm.formState.isSubmitting && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/70 backdrop-blur-sm rounded-sm">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                      Actualizando información...
+                    </span>
+                  </div>
+                </div>
+              )}
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -308,8 +353,14 @@ export default function ProfilePage() {
                     </label>
                     <Input
                       {...profileForm.register("name")}
+                      placeholder="Ej. María Rodríguez"
                       className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary"
                     />
+                    {looksLikeEmail(profile?.full_name) && !profileForm.formState.dirtyFields.name && (
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Tu perfil se creó automáticamente y tu nombre quedó como el correo. Reemplazalo con tu nombre real y guardá.
+                      </p>
+                    )}
                     {profileForm.formState.errors.name && (
                       <p className="text-xs text-destructive font-bold uppercase tracking-tighter">
                         {profileForm.formState.errors.name.message}
@@ -324,24 +375,32 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                      <Phone className="w-3 h-3" /> Teléfono
-                    </label>
-                    <Input
-                      type="tel"
-                      placeholder="Ej: +57 300 123 4567"
-                      {...profileForm.register("phone")}
-                      className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary"
+                    <WhatsAppField
+                      key={profile?.id || "loading"}
+                      countries={DEFAULT_COUNTRIES}
+                      initialValue={profile?.whatsapp_phone || ""}
+                      onChange={(fullPhone) => profileForm.setValue("whatsapp_phone", fullPhone, { shouldDirty: true })}
+                      label="Teléfono WhatsApp"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end pt-4">
-                  <Button 
+                  <Button
                     type="submit"
-                    className="bg-primary text-primary-foreground font-bold uppercase text-xs tracking-widest h-12 px-8 rounded-none hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
+                    disabled={profileForm.formState.isSubmitting}
+                    className="bg-primary text-primary-foreground font-bold uppercase text-xs tracking-widest h-12 px-8 rounded-none hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar Cambios
+                    {profileForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Guardar Cambios
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>

@@ -25,6 +25,13 @@ export default defineConfig(({mode}) => {
       // Do not modify — file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    preview: {
+      // Permite que túneles de Cloudflare (cualquier *.trycloudflare.com) y
+      // localhost expongan el preview build. Necesario para QA remoto del
+      // flujo público de cotización (Fase 4) desde celular sin tener que
+      // pushear a Vercel.
+      allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+    },
     build: {
       rollupOptions: {
         output: {

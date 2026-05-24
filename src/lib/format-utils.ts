@@ -160,4 +160,45 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
+/**
+ * Formatea el nombre visible de una persona (staff, cliente, comercial, etc.).
+ *
+ * Caso real Innovar: muchos `profiles.full_name` quedaron como el email
+ * (residuo de `deriveFullName` en authStore que usa el email como fallback
+ * cuando el usuario no completa su perfil). Mostrar "robert@seolabagency.com"
+ * en un dropdown de "Comercial asignado" se ve roto, así que:
+ *   - Si el valor parece email → tomamos la parte local, reemplazamos
+ *     "._-" por espacios y title-case'amos cada palabra ("john.doe@x.com"
+ *     → "John Doe", "robert@seolabagency.com" → "Robert").
+ *   - Si está vacío o solo trae basura → devolvemos `fallback`.
+ *   - Si parece nombre real → lo dejamos como está.
+ *
+ * NO modifica la DB; es solo capa de presentación. La corrección real es
+ * que cada usuario complete su nombre desde /perfil.
+ */
+export function formatPersonName(
+  value: string | null | undefined,
+  fallback: string = "Sin nombre"
+): string {
+  if (!value || typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === "undefined" || trimmed.toLowerCase() === "null") {
+    return fallback;
+  }
+
+  // Email crudo → "robert@seolabagency.com" → "Robert"
+  if (trimmed.includes("@")) {
+    const local = trimmed.split("@")[0];
+    if (!local) return fallback;
+    return local
+      .replace(/[._\-]+/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  return trimmed;
+}
+
 // formatDate is the standard helper for DD/MM/YYYY

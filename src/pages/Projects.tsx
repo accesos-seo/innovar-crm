@@ -57,9 +57,10 @@ export default function ProjectsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [projectsToDelete, setProjectsToDelete] = React.useState<Project[]>([]);
 
-  const { data: allProjects = [], isLoading, isError, error } = useProjects({
+  const { data: allProjectsRaw, isLoading, isError, error } = useProjects({
     status: statusFilter === "all" ? undefined : statusFilter,
   });
+  const allProjects = allProjectsRaw ?? [];
 
   React.useEffect(() => {
     if (isError) {

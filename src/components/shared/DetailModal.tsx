@@ -696,7 +696,16 @@ export function DetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 bg-card border-border/50 overflow-hidden shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-primary/20 via-white to-primary/20 shrink-0"></div>
-        <DialogHeader className="px-8 pt-8 pb-6 shrink-0 bg-muted/20 border-b border-border/10">
+        <DialogHeader className="px-8 pt-8 pb-6 shrink-0 bg-muted/20 border-b border-border/10 relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onOpenChange(false)}
+            className="absolute top-6 right-6 h-9 w-9 text-muted-foreground hover:text-foreground border border-border/50 hover:border-primary/30 hover:bg-primary/5 rounded-none transition-all"
+            aria-label="Cerrar"
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <div className="flex items-start justify-between gap-6 mr-8">
             <div className="flex items-start gap-4 flex-1">
               {Icon && (

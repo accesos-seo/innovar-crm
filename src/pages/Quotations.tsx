@@ -310,35 +310,20 @@ export default function QuotationsPage() {
         title={`Cotización ${selectedQuotation?.id?.split('-')[0] || ""}`}
         icon={FileText}
         subtitle={formatSentenceCase(`VENTAS > COTIZACIONES > ${selectedQuotation?.client?.name || "CLIENTE"}`)}
-        status={{ 
-          label: formatSentenceCase(statusMap[selectedQuotation?.status as QuotationStatus]?.label || "Borrador"), 
+        status={{
+          label: formatSentenceCase(statusMap[selectedQuotation?.status as QuotationStatus]?.label || "Borrador"),
           variant: statusMap[selectedQuotation?.status as QuotationStatus]?.variant || statusMap.draft.variant
         }}
-        editHref={selectedQuotation ? `/quotations/${selectedQuotation.id}/edit` : undefined}
-        onNavigate={navigate}
         footer={
-          <div className="flex gap-4 w-full">
-            <Button 
-              variant="outline" 
-              className="flex-1 border-primary/20 text-foreground hover:bg-primary/5 font-bold text-[10px] h-12 rounded-none"
-              onClick={() => {
-                navigate(`/quotations/${selectedQuotation?.id}`);
-                setSelectedQuotation(null);
-              }}
-            >
-              {formatSentenceCase("Detalle completo")}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1 border-primary/20 text-primary hover:bg-primary/10 font-bold text-[10px] h-12 rounded-none"
-              onClick={() => {
-                navigate(`/quotations/${selectedQuotation?.id}/edit`);
-                setSelectedQuotation(null);
-              }}
-            >
-              {formatSentenceCase("Editar información")}
-            </Button>
-          </div>
+          <Button
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] h-12 rounded-none"
+            onClick={() => {
+              navigate(`/quotations/${selectedQuotation?.id}`);
+              setSelectedQuotation(null);
+            }}
+          >
+            {formatSentenceCase("Ver detalle completo")}
+          </Button>
         }
       >
         <div className="flex flex-col space-y-12">

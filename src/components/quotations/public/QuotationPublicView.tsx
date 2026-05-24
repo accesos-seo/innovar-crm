@@ -1,11 +1,12 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, CalendarClock } from 'lucide-react';
+import { Eye, CalendarClock, ShieldCheck } from 'lucide-react';
 import type { PublicQuotationData } from '@/hooks/quotations/usePublicQuotation';
+import { ShareQuotationButton } from './ShareQuotationButton';
 
 function formatCOP(value: number | null | undefined): string {
   const n = Number(value ?? 0);
-  return `$${n.toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP`;
+  return `$${n.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
 }
 
 interface Props {
@@ -17,71 +18,91 @@ export function QuotationPublicView({ data }: Props) {
     ? format(new Date(data.valid_until), "d 'de' MMMM yyyy", { locale: es })
     : null;
 
-  const versionLabel =
-    (data.version_number ?? 1) > 1 ? `Versión ${data.version_number}` : null;
+  const versionLabel = (data.version_number ?? 1) > 1 ? `V${data.version_number}` : null;
+
+  const discountAmount =
+    data.discount_type === 'percent'
+      ? Number(data.subtotal ?? 0) * (Number(data.discount_value ?? 0) / 100)
+      : Number(data.discount_value ?? 0);
 
   return (
-    <article className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <header className="px-5 py-5 sm:px-7 sm:py-7 border-b border-gray-200 bg-gradient-to-br from-gray-50 to-white">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-              Cotización
-            </p>
-            <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900 break-words">
-              {data.quotation_number ?? 'En preparación'}
-            </h1>
+    <article className="bg-card border border-border/40 rounded-sm overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+      {/* Top accent — gradient menta editorial */}
+      <div className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/80 to-primary/20 shrink-0" />
+
+      {/* Header */}
+      <header className="px-6 sm:px-10 pt-8 sm:pt-10 pb-6 border-b border-border/20">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/80">
+              Propuesta
+            </span>
             {versionLabel && (
-              <span className="inline-flex mt-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800">
+              <span className="px-2.5 py-0.5 border border-primary/40 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.25em]">
                 {versionLabel}
               </span>
             )}
           </div>
-          <div className="shrink-0 text-right">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Para</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
+          <ShareQuotationButton shortCode={data.short_code ?? null} />
+        </div>
+
+        <h1 className="mt-3 font-heading text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+          {data.quotation_number ?? 'En preparación'}
+        </h1>
+
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-background/40 border border-border/30 p-4">
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/70 mb-1.5">
+              Para
+            </div>
+            <p className="text-sm font-bold text-foreground truncate">
               {data.client?.name ?? '—'}
             </p>
           </div>
+          {validUntilFmt && (
+            <div className="bg-background/40 border border-border/30 p-4">
+              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/70 mb-1.5">
+                <CalendarClock className="w-3 h-3 text-primary/70" />
+                Vigencia
+              </div>
+              <p className="text-sm font-bold text-foreground">{validUntilFmt}</p>
+            </div>
+          )}
         </div>
-
-        {validUntilFmt && (
-          <div className="mt-4 flex items-center gap-2 text-xs text-gray-600">
-            <CalendarClock className="w-3.5 h-3.5 text-gray-400" />
-            <span>
-              Válida hasta el <strong className="text-gray-800">{validUntilFmt}</strong>
-            </span>
-          </div>
-        )}
       </header>
 
-      <section className="px-5 py-5 sm:px-7 sm:py-7 space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+      {/* Items */}
+      <section className="px-6 sm:px-10 py-8">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/70 mb-5">
           Detalle del proyecto
         </h2>
 
         {data.items.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">Cotización sin ítems detallados.</p>
+          <p className="text-sm text-muted-foreground italic">Sin ítems detallados.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="space-y-5">
             {data.items.map((item) => {
               const subtotal = Number(item.unit_price) * Number(item.quantity);
               return (
-                <li key={item.id} className="py-3 flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 leading-snug">
+                <li
+                  key={item.id}
+                  className="grid grid-cols-[1fr_auto] gap-3 pb-5 border-b border-border/15 last:border-b-0 last:pb-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-foreground leading-snug">
                       {item.description}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      {item.quantity} × {formatCOP(item.unit_price)}
+                    <p className="mt-1 text-[11px] font-medium text-muted-foreground tabular-nums">
+                      {item.quantity} {item.quantity === 1 ? 'unidad' : 'unidades'} ·{' '}
+                      {formatCOP(item.unit_price)} c/u
                       {item.product_category && (
-                        <span className="ml-2 inline-flex px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] uppercase tracking-wider">
+                        <span className="ml-2 inline-flex px-1.5 py-0.5 border border-border/30 text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">
                           {item.product_category}
                         </span>
                       )}
                     </p>
                   </div>
-                  <p className="shrink-0 text-sm font-semibold text-gray-900 tabular-nums">
+                  <p className="text-base font-bold text-foreground tabular-nums whitespace-nowrap">
                     {formatCOP(subtotal)}
                   </p>
                 </li>
@@ -91,46 +112,61 @@ export function QuotationPublicView({ data }: Props) {
         )}
       </section>
 
-      <section className="px-5 py-5 sm:px-7 sm:py-7 border-t border-gray-200 bg-gray-50">
-        <dl className="space-y-2 text-sm">
-          <Row label="Subtotal" value={formatCOP(data.subtotal)} />
-          {Number(data.discount_value ?? 0) > 0 && (
+      {/* Totals */}
+      <section className="px-6 sm:px-10 py-8 bg-background/40 border-t border-border/20">
+        <dl className="space-y-3 text-sm">
+          <Row label="Subtotal" value={`${formatCOP(data.subtotal)} COP`} />
+          {discountAmount > 0 && (
             <Row
               label={
                 data.discount_type === 'percent'
-                  ? `Descuento (${data.discount_value}%)`
+                  ? `Descuento ${data.discount_value}%`
                   : 'Descuento'
               }
-              value={`− ${formatCOP(data.discount_value)}`}
+              value={`− ${formatCOP(discountAmount)} COP`}
               tone="discount"
             />
           )}
           {Number(data.transport_cost ?? 0) > 0 && (
-            <Row label="Transporte" value={formatCOP(data.transport_cost)} />
+            <Row label="Transporte" value={`${formatCOP(data.transport_cost)} COP`} />
           )}
-          <Row
-            label="Total"
-            value={formatCOP(data.total_amount)}
-            tone="total"
-          />
         </dl>
 
+        {/* Total destacadísimo */}
+        <div className="mt-6 pt-6 border-t border-primary/30">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">
+              Total
+            </span>
+            <span className="text-3xl sm:text-4xl font-heading font-black tabular-nums text-foreground">
+              {formatCOP(data.total_amount)}
+              <span className="ml-1 text-base font-bold text-muted-foreground/60">COP</span>
+            </span>
+          </div>
+        </div>
+
         {data.notes && (
-          <p className="mt-5 text-xs text-gray-600 leading-relaxed border-l-2 border-gray-300 pl-3">
+          <p className="mt-7 text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/40 pl-4 italic">
             {data.notes}
           </p>
         )}
+      </section>
 
+      {/* Footer interno: tracking + sello vigencia */}
+      <footer className="px-6 sm:px-10 py-5 bg-muted/10 border-t border-border/10 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground/60">
+          <ShieldCheck className="w-3 h-3 text-primary/60" />
+          <span>Documento único · cliente {data.client?.name?.split(' ')[0] ?? ''}</span>
+        </div>
         {data.view_count > 0 && (
-          <div className="mt-5 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-400">
-            <Eye className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground/60">
+            <Eye className="w-3 h-3 text-primary/60" />
             <span>
-              Esta cotización fue vista {data.view_count}{' '}
-              {data.view_count === 1 ? 'vez' : 'veces'}
+              Visto {data.view_count} {data.view_count === 1 ? 'vez' : 'veces'}
             </span>
           </div>
         )}
-      </section>
+      </footer>
     </article>
   );
 }
@@ -142,27 +178,17 @@ function Row({
 }: {
   label: string;
   value: string;
-  tone?: 'total' | 'discount';
+  tone?: 'discount';
 }) {
-  if (tone === 'total') {
-    return (
-      <div className="flex items-baseline justify-between pt-2 border-t border-gray-300">
-        <dt className="text-[11px] font-bold uppercase tracking-widest text-gray-700">
-          {label}
-        </dt>
-        <dd className="text-lg font-bold text-gray-900 tabular-nums">{value}</dd>
-      </div>
-    );
-  }
   return (
-    <div className="flex items-baseline justify-between">
-      <dt className="text-gray-600">{label}</dt>
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+        {label}
+      </dt>
       <dd
-        className={
-          tone === 'discount'
-            ? 'text-emerald-700 font-semibold tabular-nums'
-            : 'text-gray-900 tabular-nums'
-        }
+        className={`tabular-nums font-bold ${
+          tone === 'discount' ? 'text-primary' : 'text-foreground'
+        }`}
       >
         {value}
       </dd>

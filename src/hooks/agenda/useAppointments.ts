@@ -26,7 +26,7 @@ export function useAppointments(date: Date, view: 'week' | 'month' = 'week') {
       const query = supabase
         .from('tasks')
         .select(`
-          id, title, description, status, priority, due_date, time_slot, appointment_type,
+          id, title, description, status, priority, due_date, time_slot, appointment_type, assigned_to,
           clients(id, name, whatsapp_phone, address),
           projects(id, name, status),
           profiles:assigned_to(id, full_name)

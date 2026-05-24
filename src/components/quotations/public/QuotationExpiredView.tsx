@@ -1,5 +1,5 @@
 import { Clock, RefreshCw, Loader2, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useRequestReactivation } from '@/hooks/quotations/useRequestReactivation';
 
 interface Props {
@@ -10,43 +10,60 @@ export function QuotationExpiredView({ token }: Props) {
   const req = useRequestReactivation();
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-7 sm:p-9 text-center space-y-5">
-      <div className="mx-auto w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-        <Clock className="w-7 h-7 text-orange-600" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold text-gray-900">Esta cotización venció</h2>
-        <p className="text-sm text-gray-600 max-w-md mx-auto">
-          La propuesta ya no está vigente, pero podemos prepararte una nueva con los precios
-          actualizados. Pedí una reactivación y un asesor te contacta hoy mismo.
-        </p>
-      </div>
+    <div className="bg-card border border-border/40 rounded-sm overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+      <div className="h-1 w-full bg-gradient-to-r from-orange-500/20 via-orange-500 to-orange-500/20" />
 
-      {req.isSuccess ? (
-        <div className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-sm">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Pedido enviado. Tu asesor te contactará pronto.</span>
+      <div className="px-6 sm:px-12 py-12 sm:py-16 flex flex-col items-center text-center space-y-7">
+        <div className="w-16 h-16 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+          <Clock className="w-8 h-8 text-orange-400" />
         </div>
-      ) : (
-        <Button
-          size="lg"
-          className="bg-orange-600 hover:bg-orange-700 text-white"
-          disabled={req.isPending}
-          onClick={() => req.mutate({ token })}
-        >
-          {req.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Enviando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Solicitar nueva cotización
-            </>
-          )}
-        </Button>
-      )}
+
+        <div className="space-y-3 max-w-md">
+          <span className="block text-[10px] font-black uppercase tracking-[0.35em] text-orange-400/80">
+            Cotización vencida
+          </span>
+          <h2 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+            Esta propuesta ya expiró
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Los precios y materiales pueden haber cambiado. Pedinos una nueva propuesta
+            actualizada y un asesor te contacta hoy mismo.
+          </p>
+        </div>
+
+        {req.isSuccess ? (
+          <div className="flex items-center gap-2 px-5 py-3 border border-primary/40 bg-primary/5 text-primary text-xs font-bold uppercase tracking-widest">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Pedido enviado · te contactamos pronto</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => req.mutate({ token })}
+            disabled={req.isPending}
+            className={cn(
+              'h-14 px-8 relative overflow-hidden group/btn transition-all duration-500',
+              'bg-orange-500 text-black font-black text-xs uppercase tracking-[0.3em]',
+              'hover:bg-orange-400 disabled:bg-muted disabled:text-muted-foreground',
+              'rounded-sm shadow-lg shadow-orange-500/20 active:scale-[0.98]',
+            )}
+          >
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              {req.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Solicitar nueva cotización
+                </>
+              )}
+            </div>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

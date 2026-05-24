@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { formatSentenceCase } from "@/lib/format-utils";
+import { formatSentenceCase, formatPersonName } from "@/lib/format-utils";
 import { cn } from "@/lib/utils";
 
 interface NewTaskModalProps {
@@ -191,23 +191,30 @@ export function NewTaskModal({ isOpen, onClose, staff, defaultStatus = 'pendient
                 <Select value={formData.assigned_to} onValueChange={(v) => { if (v !== null) setFormData({...formData, assigned_to: v}); }}>
                   <SelectTrigger className="bg-background border-border/50 h-12 rounded-none focus:ring-primary font-bold">
                     <SelectValue placeholder={formatSentenceCase("Seleccionar")}>
-                      {formData.assigned_to ? (
-                        <div className="flex items-center gap-2">
-                          <UserAvatar name={staff.find(s => s.id === formData.assigned_to)?.full_name || "U"} className="w-6 h-6" />
-                          <span>{staff.find(s => s.id === formData.assigned_to)?.full_name}</span>
-                        </div>
-                      ) : undefined}
+                      {formData.assigned_to ? (() => {
+                        const selected = staff.find(s => s.id === formData.assigned_to);
+                        const display = formatPersonName(selected?.full_name, "Usuario sin nombre");
+                        return (
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={display} className="w-6 h-6" />
+                            <span>{display}</span>
+                          </div>
+                        );
+                      })() : undefined}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border/50">
-                    {staff.map(u => (
-                      <SelectItem key={u.id} value={u.id}>
-                        <div className="flex items-center gap-2">
-                          <UserAvatar name={u.full_name} className="w-6 h-6" />
-                          <span>{u.full_name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {staff.map(u => {
+                      const display = formatPersonName(u.full_name, "Usuario sin nombre");
+                      return (
+                        <SelectItem key={u.id} value={u.id}>
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={display} className="w-6 h-6" />
+                            <span>{display}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

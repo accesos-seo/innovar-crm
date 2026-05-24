@@ -64,6 +64,13 @@ export interface ResourceListPageProps<TData> {
   deleteDescription?: (count: number) => string;
   deleteConfirmText?: string;
   deleteButtonLabel?: string;
+  /**
+   * Tono visual del diálogo de confirmación.
+   * - "destructive" (rojo): borrado permanente irreversible.
+   * - "warning" (ámbar): archivar (reversible). **Default**.
+   * - "default" (verde): restaurar / acciones rutinarias.
+   */
+  deleteVariant?: "destructive" | "warning" | "default";
 
   // Empty state
   emptyTitle?: string;
@@ -99,6 +106,7 @@ export function ResourceListPage<TData>({
   deleteDescription,
   deleteConfirmText,
   deleteButtonLabel,
+  deleteVariant = "warning",
   emptyTitle = "Sin registros",
   emptyDescription = "No se encontraron elementos que coincidan con los filtros actuales.",
   emptyIcon,
@@ -231,14 +239,15 @@ export function ResourceListPage<TData>({
           onClose={() => setIsDeleteDialogOpen(false)}
           onConfirm={handleConfirmDelete}
           isLoading={isDeleting}
-          title={formatSentenceCase(deleteTitle ?? "¿Eliminar elementos?")}
+          title={formatSentenceCase(deleteTitle ?? "¿Archivar elementos?")}
           description={formatSentenceCase(
             deleteDescription
               ? deleteDescription(itemsToDelete.length)
-              : `¿Estás seguro de que deseas eliminar ${itemsToDelete.length} elemento(s)? Esta acción no se puede deshacer.`
+              : `Vas a archivar ${itemsToDelete.length} elemento(s). Se ocultarán del listado pero podés recuperarlos desde el filtro 'Mostrar archivados'.`
           )}
-          confirmText={formatSentenceCase(deleteConfirmText ?? "Eliminar")}
+          confirmText={formatSentenceCase(deleteConfirmText ?? "Archivar")}
           cancelText={formatSentenceCase("Cancelar")}
+          variant={deleteVariant}
         />
       )}
 

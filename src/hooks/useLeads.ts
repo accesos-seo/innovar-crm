@@ -166,3 +166,33 @@ export function useLeads(
     createLead: async (leadData: Partial<ClientInsert>) => createMutation.mutateAsync(leadData),
   };
 }
+
+/**
+ * Mutación standalone para actualizar un lead (fila en tabla `clients`).
+ * Hook separado de `useLeads` para no obligar a montar la query de listado
+ * cuando un componente solo necesita guardar cambios.
+ *
+ * Invalida tanto `leads` como `clients` porque comparten tabla.
+ */
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ClientInsert> }) => {
+      assertSupabase(supabase);
+      const { data, error } = await supabase
+        .from("clients")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw mapSupabaseError(error);
+      return data as Lead;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [LEADS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (error) => notifyError(error, "Error al actualizar solicitud"),
+  });
+}

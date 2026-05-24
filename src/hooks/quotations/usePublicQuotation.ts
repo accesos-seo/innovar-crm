@@ -35,6 +35,8 @@ export interface PublicQuotationData {
   quotation_number: string | null;
   version_number: number | null;
   parent_quotation_id: string | null;
+  /** Código corto 6-char para URL compartible /c/<code> (Slice 2.5) */
+  short_code: string | null;
   status: PublicQuotationStatus;
   subtotal: number;
   discount_type: string | null;

@@ -70,7 +70,7 @@ export const SecureAccessForm = ({ onSubmit, isLoading, externalError }: SecureA
           value={formData.email}
           onChange={(e) => { setFormData({...formData, email: e.target.value}); if (localError) setLocalError(null); }}
           error={localError || undefined}
-          className="bg-background/50 border-border/50 rounded-none py-3.5 text-foreground placeholder:text-muted-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300 font-medium"
+          className="bg-background/50 border-border/50 rounded-none py-3.5 text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300 font-medium"
         />
 
         <div className="space-y-2">
@@ -81,7 +81,7 @@ export const SecureAccessForm = ({ onSubmit, isLoading, externalError }: SecureA
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              className="w-full bg-background/50 border border-border/50 rounded-none py-3.5 px-4 pr-12 text-sm text-foreground placeholder:text-muted-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300 font-medium"
+              className="w-full bg-background/50 border border-border/50 rounded-none py-3.5 px-4 pr-12 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300 font-medium"
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               required
             />

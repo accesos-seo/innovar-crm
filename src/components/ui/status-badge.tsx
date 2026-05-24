@@ -13,6 +13,11 @@ const statusBadgeVariants = cva(
         error: "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_15px_-3px_rgba(239,68,68,0.2)]",
         info: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 shadow-[0_0_15px_-3px_rgba(6,182,212,0.2)]",
         purple: "bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_15px_-3px_rgba(168,85,247,0.2)]",
+        // Payment type neon variants
+        "advance-neon": "bg-cyan-950/30 text-cyan-400 border-cyan-500/50 shadow-[0_0_15px_-3px_rgba(34,211,238,0.3)]",
+        "installment-neon": "bg-pink-950/30 text-pink-400 border-pink-500/50 shadow-[0_0_15px_-3px_rgba(244,114,182,0.3)]",
+        "final-neon": "bg-emerald-950/30 text-emerald-400 border-emerald-500/50 shadow-[0_0_15px_-3px_rgba(52,211,153,0.3)]",
+        "refund-neon": "bg-amber-950/30 text-amber-400 border-amber-500/50 shadow-[0_0_15px_-3px_rgba(251,191,36,0.3)]",
       },
       animate: {
         none: "",
@@ -57,6 +62,10 @@ function StatusBadge({
           variant === "error" && "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]",
           variant === "info" && "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]",
           variant === "purple" && "bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.8)]",
+          variant === "advance-neon" && "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]",
+          variant === "installment-neon" && "bg-pink-400 shadow-[0_0_8px_rgba(244,114,182,0.8)]",
+          variant === "final-neon" && "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
+          variant === "refund-neon" && "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]",
         )} />
       )}
       {children}

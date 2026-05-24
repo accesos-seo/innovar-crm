@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { KitchenConfigSchema } from '@/schemas/quotation.schema';
 import { useCalculatePrice } from '@/hooks/useCalculatePrice';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -99,133 +99,145 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
         <Form {...form}>
           <form className="space-y-8">
 
-            {/* Tipo + Layout + Metraje */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/5 p-6 border border-border/5">
+            {/* Parámetros principales — bloque unificado */}
+            <div className="bg-muted/5 p-6 border border-border/10 space-y-6">
 
-              <FormField control={form.control} name="tipoCocina" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Tipo de Cocina</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Fila 1: Tipo · Layout · Metraje */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <FormField control={form.control} name="tipoCocina" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest">Tipo de Cocina *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
+                          <SelectValue placeholder="Selecciona tipo..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-sm border-border/20 shadow-xl">
+                        <SelectItem value="COMPLETA_STANDARD" className="font-medium">Completa Standard</SelectItem>
+                        <SelectItem value="COMPLETA_PREMIUM" className="font-medium">Completa Premium</SelectItem>
+                        <SelectItem value="COMPLETA_DELUXE" className="font-medium">Completa Deluxe</SelectItem>
+                        <SelectItem value="SOLO_SUPERIOR" className="font-medium">Solo Superiores</SelectItem>
+                        <SelectItem value="SOLO_INFERIOR" className="font-medium">Solo Inferiores</SelectItem>
+                        <SelectItem value="FRENTE_POLLO" className="font-medium">Frente PLL</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="forma" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest">Layout / Forma *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
+                          <SelectValue placeholder="Selecciona layout..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-sm border-border/20 shadow-xl">
+                        <SelectItem value="L" className="font-medium">Forma en L</SelectItem>
+                        <SelectItem value="U" className="font-medium">Forma en U</SelectItem>
+                        <SelectItem value="LINEAL" className="font-medium">Lineal</SelectItem>
+                        <SelectItem value="PARALELA" className="font-medium">Paralela</SelectItem>
+                        <SelectItem value="ISLA" className="font-medium">Con Isla</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="metrajeTotal" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest">Metraje Total (ML) *</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full bg-background border-border/40 h-14">
-                        <SelectValue placeholder="Selecciona tipo de cocina" />
-                      </SelectTrigger>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Ej. 3.50"
+                          className="h-12 rounded-none border-border/50 bg-background/50 focus:bg-background font-bold pr-16 transition-all"
+                          value={metrajeDisplay}
+                          onChange={e => {
+                            const raw = e.target.value.replace(',', '.');
+                            if (/^(\d*\.?\d*)$/.test(raw)) {
+                              setMetrajeDisplay(raw);
+                              field.onChange(parseFloat(raw) || 0);
+                            }
+                          }}
+                          onBlur={() => {
+                            const num = parseFloat(metrajeDisplay) || 0;
+                            setMetrajeDisplay(num > 0 ? String(num) : '');
+                            field.onChange(num);
+                          }}
+                        />
+                        <span className="absolute right-0 top-0 bottom-0 flex items-center px-3 text-[10px] font-bold text-primary bg-primary/10 border-l border-border/50">ML</span>
+                      </div>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="COMPLETA_STANDARD" label="Completa Standard">Completa Standard</SelectItem>
-                      <SelectItem value="COMPLETA_PREMIUM" label="Completa Premium">Completa Premium</SelectItem>
-                      <SelectItem value="COMPLETA_DELUXE" label="Completa Deluxe">Completa Deluxe</SelectItem>
-                      <SelectItem value="SOLO_SUPERIOR" label="Solo Superiores">Solo Superiores</SelectItem>
-                      <SelectItem value="SOLO_INFERIOR" label="Solo Inferiores">Solo Inferiores</SelectItem>
-                      <SelectItem value="FRENTE_POLLO" label="Frente PLL">Frente PLL</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )} />
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
-              <FormField control={form.control} name="forma" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Layout / Forma</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Fila 2: Material Mesón (2/3) · Profundidad (1/3) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2">
+                  <FormField control={form.control} name="meson.tipo" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase tracking-widest">Material Mesón</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
+                            <SelectValue placeholder="Selecciona material del mesón..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-sm border-border/20 shadow-xl">
+                          <SelectItem value="SINTERIZADO" className="font-medium">Sinterizado — $1.200.000/ml</SelectItem>
+                          <SelectItem value="CUARZO" className="font-medium">Cuarzo — $850.000/ml</SelectItem>
+                          <SelectItem value="GRANITO" className="font-medium">Granito — $700.000/ml</SelectItem>
+                          <SelectItem value="NINGUNO" className="font-medium">Sin mesón</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <FormField control={form.control} name="meson.profundidadCm" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest">Profundidad (cm)</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full bg-background border-border/40 h-14">
-                        <SelectValue placeholder="Selecciona layout / forma" />
-                      </SelectTrigger>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Ej. 60"
+                          className="h-12 rounded-none border-border/50 bg-background/50 focus:bg-background font-bold pr-16 transition-all"
+                          value={profDisplay}
+                          onChange={e => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            setProfDisplay(raw);
+                            field.onChange(parseInt(raw) || 0);
+                          }}
+                          onBlur={() => {
+                            const num = parseInt(profDisplay) || 60;
+                            setProfDisplay(String(num));
+                            field.onChange(num);
+                          }}
+                        />
+                        <span className="absolute right-0 top-0 bottom-0 flex items-center px-3 text-[10px] font-bold text-primary bg-primary/10 border-l border-border/50">CM</span>
+                      </div>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="L" label="Forma en L">Forma en L</SelectItem>
-                      <SelectItem value="U" label="Forma en U">Forma en U</SelectItem>
-                      <SelectItem value="LINEAL" label="Lineal">Lineal</SelectItem>
-                      <SelectItem value="PARALELA" label="Paralela">Paralela</SelectItem>
-                      <SelectItem value="ISLA" label="Con Isla">Con Isla</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="metrajeTotal" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Metraje Total (ML)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        className="h-14 bg-background border-border/40 text-xl font-mono font-bold"
-                        value={metrajeDisplay}
-                        onChange={e => {
-                          const raw = e.target.value.replace(',', '.');
-                          if (/^(\d*\.?\d*)$/.test(raw)) {
-                            setMetrajeDisplay(raw);
-                            field.onChange(parseFloat(raw) || 0);
-                          }
-                        }}
-                        onBlur={() => {
-                          const num = parseFloat(metrajeDisplay) || 0;
-                          setMetrajeDisplay(num > 0 ? String(num) : '');
-                          field.onChange(num);
-                        }}
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary px-2 py-1 bg-primary/10">ML</span>
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )} />
-            </div>
-
-            {/* Mesón */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField control={form.control} name="meson.tipo" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Material Mesón</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full bg-background/50 h-12">
-                        <SelectValue placeholder="Selecciona material del mesón" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="SINTERIZADO" label="Sinterizado">Sinterizado — $1.200.000/ml</SelectItem>
-                      <SelectItem value="CUARZO" label="Cuarzo">Cuarzo — $850.000/ml</SelectItem>
-                      <SelectItem value="GRANITO" label="Granito">Granito — $700.000/ml</SelectItem>
-                      <SelectItem value="NINGUNO" label="Sin mesón">Sin mesón</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="meson.profundidadCm" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Profundidad (cm)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        className="h-12 bg-background/50 font-mono font-bold pr-14"
-                        value={profDisplay}
-                        onChange={e => {
-                          const raw = e.target.value.replace(/\D/g, '');
-                          setProfDisplay(raw);
-                          field.onChange(parseInt(raw) || 0);
-                        }}
-                        onBlur={() => {
-                          const num = parseInt(profDisplay) || 60;
-                          setProfDisplay(String(num));
-                          field.onChange(num);
-                        }}
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary">CM</span>
-                    </div>
-                  </FormControl>
-                  {recargoLabel && (
-                    <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/50 text-amber-500 bg-amber-500/10 font-bold">
-                      ⚠ {recargoLabel}
-                    </Badge>
-                  )}
-                </FormItem>
-              )} />
+                    {recargoLabel && (
+                      <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/50 text-amber-500 bg-amber-500/10 font-bold">
+                        ⚠ {recargoLabel}
+                      </Badge>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
             </div>
 
             {/* Módulos Especiales */}

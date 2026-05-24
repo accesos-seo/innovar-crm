@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Landmark, Save, Smartphone, Trash2 } from "lucide-react";
+import { Landmark, Plus, Save, Smartphone, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -89,6 +89,8 @@ export default function BankSettingsPage() {
   const deleteBankDetail = useDeleteBankDetail();
   const setActiveBankDetail = useSetActiveBankDetail();
 
+  const [showForm, setShowForm] = React.useState(false);
+
   const isProcessing =
     createBankDetail.isPending ||
     deleteBankDetail.isPending ||
@@ -110,6 +112,7 @@ export default function BankSettingsPage() {
   const onSubmit = async (values: BankDetailFormValues) => {
     await createBankDetail.mutateAsync(values as CreateBankDetailInput);
     form.reset();
+    setShowForm(false);
   };
 
   if (isLoading) {
@@ -133,6 +136,11 @@ export default function BankSettingsPage() {
         subtitle="Cuenta de cobro mostrada al cliente en su cotización pública aprobada."
         icon={Landmark}
         onBack={() => navigate("/settings")}
+        action={{
+          label: "Agregar Cuenta",
+          icon: Plus,
+          onClick: () => setShowForm(true),
+        }}
       />
 
       {/* Cuentas existentes */}
@@ -155,7 +163,7 @@ export default function BankSettingsPage() {
       )}
 
       {/* Formulario inline — mismo patrón que LeadCreate */}
-      <Form {...form}>
+      {showForm && <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           className="bg-card border border-border/10 rounded-sm overflow-hidden shadow-2xl shadow-primary/5"
@@ -374,10 +382,10 @@ export default function BankSettingsPage() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => form.reset()}
+                onClick={() => { setShowForm(false); form.reset(); }}
                 className="flex-1 sm:flex-none font-bold uppercase text-xs tracking-widest h-14 px-8 rounded-none border border-transparent hover:border-border/50"
               >
-                Limpiar
+                Cancelar
               </Button>
               <PrimaryButton
                 type="submit"
@@ -390,7 +398,7 @@ export default function BankSettingsPage() {
             </div>
           </div>
         </form>
-      </Form>
+      </Form>}
     </motion.div>
   );
 }

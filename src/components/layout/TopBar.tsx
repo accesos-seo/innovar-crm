@@ -55,7 +55,7 @@ export const TopBar = React.memo(function TopBar() {
         <div className="bg-muted px-4 py-1.5 flex items-center gap-3 border-l-2 border-primary">
           <Search className="text-primary w-4 h-4" aria-hidden="true" />
           <Input 
-            className="bg-transparent border-none focus-visible:ring-0 text-sm w-64 text-foreground placeholder:text-muted-foreground/50 h-auto p-0" 
+            className="bg-transparent border-none focus-visible:ring-0 text-sm w-64 text-foreground placeholder:text-muted-foreground/40 h-auto p-0" 
             placeholder="Buscar planos, órdenes, clientes..." 
             aria-label="Buscar"
           />

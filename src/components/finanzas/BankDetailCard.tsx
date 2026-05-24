@@ -123,7 +123,7 @@ export function BankDetailCard({
           disabled={isLoading || deleting}
           variant="ghost"
           size="sm"
-          className="text-xs font-bold uppercase h-9 rounded-none text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="text-xs font-bold uppercase h-9 rounded-none text-destructive hover:text-destructive hover:bg-destructive/10 border border-destructive/30 hover:border-destructive/60"
         >
           <Trash2 className="w-3.5 h-3.5 mr-1" />
           Eliminar
