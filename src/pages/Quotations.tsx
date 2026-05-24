@@ -47,7 +47,7 @@ import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
 
-import { useQuotations, useUpdateQuotation } from "@/hooks/useQuotations";
+import { useQuotations, useUpdateQuotation, useArchiveQuotations } from "@/hooks/useQuotations";
 
 import { statusMap, columns } from "./quotations/QuotationsColumns";
 
@@ -74,6 +74,7 @@ export default function QuotationsPage() {
   );
 
   const updateQuotation = useUpdateQuotation();
+  const archiveQuotations = useArchiveQuotations();
 
   React.useEffect(() => {
     if (isError) {
@@ -111,11 +112,14 @@ export default function QuotationsPage() {
     { title: formatSentenceCase("Vencidas"), value: filteredData.filter(q => q.status === "expired" || q.status === "rejected").length, description: formatSentenceCase("Requieren revisión"), icon: FileWarning, trend: "down", color: "red" },
   ], [totalCount, filteredData]);
 
-  const handleDelete = async () => {
-    // Backend API would go here
-    setQuotationsToDelete([]);
-    setIsDeleteDialogOpen(false);
-    notify.success("Cotizaciones eliminadas", "Los registros han sido eliminados correctamente.");
+  const handleArchive = async () => {
+    const ids = quotationsToDelete.map((q: any) => q.id as string);
+    try {
+      await archiveQuotations.mutateAsync(ids);
+    } finally {
+      setQuotationsToDelete([]);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const navigate = useNavigate();
@@ -285,6 +289,7 @@ export default function QuotationsPage() {
           setQuotationsToDelete(rows);
           setIsDeleteDialogOpen(true);
         }}
+        deleteButtonLabel="Archivar"
         emptyMessage={
           <EmptyState 
             title="No hay información actual"
@@ -417,11 +422,11 @@ export default function QuotationsPage() {
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        isLoading={false}
-        title={formatSentenceCase("¿Eliminar cotizaciones?")}
-        description={formatSentenceCase(`¿Estás seguro de que deseas eliminar ${quotationsToDelete.length} cotización(es)? Esta acción no se puede deshacer.`)}
-        confirmText={formatSentenceCase("Eliminar")}
+        onConfirm={handleArchive}
+        isLoading={archiveQuotations.isPending}
+        title={formatSentenceCase("¿Archivar cotizaciones?")}
+        description={formatSentenceCase(`Vas a archivar ${quotationsToDelete.length} cotización(es). Se ocultarán del listado pero se conservan y podés recuperarlas desde el filtro 'Mostrar archivadas'.`)}
+        confirmText={formatSentenceCase("Archivar")}
         cancelText={formatSentenceCase("Cancelar")}
       />
     </div>

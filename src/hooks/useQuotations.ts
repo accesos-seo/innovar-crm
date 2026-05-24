@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -223,6 +224,30 @@ export const useUpdateQuotation = () => {
       queryClient.invalidateQueries({ queryKey: [QUOTATIONS_KEY] });
     },
     onError: (error) => notifyError(error, "Error al actualizar cotización"),
+  });
+};
+
+// ── Archivar cotizaciones (soft delete) ──────────────────────────────────────
+export const useArchiveQuotations = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      assertSupabase(supabase);
+      const { error } = await supabase
+        .from("quotations")
+        .update({ deleted_at: new Date().toISOString() } as never)
+        .in("id", ids);
+      if (error) throw mapSupabaseError(error);
+    },
+    onSuccess: (_data, ids) => {
+      toast.success(
+        ids.length === 1
+          ? "Cotización archivada"
+          : `${ids.length} cotizaciones archivadas`,
+      );
+      queryClient.invalidateQueries({ queryKey: [QUOTATIONS_KEY] });
+    },
+    onError: (error) => notifyError(error, "Error al archivar cotizaciones"),
   });
 };
 
