@@ -47,6 +47,8 @@ const PricingSettingsPage   = lazy(() => import("./pages/settings/Pricing"));
 const PricingCreatePage     = lazy(() => import("./pages/PricingCreate"));
 const HolidaysSettingsPage  = lazy(() => import("./pages/settings/Holidays"));
 const HolidayCreatePage     = lazy(() => import("./pages/HolidayCreate"));
+const BankSettingsPage      = lazy(() => import("./pages/settings/BankSettings"));
+const PaymentSettingsPage   = lazy(() => import("./pages/settings/PaymentSettings"));
 const ParametersSettingsPage    = lazy(() => import("./pages/settings/Parameters"));
 const NotificationsSettingsPage = lazy(() => import("./pages/settings/Notifications"));
 const MaintenanceSettingsPage   = lazy(() => import("./pages/settings/Maintenance"));
@@ -56,6 +58,7 @@ const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
 const PublicBookingByCodePage = lazy(() => import("./pages/PublicBookingByCode"));
 const PublicQuotationPage   = lazy(() => import("./pages/PublicQuotation"));
+const PublicQuotationByCodePage = lazy(() => import("./pages/PublicQuotationByCode"));
 
 // ── Route-level loading fallback ───────────────────────────────────────────
 function PageLoader() {
@@ -132,6 +135,8 @@ export default function App() {
                 {/* Cotización pública (Fase 4 Slice 2). Standalone, sin auth, sin Layout.
                     Si VITE_FF_PHASE_4_QUOTATION_PUBLIC=false la página devuelve 404. */}
                 <Route path="/cotizacion/:token" element={<PublicQuotationPage />} />
+                {/* URL corta /c/:code → resuelve short_code y redirige al token largo. */}
+                <Route path="/c/:code" element={<PublicQuotationByCodePage />} />
 
                 {/* ── Dev/admin tooling ── */}
                 <Route
@@ -209,6 +214,14 @@ export default function App() {
                 <Route path="/settings/pricing/new"    element={<Protected><PricingCreatePage /></Protected>} />
                 <Route path="/settings/holidays"       element={<Protected><HolidaysSettingsPage /></Protected>} />
                 <Route path="/settings/holidays/new"   element={<Protected><HolidayCreatePage /></Protected>} />
+                <Route
+                  path="/settings/bancarios"
+                  element={<Protected roles={["admin", "super_admin"]}><BankSettingsPage /></Protected>}
+                />
+                <Route
+                  path="/settings/pagos"
+                  element={<Protected roles={["admin", "super_admin"]}><PaymentSettingsPage /></Protected>}
+                />
                 <Route path="/settings/parameters"     element={<Protected><ParametersSettingsPage /></Protected>} />
                 <Route path="/settings/notifications"  element={<Protected><NotificationsSettingsPage /></Protected>} />
                 <Route

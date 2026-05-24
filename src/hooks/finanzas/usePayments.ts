@@ -7,6 +7,7 @@ export function usePayments(filters?: {
   project_id?: string;
   payment_method?: string;
   payment_type?: string;
+  verification_status?: string;
   date_from?: string;
   date_to?: string;
 }) {
@@ -35,6 +36,9 @@ export function usePayments(filters?: {
       }
       if (filters?.payment_type && filters.payment_type !== "all") {
         query = query.eq("payment_type", filters.payment_type);
+      }
+      if (filters?.verification_status && filters.verification_status !== "all") {
+        query = query.eq("verification_status", filters.verification_status);
       }
       if (filters?.date_from) {
         query = query.gte("received_at", filters.date_from);

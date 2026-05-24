@@ -32,6 +32,11 @@ import { SendQuotationButton } from "@/components/quotations/SendQuotationButton
 import { QuotationLockBadge } from "@/components/quotations/QuotationLockBadge";
 import { QuotationViewTracking } from "@/components/quotations/QuotationViewTracking";
 import { CreateNewVersionButton } from "@/components/quotations/CreateNewVersionButton";
+import { QuotationCancelModal } from "@/components/quotations/QuotationCancelModal";
+import { useFeatureFlag } from "@/hooks/settings/useFeatureFlag";
+import { useCreateQuotationRevision } from "@/hooks/quotations/useCreateQuotationRevision";
+import { useReactivateExpiredQuotation } from "@/hooks/quotations/useReactivateExpiredQuotation";
+import { Ban, Copy, RotateCcw, Loader2 } from "lucide-react";
 
 const statusMap: Record<string, { label: string; variant: "success" | "info" | "warning" | "error" | "purple" | "primary" }> = {
   draft: { label: "Borrador", variant: "info" },
@@ -45,7 +50,12 @@ const statusMap: Record<string, { label: string; variant: "success" | "info" | "
   // Fase 4 — flujo cotización pública
   client_approved: { label: "Aceptada por cliente", variant: "purple" },
   pending_payment_verification: { label: "Pago por verificar", variant: "warning" },
+  // Slice 3
+  cancelled: { label: "Cancelada", variant: "error" },
+  superseded: { label: "Reemplazada por V2", variant: "info" },
 };
+
+const SLICE_3_ADMIN_ROLES = ["admin", "super_admin"] as const;
 
 const FALLBACK_STATUS = { label: "Sin estado", variant: "info" as const };
 
@@ -60,6 +70,11 @@ export default function QuotationDetailPage() {
   const approveQuotation = useApproveQuotation();
 
   const [isApproveDialogOpen, setIsApproveDialogOpen] = React.useState(false);
+  const [isCancelOpen, setIsCancelOpen] = React.useState(false);
+
+  const slice3 = useFeatureFlag('slice_3_enabled');
+  const createRevision = useCreateQuotationRevision();
+  const reactivate = useReactivateExpiredQuotation();
 
   if (isLoading) {
     return (
@@ -106,6 +121,34 @@ export default function QuotationDetailPage() {
   const phase4On = FEATURES.phase4QuotationPublicEnabled;
   const isHistorical = (quotation as any).is_historical_copy === true;
   const clientHasWa = !!(quotation as any).client?.whatsapp_phone;
+
+  const isAdmin =
+    !!profile?.role &&
+    (SLICE_3_ADMIN_ROLES as readonly string[]).includes(profile.role);
+  const status = quotation.status as string;
+  const canCancelAcceptance =
+    slice3 && isAdmin && (status === 'client_approved' || status === 'pending_payment_verification');
+  const canCreateRevision =
+    slice3 && isAdmin && (status === 'client_approved' || status === 'pending_payment_verification');
+  const canReactivate =
+    slice3 && isAdmin && (status === 'expired' || status === 'cancelled');
+
+  const handleCreateRevision = async () => {
+    try {
+      const res = await createRevision.mutateAsync({ quotation_id: quotation.id });
+      navigate(`/quotations/${res.new_quotation_id}`);
+    } catch {
+      // Toast en hook.
+    }
+  };
+
+  const handleReactivate = async () => {
+    try {
+      await reactivate.mutateAsync({ quotation_id: quotation.id });
+    } catch {
+      // Toast en hook.
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-8 pb-32">
@@ -198,7 +241,7 @@ export default function QuotationDetailPage() {
           </>
         )}
         {quotation.status === 'approved' && upToDateProject && (
-          <Button 
+          <Button
             onClick={() => navigate(`/projects/${upToDateProject.id}`)}
             className="w-full sm:w-auto bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest"
           >
@@ -206,6 +249,54 @@ export default function QuotationDetailPage() {
           </Button>
         )}
       </div>
+
+      {(canCancelAcceptance || canCreateRevision || canReactivate) && (
+        <div className="flex flex-wrap gap-3 bg-card/60 p-4 border border-border/10 rounded-sm">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary self-center mr-2">
+            Acciones Slice 3
+          </span>
+          {canCancelAcceptance && (
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelOpen(true)}
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 text-xs font-bold uppercase tracking-widest"
+            >
+              <Ban className="w-4 h-4 mr-2" />
+              Cancelar aceptación
+            </Button>
+          )}
+          {canCreateRevision && (
+            <Button
+              variant="outline"
+              onClick={handleCreateRevision}
+              disabled={createRevision.isPending}
+              className="border-blue-400/40 text-blue-400 hover:bg-blue-400/10 text-xs font-bold uppercase tracking-widest"
+            >
+              {createRevision.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Copy className="w-4 h-4 mr-2" />
+              )}
+              Crear versión nueva
+            </Button>
+          )}
+          {canReactivate && (
+            <Button
+              variant="outline"
+              onClick={handleReactivate}
+              disabled={reactivate.isPending}
+              className="border-emerald-400/40 text-emerald-400 hover:bg-emerald-400/10 text-xs font-bold uppercase tracking-widest"
+            >
+              {reactivate.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 mr-2" />
+              )}
+              Reactivar
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Columna Izquierda: Detalle de Ítems */}
@@ -305,6 +396,12 @@ export default function QuotationDetailPage() {
         description={`¿Estás seguro de que deseas aprobar la cotización ${quotation.id.split('-')[0].toUpperCase()}? Esto creará automáticamente un nuevo proyecto en ejecución.`}
         confirmText="Aprobar y Crear Proyecto"
         cancelText="Cancelar"
+      />
+
+      <QuotationCancelModal
+        quotationId={quotation.id}
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
       />
     </div>
   );
