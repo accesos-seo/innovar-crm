@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Task } from '@/types/database';
 import { notify } from '@/components/ui/PremiumToast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 import { useActiveStaff } from '@/hooks/agenda/useActiveStaff';
 
@@ -35,6 +36,7 @@ export default function TareasPage() {
   const [newTaskStatus, setNewTaskStatus] = useState('pendiente');
   
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data: staff = [] } = useActiveStaff();
   const { data: tasks = [] } = useTasks(filters);
@@ -83,14 +85,20 @@ export default function TareasPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Está seguro de eliminar esta tarea?")) return;
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await bulkDelete.mutateAsync([id]);
-      notify.success("Tarea eliminada", "");
+      await bulkDelete.mutateAsync([deleteConfirmId]);
+      notify.success("Tarea eliminada", "La tarea fue eliminada correctamente.");
       setIsDetailOpen(false);
     } catch {
       notify.error("Error", "No se pudo eliminar la tarea");
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -191,11 +199,23 @@ export default function TareasPage() {
         onDeleteClick={isAdmin ? handleDelete : undefined}
       />
 
-      <NewTaskModal 
+      <NewTaskModal
         isOpen={isNewTaskOpen}
         onClose={() => setIsNewTaskOpen(false)}
         staff={staff}
         defaultStatus={newTaskStatus}
+      />
+
+      <ConfirmationDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={bulkDelete.isPending}
+        variant="destructive"
+        title={formatSentenceCase("¿Eliminar esta tarea?")}
+        description={formatSentenceCase("Esta acción no se puede deshacer. La tarea será eliminada permanentemente.")}
+        confirmText={formatSentenceCase("Sí, eliminar")}
+        cancelText={formatSentenceCase("Cancelar")}
       />
 
     </div>

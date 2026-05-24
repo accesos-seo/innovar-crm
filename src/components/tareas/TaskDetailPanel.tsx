@@ -66,9 +66,9 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
       }}
       footer={
         canEditDetails && onDeleteClick && (
-          <Button 
-            variant="outline" 
-            className="w-full h-12 border-destructive/20 text-destructive hover:bg-destructive hover:text-white rounded-none text-[10px] font-black uppercase tracking-widest transition-all" 
+          <Button
+            variant="destructive"
+            className="w-full h-12 rounded-none text-[10px] font-black uppercase tracking-widest transition-all"
             onClick={() => onDeleteClick(task.id)}
           >
             <Trash2 className="w-4 h-4 mr-2" />
