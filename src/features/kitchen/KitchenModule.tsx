@@ -9,7 +9,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { KitchenConfigSchema } from '@/schemas/quotation.schema';
 import { useCalculatePrice } from '@/hooks/useCalculatePrice';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,12 +21,37 @@ interface KitchenModuleProps {
   onDataChange: (total: number, config: any) => void;
 }
 
+const TIPO_COCINA_LABELS: Record<string, string> = {
+  COMPLETA_STANDARD: 'Completa standard',
+  COMPLETA_PREMIUM:  'Completa premium',
+  COMPLETA_DELUXE:   'Completa deluxe',
+  SOLO_SUPERIOR:     'Solo superiores',
+  SOLO_INFERIOR:     'Solo inferiores',
+  FRENTE_POLLO:      'Frente PLL',
+};
+
+const FORMA_LABELS: Record<string, string> = {
+  L:        'Forma en L',
+  U:        'Forma en U',
+  LINEAL:   'Lineal',
+  PARALELA: 'Paralela',
+  ISLA:     'Con isla',
+};
+
+const MESON_LABELS: Record<string, string> = {
+  SINTERIZADO: 'Sinterizado — $1.200.000/ml',
+  CUARZO:      'Cuarzo — $850.000/ml',
+  GRANITO:     'Granito — $700.000/ml',
+  NINGUNO:     'Sin mesón',
+};
+
+// Precio propio de cada módulo (cobrado al cliente) + metros que descuenta del metraje base
 const MODULOS_ESPECIALES = [
-  { codigo: 'NICHO_NEVECON',      label: 'Nicho Nevecón',       descuento: '−1.0ml' },
-  { codigo: 'NICHO_NEVERA',       label: 'Nicho Nevera',        descuento: '−0.75ml' },
-  { codigo: 'ALACENA_ENTREPAÑOS', label: 'Alacena Entrepaños',  descuento: '−0.5ml' },
-  { codigo: 'ALACENA_HERRAJE',    label: 'Alacena Herraje',     descuento: '−0.5ml' },
-  { codigo: 'TORRE_HORNOS',       label: 'Torre de Hornos',     descuento: '−0.7ml' },
+  { codigo: 'NICHO_NEVECON',      label: 'Nicho Nevecón',      descuento: '−1.0ml',  precio: '$1.200.000' },
+  { codigo: 'NICHO_NEVERA',       label: 'Nicho Nevera',       descuento: '−0.75ml', precio: '$1.100.000' },
+  { codigo: 'ALACENA_ENTREPAÑOS', label: 'Alacena Entrepaños', descuento: '−0.5ml',  precio: '$1.250.000' },
+  { codigo: 'ALACENA_HERRAJE',    label: 'Alacena Herraje',    descuento: '−0.5ml',  precio: '$900.000' },
+  { codigo: 'TORRE_HORNOS',       label: 'Torre de Hornos',    descuento: '−0.7ml',  precio: '$1.350.000' },
 ] as const;
 
 export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) => {
@@ -36,12 +61,12 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
   const form = useForm({
     resolver: zodResolver(KitchenConfigSchema),
     defaultValues: {
-      tipoCocina:        undefined as any,
-      forma:             undefined as any,
+      tipoCocina:        'COMPLETA_STANDARD' as const,
+      forma:             'LINEAL' as const,
       metrajeTotal:      0,
       modulosEspeciales: [] as { codigo: typeof MODULOS_ESPECIALES[number]['codigo']; cantidad: number }[],
       meson: {
-        tipo:          undefined as any,
+        tipo:          'NINGUNO' as const,
         profundidadCm: 60,
       },
       costoTransporte: false,
@@ -50,8 +75,9 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
 
   const currentConfig = useWatch({ control: form.control });
 
-  // Motor backend — reemplaza el cálculo local
-  const { data: calculation, isLoading } = useCalculatePrice('cocina', currentConfig);
+  // Solo calcular cuando el metraje sea válido (≥ 0.5 ml)
+  const canCalculate = (currentConfig?.metrajeTotal ?? 0) >= 0.5;
+  const { data: calculation, isLoading } = useCalculatePrice('cocina', currentConfig, canCalculate);
 
   const lastUpdateRef = React.useRef({ total: -1, configStr: '' });
   React.useEffect(() => {
@@ -81,16 +107,30 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
 
   return (
     <Card className="w-full bg-card border-l-4 border-l-primary shadow-2xl overflow-hidden">
-      <CardHeader className="bg-primary/5 border-b border-border/10 pb-6 relative overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
+      <CardHeader className="bg-primary/5 border-b border-border/10 py-4 px-6 relative overflow-hidden">
+        <div className="flex flex-row justify-between items-center gap-4 relative">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <ChefHat className="text-primary h-6 w-6" />
+              <ChefHat className="text-primary h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight text-foreground uppercase italic">Cocina Integral</CardTitle>
+              <CardTitle className="text-base font-bold tracking-tight text-foreground uppercase italic">Cocina Integral</CardTitle>
               <CardDescription className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">Motor Backend INNOVAR</CardDescription>
             </div>
+          </div>
+
+          {/* Subtotal compacto */}
+          <div className="flex items-center gap-3 px-4 py-2 bg-primary/10 border border-primary/20 rounded-sm shrink-0">
+            <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest hidden sm:block">Subtotal</span>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : canCalculate ? (
+              <span className="text-lg font-black font-mono text-primary tracking-tighter">
+                $ {subtotal.toLocaleString('es-CO')}
+              </span>
+            ) : (
+              <span className="text-sm font-bold text-muted-foreground/40 italic">Ingresa metraje</span>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -111,7 +151,12 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
-                          <SelectValue placeholder="Selecciona tipo..." />
+                          <SelectValue>
+                            {(val: string | null) => val
+                              ? TIPO_COCINA_LABELS[val] ?? val
+                              : <span className="text-muted-foreground/40 font-normal text-sm">Selecciona tipo...</span>
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="rounded-sm border-border/20 shadow-xl">
@@ -133,7 +178,12 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
-                          <SelectValue placeholder="Selecciona layout..." />
+                          <SelectValue>
+                            {(val: string | null) => val
+                              ? FORMA_LABELS[val] ?? val
+                              : <span className="text-muted-foreground/40 font-normal text-sm">Selecciona layout...</span>
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="rounded-sm border-border/20 shadow-xl">
@@ -189,7 +239,12 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
-                            <SelectValue placeholder="Selecciona material del mesón..." />
+                            <SelectValue>
+                              {(val: string | null) => val
+                                ? MESON_LABELS[val] ?? val
+                                : <span className="text-muted-foreground/40 font-normal text-sm">Selecciona material...</span>
+                              }
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-sm border-border/20 shadow-xl">
@@ -242,7 +297,10 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
 
             {/* Módulos Especiales */}
             <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Módulos Especiales — Sin cobro adicional</h4>
+              <div>
+                <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Módulos Especiales — Con precio propio</h4>
+                <p className="text-[10px] text-muted-foreground/50 mt-1">Cada módulo cobra su precio y descuenta los metros que ocupa del metraje base.</p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {MODULOS_ESPECIALES.map(opt => (
                   <div
@@ -256,9 +314,15 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                     )}
                   >
                     <p className="text-xs font-bold uppercase">{opt.label}</p>
-                    <p className={cn("text-[10px] font-mono", moduloActivo(opt.codigo) ? "text-primary" : "text-muted-foreground/40")}>
-                      {opt.descuento}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={cn("text-[10px] font-mono", moduloActivo(opt.codigo) ? "text-amber-400" : "text-muted-foreground/40")}>
+                        {opt.descuento}
+                      </span>
+                      <span className="text-muted-foreground/20 text-[10px]">·</span>
+                      <span className={cn("text-[10px] font-bold", moduloActivo(opt.codigo) ? "text-primary" : "text-muted-foreground/40")}>
+                        {opt.precio}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -268,21 +332,6 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
         </Form>
       </CardContent>
 
-      <CardFooter className="bg-primary/5 border-t border-border/10 p-8 flex justify-end">
-        <div className="bg-primary-surface p-6 rounded-sm border-2 border-primary/30 min-w-[320px] flex flex-col items-end shadow-2xl">
-          <p className="text-[11px] font-black text-primary/80 tracking-[0.2em] mb-2 uppercase">Subtotal Cocina</p>
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="text-xl font-bold text-primary/40 animate-pulse">Calculando...</span>
-            </div>
-          ) : (
-            <span className="text-5xl font-black font-mono text-primary tracking-tighter">
-              $ {subtotal.toLocaleString('es-CO')}
-            </span>
-          )}
-        </div>
-      </CardFooter>
     </Card>
   );
 };

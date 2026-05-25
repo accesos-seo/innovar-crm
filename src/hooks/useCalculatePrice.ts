@@ -36,16 +36,24 @@ const fetchCalculation = async (category: string, configuration: any) => {
   return data;
 };
 
-export const useCalculatePrice = (category: string, currentConfig: any) => {
+export const useCalculatePrice = (
+  category: string,
+  currentConfig: any,
+  /** Pasar `false` para suspender la query cuando el formulario no tiene datos mínimos válidos */
+  enabledOverride?: boolean
+) => {
   // Debounce de 500ms para no saturar el backend mientras el usuario teclea
   const [debouncedConfig] = useDebounce(currentConfig, 500);
+
+  const isEnabled = enabledOverride !== undefined
+    ? (enabledOverride && !!debouncedConfig)
+    : !!debouncedConfig;
 
   return useQuery({
     queryKey: ['calculatePrice', category, debouncedConfig],
     queryFn: () => fetchCalculation(category, debouncedConfig),
-    // Solo se ejecuta si hay configuración válida (ej. metraje > 0)
-    enabled: !!debouncedConfig, 
-    staleTime: 1000 * 60, // Caché de 1 minuto
-    retry: false, // Evitamos bucles pesados en errores de configuración
+    enabled: isEnabled,
+    staleTime: 1000 * 60,
+    retry: false,
   });
 };
