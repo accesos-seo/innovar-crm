@@ -173,7 +173,7 @@ desde una segunda página (revienta con "cannot add postgres_changes callbacks a
 ## 8. Deploy y git (qué hace el agente, qué se delega)
 
 - **SQL / migraciones / Vault / Edge Functions deploy** → el agente, vía Management API + PAT del `.env`.
-- **`git add`/`commit`/`push`** → **al usuario, copy-paste** (race conditions OneDrive). Nunca `git add .` — archivos explícitos.
+- **`git add` + `git commit`** → **los hace el agente en foreground**, sin preguntar. Nunca `git add .` — archivos explícitos. **Solo `git push`** se delega al usuario (race conditions OneDrive afectan push/background, no commits).
 - **`vercel --prod`** → al usuario, copy-paste. ⚠️ Vercel está conectado a `Rvirona/CRM-INNOVAR-APP:main`, NO a `accesos-seo/innovar-crm:master` → los push NO disparan deploy. Deploy manual cada vez.
 - **Nunca subir** `.env`, `.claude/`, `.vercel/`, `*.log` (aunque lo pidan).
 

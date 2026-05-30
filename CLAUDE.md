@@ -28,7 +28,7 @@ Hereda el "Modo de autonomía por defecto" del `CLAUDE.md` global (`C:\Users\ceo
 - **Verificación post-migración**: smoke-tests SQL sobre `pg_proc`, `pg_trigger`, `pg_policies`, `information_schema`.
 
 ### El agente DELEGA al usuario
-- `git add` / `git commit` / `git push` (OneDrive race conditions)
+- **Solo `git push`** (OneDrive race conditions afectan push/background, no commits). El `git add` + `git commit` en foreground los hace el agente SIEMPRE, sin pedírselo al usuario.
 - `vercel --prod` (deploy a producción)
 - `npm run dev` (usar `vite preview` sobre build en su lugar)
 - Secretos de proveedores externos NO presentes en `.env` (Meta Business Manager, n8n, etc.)
