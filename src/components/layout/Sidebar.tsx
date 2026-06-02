@@ -12,6 +12,7 @@ import {
   UserCircle,
   FileText,
   Clock,
+  CalendarClock,
   CheckSquare,
   Bell,
   Wallet,
@@ -58,6 +59,7 @@ const navItems: NavItem[] = [
     label: "Agenda & Tareas", 
     children: [
       { label: "Citas", path: "/agenda", icon: Clock },
+      { label: "Reuniones", path: "/reuniones", icon: CalendarClock },
       { label: "Tareas", path: "/tasks", icon: CheckSquare },
     ]
   },

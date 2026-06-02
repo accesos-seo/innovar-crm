@@ -28,6 +28,7 @@ const InventoryCreatePage   = lazy(() => import("./pages/InventoryCreate"));
 const ProfilePage           = lazy(() => import("./pages/Profile"));
 const SettingsPage          = lazy(() => import("./pages/Settings"));
 const AgendaPage            = lazy(() => import("./pages/Agenda"));
+const ReunionesPage         = lazy(() => import("./pages/Reuniones"));
 const MyDayPage             = lazy(() => import("./pages/MyDay"));
 const NotificationsPage     = lazy(() => import("./pages/Notifications"));
 const TareasPage            = lazy(() => import("./pages/Tareas"));
@@ -173,6 +174,7 @@ export default function App() {
 
                 {/* Agenda & Tasks */}
                 <Route path="/agenda"      element={<Protected><AgendaPage /></Protected>} />
+                <Route path="/reuniones"   element={<Protected><ReunionesPage /></Protected>} />
                 <Route path="/agenda/hoy"  element={<Protected><MyDayPage /></Protected>} />
                 <Route path="/tasks"       element={<Protected><TareasPage /></Protected>} />
 
