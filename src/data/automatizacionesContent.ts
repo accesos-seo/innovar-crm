@@ -1,6 +1,12 @@
 export type AutomatizacionStatus = 'activa' | 'pausada' | 'en_desarrollo' | 'deprecada';
 export type AutomatizacionTipo = 'cron' | 'webhook' | 'manual' | 'realtime';
 export type AutomatizacionCanal = 'slack' | 'whatsapp' | 'email' | 'supabase' | 'interno';
+export type AutomatizacionVisibilidad = 'visible' | 'silente';
+
+export const visibilidadConfig: Record<AutomatizacionVisibilidad, { label: string; sublabel: string; color: string; icon: string }> = {
+  visible: { label: 'Visibles',          sublabel: 'Tienen pantalla, panel o portal — las ves y las controlas',  color: '#44ddc1', icon: '🖥️' },
+  silente: { label: 'Motor Silencioso',  sublabel: 'Trabajan 24/7 sin que tengas que hacer nada',                color: '#a78bfa', icon: '⚙️' },
+};
 
 export type AutomatizacionCategoria =
   | 'operacional'
@@ -56,6 +62,7 @@ export interface AutomatizacionDoc {
   notas: string;
   historial: CambioHistorial[];
   rutas_codigo?: string[];
+  visibilidad: AutomatizacionVisibilidad;
 }
 
 export const automatizaciones: AutomatizacionDoc[] = [
@@ -98,6 +105,7 @@ El resultado: en menos de un segundo el lead ya tiene registro, oportunidad, com
     ],
     categoria: 'comercial',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'webhook',
     frecuencia: 'Cada nuevo lead registrado en el sistema (evento en tiempo real)',
     fuente_datos: 'Supabase — tablas leads + opportunities + availability_slots',
@@ -163,6 +171,7 @@ Ambos mensajes se agregan a la cola de salida (notification_queue) y son enviado
     ],
     categoria: 'comunicacion',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'webhook',
     frecuencia: 'Inmediatamente después de cada nuevo lead registrado',
     fuente_datos: 'Supabase — tablas leads + opportunities + profiles (comercial)',
@@ -226,6 +235,7 @@ Además, programa automáticamente dos recordatorios que llegarán en el momento
     ],
     categoria: 'comercial',
     status: 'activa',
+    visibilidad: 'visible',
     tipo: 'webhook',
     frecuencia: 'Cada vez que se confirma o agenda una visita técnica',
     fuente_datos: 'Supabase — tablas visits + availability_slots + opportunities',
@@ -292,6 +302,7 @@ Todos los cambios quedan registrados en el audit_log con el motivo, para que el 
     ],
     categoria: 'operacional',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'cron',
     frecuencia: 'Cron diario a medianoche (00:00 UTC = 19:00 hora Colombia)',
     fuente_datos: 'Supabase — tabla opportunities + interactions',
@@ -356,6 +367,7 @@ Si el cliente no responde en 30 días, la cotización expira automáticamente. E
     ],
     categoria: 'comercial',
     status: 'activa',
+    visibilidad: 'visible',
     tipo: 'webhook',
     frecuencia: 'Cada cotización marcada como lista para enviar',
     fuente_datos: 'Supabase — tablas quotations + opportunities + profiles',
@@ -418,6 +430,7 @@ El admin accede al CRM, compara el comprobante con los movimientos de la cuenta 
     ],
     categoria: 'comunicacion',
     status: 'activa',
+    visibilidad: 'visible',
     tipo: 'webhook',
     frecuencia: 'Cada vez que el cliente sube un comprobante en el portal público',
     fuente_datos: 'Supabase Storage (bucket comprobantes) + tabla payments',
@@ -482,6 +495,7 @@ Finalmente, el sistema encola la generación del PDF inmutable de la cotización
     ],
     categoria: 'operacional',
     status: 'activa',
+    visibilidad: 'visible',
     tipo: 'webhook',
     frecuencia: 'Cada vez que el admin marca un pago como verificado',
     fuente_datos: 'Supabase — tablas payments + quotations + projects + profiles',
@@ -549,6 +563,7 @@ El resultado es un sistema de mensajería robusto que no pierde mensajes ante fa
     ],
     categoria: 'notificaciones',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'cron',
     frecuencia: 'Cron cada 1 minuto (toda la semana, todo el día)',
     fuente_datos: 'Supabase — tabla notification_queue',
@@ -613,6 +628,7 @@ Así, el equipo puede ver en la pantalla de monitoreo de WhatsApp exactamente cu
     ],
     categoria: 'notificaciones',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'webhook',
     frecuencia: 'Cada vez que Meta notifica un cambio de estado en un mensaje enviado',
     fuente_datos: 'Meta WhatsApp Cloud API (push webhook)',
@@ -675,6 +691,7 @@ Ambos tipos de recordatorio usan plantillas aprobadas por Meta y se procesan a t
     ],
     categoria: 'notificaciones',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'cron',
     frecuencia: '9am COT diario (recordatorio 24h) + cada 30 minutos (recordatorio 2h)',
     fuente_datos: 'Supabase — tabla visits + profiles (cliente y comercial)',
@@ -738,6 +755,7 @@ Este proceso se apoya en la configuración de system_settings, lo que significa 
     ],
     categoria: 'operacional',
     status: 'activa',
+    visibilidad: 'silente',
     tipo: 'cron',
     frecuencia: 'Cron diario a las 9:30am COT (14:30 UTC)',
     fuente_datos: 'Supabase — tablas quotations + system_settings + payments',
@@ -801,6 +819,7 @@ Actualmente el agente está activo pero en modo DRY_RUN: clasifica las cotizacio
     ],
     categoria: 'comercial',
     status: 'pausada',
+    visibilidad: 'visible',
     tipo: 'cron',
     frecuencia: 'Cron diario a las 9:00am hora Bogotá (n8n workflow activo)',
     fuente_datos: 'Supabase — tabla quotations (status=enviada, sin respuesta)',
@@ -864,6 +883,7 @@ El flujo es completamente interno: el admin gestiona quién tiene acceso al sist
     ],
     categoria: 'operacional',
     status: 'activa',
+    visibilidad: 'visible',
     tipo: 'manual',
     frecuencia: 'Bajo demanda — el admin lo ejecuta cuando necesita agregar un usuario',
     fuente_datos: 'Formulario de invitación en /admin/users',
