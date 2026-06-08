@@ -69,15 +69,16 @@ const navItems: NavItem[] = [
       { label: "Tareas", path: "/tasks", icon: CheckSquare },
     ]
   },
-  { 
-    icon: CreditCard, 
-    label: "Finanzas", 
+  {
+    icon: CreditCard,
+    label: "Finanzas",
     children: [
       { label: "Pagos", path: "/finanzas/pagos", icon: Wallet },
       { label: "Gastos", path: "/finanzas/gastos", icon: Receipt },
       { label: "Cierres contables", path: "/finanzas/cierres", icon: BarChart3 },
     ]
   },
+  { icon: Clock, label: "Horas", path: "/horas" },
 ];
 
 const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean }> = ({ item, isActive, isChildActive, isCollapsed }) => {

@@ -68,6 +68,7 @@ const DocsHomePage                   = lazy(() => import("./pages/docs/DocsHomeP
 const DocsAutomatizacionesPage       = lazy(() => import("./pages/docs/DocsAutomatizacionesPage"));
 const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutomatizacionDetailPage"));
 const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabilidadesPage"));
+const HorasPage                      = lazy(() => import("./pages/Horas"));
 
 // â”€â”€ Route-level loading fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PageLoader() {
@@ -250,6 +251,9 @@ export default function App() {
                   path="/admin/dictionary"
                   element={<Protected roles={["admin", "super_admin"]}><DictionaryPage /></Protected>}
                 />
+
+                {/* Horas laborales */}
+                <Route path="/horas" element={<Protected><HorasPage /></Protected>} />
 
                 {/* DocumentaciÃ³n */}
                 <Route path="/docs"                          element={<Protected><DocsHomePage /></Protected>} />
