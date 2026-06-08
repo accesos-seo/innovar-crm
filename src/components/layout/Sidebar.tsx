@@ -321,8 +321,10 @@ const FooterActions: React.FC<FooterActionsProps> = ({ isSidebarCollapsed, navig
   return (
     <div className="p-4 border-t border-border/5 bg-muted/5 space-y-2">
       {/* Documentación Link */}
-      <Link
-        to="/docs"
+      <a
+        href="/docs"
+        target="_blank"
+        rel="noopener noreferrer"
         className={cn(
           "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
           isSidebarCollapsed ? "justify-center" : "justify-between",
@@ -335,7 +337,7 @@ const FooterActions: React.FC<FooterActionsProps> = ({ isSidebarCollapsed, navig
           {!isSidebarCollapsed && <span className="text-sm tracking-tight">Documentación</span>}
         </div>
         {!isSidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
-      </Link>
+      </a>
 
       {/* Cerrar Sesión Button */}
       <button
