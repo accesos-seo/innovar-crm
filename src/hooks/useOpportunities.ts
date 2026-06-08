@@ -256,6 +256,14 @@ export function useOpportunities(
       }
 
       // 3. Insertar la opportunity (el trigger round-robin asignará el owner).
+      // created_by es obligatorio para que la policy RLS opportunities_insert_authenticated
+      // evalúe como TRUE (created_by = auth.uid()). Sin él la columna queda NULL y el
+      // INSERT retorna 403 aunque el usuario esté autenticado.
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw mapSupabaseError(sessionErr);
+      const currentUserId = sessionData?.session?.user?.id;
+      if (!currentUserId) throw new Error("Sesión expirada. Volvé a iniciar sesión.");
+
       const payload: OpportunityInsert = opportunityInsertSchema.parse({
         client_id: clientId,
         status: input.status ?? "new",
@@ -265,6 +273,7 @@ export function useOpportunities(
         notes: input.notes ?? null,
         city: input.city ?? null,
         address: input.address ?? null,
+        created_by: currentUserId,
       });
 
       const { data: opp, error: oppErr } = await supabase
