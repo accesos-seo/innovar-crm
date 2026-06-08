@@ -196,16 +196,33 @@ export function useOpportunities(
     }) => {
       assertSupabase(supabase);
 
+      // Normalizado: solo dígitos (ej. "573183061286"). Usado para insertar y
+      // para lookup. También buscamos la variante con "+" por compatibilidad con
+      // registros legacy que puedan tener el prefijo.
       const normalizedPhone = input.whatsappPhone.replace(/[^0-9]/g, "");
+      const phoneWithPlus = `+${normalizedPhone}`;
 
-      // 1. Buscar cliente activo con ese teléfono normalizado.
-      const { data: existingClients, error: lookupErr } = await supabase
+      // 1a. Buscar cliente activo sin prefijo "+".
+      const { data: foundWithout, error: lookupErr } = await supabase
         .from("clients")
         .select("id")
         .eq("whatsapp_phone", normalizedPhone)
         .is("deleted_at", null)
         .limit(1);
       if (lookupErr) throw mapSupabaseError(lookupErr);
+
+      // 1b. Si no encontró, buscar con prefijo "+" (registros legacy).
+      let existingClients = foundWithout;
+      if (!existingClients?.length) {
+        const { data: foundWith, error: lookupErr2 } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("whatsapp_phone", phoneWithPlus)
+          .is("deleted_at", null)
+          .limit(1);
+        if (lookupErr2) throw mapSupabaseError(lookupErr2);
+        existingClients = foundWith;
+      }
 
       let clientId = existingClients?.[0]?.id;
 
