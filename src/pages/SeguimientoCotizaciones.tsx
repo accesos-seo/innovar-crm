@@ -1,13 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   FileText, Clock, AlertTriangle, CheckCircle2, ChevronRight,
   Zap, Activity, Settings2, BarChart3, Send,
-  Users, Calendar, Briefcase, TrendingUp,
+  Users, Calendar, Briefcase, TrendingUp, BellRing,
+  Power, PowerOff, Loader2, Play, RefreshCw,
 } from 'lucide-react';
 import { CategoryHeader } from '@/components/shared/CategoryHeader';
 import { supabase } from '@/lib/supabaseClient';
+import { notify } from '@/components/ui/PremiumToast';
+
+// ─── Config del agente ────────────────────────────────────────────────────────
+
+const N8N_BASE       = import.meta.env.VITE_N8N_BASE_URL as string;
+const WORKFLOW_ID    = import.meta.env.VITE_AGENT_SEGUIMIENTO_WORKFLOW_ID as string;
+const WEBHOOK_URL    = `${N8N_BASE}/webhook/seguimiento-cotizaciones`;
+const SUPABASE_URL   = import.meta.env.VITE_SUPABASE_URL ?? '';
+const SUPABASE_KEY   = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+const PROXY_URL      = `${SUPABASE_URL}/functions/v1/n8n-proxy`;
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -34,7 +45,13 @@ interface StatsState {
   resolvedThisWeek: number;
 }
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+interface RunResult {
+  status: string;
+  count: number;
+  log: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function daysElapsed(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
@@ -51,23 +68,18 @@ function formatCOP(amount: number | null): string {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
 }
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatCard: React.FC<{
-  label: string;
-  value: string | number;
-  description: string;
-  icon: React.ElementType;
-  color: 'primary' | 'amber' | 'red' | 'green';
-  loading?: boolean;
+  label: string; value: string | number; description: string;
+  icon: React.ElementType; color: 'primary' | 'amber' | 'red' | 'green'; loading?: boolean;
 }> = ({ label, value, description, icon: Icon, color, loading }) => {
   const colorMap = {
     primary: 'text-primary bg-primary/10 border-primary/20',
-    amber: 'text-amber-400 bg-amber-900/20 border-amber-700/30',
-    red: 'text-red-400 bg-red-900/20 border-red-700/30',
-    green: 'text-emerald-400 bg-emerald-900/20 border-emerald-700/30',
+    amber:   'text-amber-400 bg-amber-900/20 border-amber-700/30',
+    red:     'text-red-400 bg-red-900/20 border-red-700/30',
+    green:   'text-emerald-400 bg-emerald-900/20 border-emerald-700/30',
   };
-
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
@@ -91,71 +103,17 @@ const StatCard: React.FC<{
   );
 };
 
-// ─── Pipeline phases config ───────────────────────────────────────────────────
-
 const PIPELINE_PHASES = [
-  {
-    number: 1,
-    label: 'Enviada',
-    sublabel: 'Días 0–2',
-    icon: Send,
-    bg: 'bg-primary/10',
-    border: 'border-primary/30',
-    text: 'text-primary',
-    numBg: 'bg-primary/20',
-    getCount: (s: StatsState) => s.recentCount,
-    description: 'Cotización enviada al cliente. El agente inicia el monitoreo.',
-  },
-  {
-    number: 2,
-    label: 'D+3 Recordatorio',
-    sublabel: 'Día 3–6',
-    icon: Clock,
-    bg: 'bg-amber-900/20',
-    border: 'border-amber-700/30',
-    text: 'text-amber-400',
-    numBg: 'bg-amber-900/40',
-    getCount: (s: StatsState) => s.d3Count,
-    description: 'WhatsApp automático recordando que la cotización sigue vigente.',
-  },
-  {
-    number: 3,
-    label: 'D+7 Urgente',
-    sublabel: 'Día 7+',
-    icon: AlertTriangle,
-    bg: 'bg-red-900/20',
-    border: 'border-red-700/30',
-    text: 'text-red-400',
-    numBg: 'bg-red-900/40',
-    getCount: (s: StatsState) => s.d7Count,
-    description: 'WhatsApp urgente + alerta directa al comercial para seguimiento.',
-  },
-  {
-    number: 4,
-    label: 'Resuelta',
-    sublabel: 'Esta semana',
-    icon: CheckCircle2,
-    bg: 'bg-emerald-900/20',
-    border: 'border-emerald-700/30',
-    text: 'text-emerald-400',
-    numBg: 'bg-emerald-900/40',
-    getCount: (s: StatsState) => s.resolvedThisWeek,
-    description: 'Cotización aprobada. El agente cierra el ciclo de seguimiento.',
-  },
+  { number: 1, label: 'Enviada',        sublabel: 'Días 0–2', icon: Send,          bg: 'bg-primary/10',      border: 'border-primary/30',      text: 'text-primary',      numBg: 'bg-primary/20',      getCount: (s: StatsState) => s.recentCount, description: 'Cotización enviada al cliente. El agente inicia el monitoreo.' },
+  { number: 2, label: 'D+3 Recordatorio', sublabel: 'Día 3–6', icon: Clock,        bg: 'bg-amber-900/20',    border: 'border-amber-700/30',    text: 'text-amber-400',    numBg: 'bg-amber-900/40',    getCount: (s: StatsState) => s.d3Count,     description: 'WhatsApp automático recordando que la cotización sigue vigente.' },
+  { number: 3, label: 'D+7 Urgente',    sublabel: 'Día 7+',   icon: AlertTriangle, bg: 'bg-red-900/20',      border: 'border-red-700/30',      text: 'text-red-400',      numBg: 'bg-red-900/40',      getCount: (s: StatsState) => s.d7Count,     description: 'WhatsApp urgente + alerta directa al comercial para seguimiento.' },
+  { number: 4, label: 'Resuelta',       sublabel: 'Esta semana', icon: CheckCircle2, bg: 'bg-emerald-900/20', border: 'border-emerald-700/30', text: 'text-emerald-400',  numBg: 'bg-emerald-900/40',  getCount: (s: StatsState) => s.resolvedThisWeek, description: 'Cotización aprobada. El agente cierra el ciclo de seguimiento.' },
 ];
 
-// ─── Stage Badge ─────────────────────────────────────────────────────────────
-
 const StageBadge: React.FC<{ stage: TrackStage }> = ({ stage }) => {
-  if (stage === 'd7') return (
-    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-900/30 border border-red-700/40 text-red-400">D+7 🚨</span>
-  );
-  if (stage === 'd3') return (
-    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-900/30 border border-amber-700/40 text-amber-400">D+3 ⏰</span>
-  );
-  return (
-    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary/70">Reciente</span>
-  );
+  if (stage === 'd7') return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-900/30 border border-red-700/40 text-red-400">D+7 🚨</span>;
+  if (stage === 'd3') return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-900/30 border border-amber-700/40 text-amber-400">D+3 ⏰</span>;
+  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary/70">Reciente</span>;
 };
 
 // ─── Página principal ─────────────────────────────────────────────────────────
@@ -163,91 +121,207 @@ const StageBadge: React.FC<{ stage: TrackStage }> = ({ stage }) => {
 const SeguimientoCotizaciones: React.FC = () => {
   const navigate = useNavigate();
 
+  // ── Data state
   const [stats, setStats] = useState<StatsState>({
-    loading: true,
-    total: 0,
-    recentCount: 0,
-    d3Count: 0,
-    d7Count: 0,
-    resolvedThisWeek: 0,
+    loading: true, total: 0, recentCount: 0, d3Count: 0, d7Count: 0, resolvedThisWeek: 0,
   });
   const [tracked, setTracked] = useState<TrackedQuotation[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
 
-  useEffect(() => {
+  // ── Agent control state
+  const [agentActive, setAgentActive] = useState<boolean | null>(null);
+  const [toggleLoading, setToggleLoading] = useState(false);
+  const [runLoading, setRunLoading] = useState(false);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [reminderLoading, setReminderLoading] = useState<string | null>(null);
+
+  // ─── Load quotations data ─────────────────────────────────────────────────
+
+  const load = useCallback(async () => {
     if (!supabase) {
       setStats({ loading: false, total: 0, recentCount: 0, d3Count: 0, d7Count: 0, resolvedThisWeek: 0 });
       setTableLoading(false);
       return;
     }
+    setTableLoading(true);
 
-    const load = async () => {
-      // Cotizaciones activas en seguimiento
-      const { data: raw } = await supabase
+    const [{ data: raw }, { data: resolved }] = await Promise.all([
+      supabase
         .from('quotations')
         .select('id, quotation_number, status, sent_at, total, alert_sent_at, clients(name)')
         .in('status', ['sent', 'viewed', 'negotiation'])
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: true })
         .limit(50)
-        .catch(() => ({ data: null }));
-
-      // Cotizaciones aprobadas en los últimos 7 días
-      const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-      const { data: resolved } = await supabase
+        .catch(() => ({ data: null })),
+      supabase
         .from('quotations')
         .select('id')
         .eq('status', 'approved')
-        .gte('updated_at', weekAgo)
-        .catch(() => ({ data: null }));
+        .gte('updated_at', new Date(Date.now() - 7 * 86_400_000).toISOString())
+        .catch(() => ({ data: null })),
+    ]);
 
-      const items: TrackedQuotation[] = (raw ?? []).map((q: any) => {
-        const days = daysElapsed(q.sent_at);
-        return {
-          id: q.id,
-          quotation_number: q.quotation_number,
-          status: q.status,
-          sent_at: q.sent_at,
-          total: q.total,
-          alert_sent_at: q.alert_sent_at,
-          daysElapsed: days,
-          stage: stageOf(days),
-          clientName: q.clients?.name ?? 'Cliente',
-        };
+    const items: TrackedQuotation[] = (raw ?? []).map((q: any) => {
+      const days = daysElapsed(q.sent_at);
+      return {
+        id: q.id,
+        quotation_number: q.quotation_number,
+        status: q.status,
+        sent_at: q.sent_at,
+        total: q.total,
+        alert_sent_at: q.alert_sent_at,
+        daysElapsed: days,
+        stage: stageOf(days),
+        clientName: q.clients?.name ?? 'Cliente',
+      };
+    });
+
+    setTracked(items);
+    setStats({
+      loading: false,
+      total: items.length,
+      recentCount: items.filter(i => i.stage === 'recent').length,
+      d3Count: items.filter(i => i.stage === 'd3').length,
+      d7Count: items.filter(i => i.stage === 'd7').length,
+      resolvedThisWeek: resolved?.length ?? 0,
+    });
+    setTableLoading(false);
+  }, []);
+
+  // ─── Load agent status from n8n (via proxy EF) ───────────────────────────
+
+  const fetchAgentStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${PROXY_URL}?workflow_id=${WORKFLOW_ID}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
       });
+      if (res.ok) {
+        const data = await res.json();
+        setAgentActive(data.active ?? false);
+      }
+    } catch {
+      // proxy no disponible — estado desconocido
+    }
+  }, []);
 
-      setTracked(items);
-      setStats({
-        loading: false,
-        total: items.length,
-        recentCount: items.filter(i => i.stage === 'recent').length,
-        d3Count: items.filter(i => i.stage === 'd3').length,
-        d7Count: items.filter(i => i.stage === 'd7').length,
-        resolvedThisWeek: resolved?.length ?? 0,
-      });
-      setTableLoading(false);
-    };
-
+  useEffect(() => {
     load().catch(() => {
       setStats({ loading: false, total: 0, recentCount: 0, d3Count: 0, d7Count: 0, resolvedThisWeek: 0 });
       setTableLoading(false);
     });
-  }, []);
+    fetchAgentStatus();
+  }, [load, fetchAgentStatus]);
+
+  // ─── Toggle ON/OFF ────────────────────────────────────────────────────────
+
+  const handleToggle = async () => {
+    if (agentActive === null || toggleLoading) return;
+    setToggleLoading(true);
+    try {
+      const action = agentActive ? 'deactivate' : 'activate';
+      const res = await fetch(`${PROXY_URL}?workflow_id=${WORKFLOW_ID}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAgentActive(data.active ?? !agentActive);
+        notify.success(
+          data.active ? 'Agente activado' : 'Agente desactivado',
+          data.active ? 'El cron diario está activo' : 'Las ejecuciones automáticas han sido pausadas',
+        );
+      } else {
+        notify.error('Error', 'No se pudo cambiar el estado del agente');
+      }
+    } catch {
+      notify.error('Error', 'Error de conexión con el motor de automatización');
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
+  // ─── Ejecutar ahora ───────────────────────────────────────────────────────
+
+  const handleRunNow = async () => {
+    if (runLoading) return;
+    setRunLoading(true);
+    setRunResult(null);
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const result: RunResult = {
+        status: data.status ?? 'ok',
+        count: data.count ?? 0,
+        log: data.log ?? data.message ?? 'Ejecución completada',
+      };
+      setRunResult(result);
+      notify.success('Ejecución completada', `${result.count} cotizaciones procesadas`);
+      await load();
+    } catch (err) {
+      notify.error('Error', 'No se pudo conectar con el agente. Verifica que el workflow esté activo.');
+    } finally {
+      setRunLoading(false);
+    }
+  };
+
+  // ─── Recordatorio manual por fila ────────────────────────────────────────
+
+  const handleReminder = async (q: TrackedQuotation) => {
+    if (reminderLoading) return;
+    setReminderLoading(q.id);
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotation_id: q.id }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'dry_run' || data.status === 'ok') {
+        notify.success(
+          'Recordatorio enviado',
+          data.count > 0
+            ? `${q.clientName} — procesado correctamente`
+            : `${q.clientName} — ya fue alertado hoy`,
+        );
+        await load();
+      } else {
+        notify.error('Error', 'El agente no pudo procesar esta cotización');
+      }
+    } catch {
+      notify.error('Error', 'No se pudo enviar el recordatorio');
+    } finally {
+      setReminderLoading(null);
+    }
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-background">
       <div className="max-w-5xl mx-auto space-y-6">
 
-        {/* ── ZONA 1: Header ───────────────────────────────────────────────── */}
+        {/* ── ZONA 1: Header ─────────────────────────────────────────────── */}
         <CategoryHeader
           title="Seguimiento de Cotizaciones"
           subtitle="Agente autónomo de seguimiento — D+3 y D+7 por WhatsApp"
           icon={FileText}
           onBack={() => navigate('/agentes')}
-          status={{ label: 'Activo', variant: 'primary' }}
+          status={{ label: agentActive === null ? 'Cargando' : agentActive ? 'Activo' : 'Inactivo', variant: agentActive ? 'primary' : 'default' }}
         />
 
-        {/* ── ZONA 1.5: Módulos relacionados ──────────────────────────────── */}
+        {/* ── ZONA 1.5: Módulos relacionados ─────────────────────────────── */}
         <div className="flex flex-wrap gap-2">
           {[
             { label: 'Cotizaciones', path: '/quotations', icon: FileText },
@@ -266,45 +340,16 @@ const SeguimientoCotizaciones: React.FC = () => {
           ))}
         </div>
 
-        {/* ── ZONA 2: Stats ────────────────────────────────────────────────── */}
+        {/* ── ZONA 2: Stats ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard
-            label="En seguimiento"
-            value={stats.total}
-            description="Cotizaciones activas sin respuesta"
-            icon={FileText}
-            color="primary"
-            loading={stats.loading}
-          />
-          <StatCard
-            label="Zona D+3"
-            value={stats.d3Count}
-            description="3–6 días sin respuesta"
-            icon={Clock}
-            color="amber"
-            loading={stats.loading}
-          />
-          <StatCard
-            label="Zona D+7"
-            value={stats.d7Count}
-            description="7+ días — urgente"
-            icon={AlertTriangle}
-            color="red"
-            loading={stats.loading}
-          />
-          <StatCard
-            label="Resueltas (7d)"
-            value={stats.resolvedThisWeek}
-            description="Aprobadas esta semana"
-            icon={CheckCircle2}
-            color="green"
-            loading={stats.loading}
-          />
+          <StatCard label="En seguimiento" value={stats.total}           description="Cotizaciones activas sin respuesta" icon={FileText}      color="primary" loading={stats.loading} />
+          <StatCard label="Zona D+3"        value={stats.d3Count}         description="3–6 días sin respuesta"            icon={Clock}          color="amber"   loading={stats.loading} />
+          <StatCard label="Zona D+7"        value={stats.d7Count}         description="7+ días — urgente"                 icon={AlertTriangle}  color="red"     loading={stats.loading} />
+          <StatCard label="Resueltas (7d)"  value={stats.resolvedThisWeek} description="Aprobadas esta semana"            icon={CheckCircle2}   color="green"   loading={stats.loading} />
         </div>
 
-        {/* ── ZONA 3: Pipeline prominente ──────────────────────────────────── */}
+        {/* ── ZONA 3: Pipeline prominente ────────────────────────────────── */}
         <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
-          {/* Header del pipeline */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-primary/60" />
@@ -315,37 +360,22 @@ const SeguimientoCotizaciones: React.FC = () => {
             )}
           </div>
 
-          {/* Fases en grid */}
           <div className="p-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {PIPELINE_PHASES.map((phase, i) => {
                 const Icon = phase.icon;
                 const count = phase.getCount(stats);
                 return (
-                  <div
-                    key={i}
-                    className={cn(
-                      'relative rounded-xl border p-4 flex flex-col gap-3 transition-all duration-200',
-                      phase.bg, phase.border,
-                    )}
-                  >
-                    {/* Número + ícono */}
+                  <div key={i} className={cn('relative rounded-xl border p-4 flex flex-col gap-3', phase.bg, phase.border)}>
                     <div className="flex items-center justify-between">
-                      <span className={cn(
-                        'text-[10px] font-black px-2 py-0.5 rounded-full',
-                        phase.numBg, phase.text,
-                      )}>
-                        {phase.number}
-                      </span>
+                      <span className={cn('text-[10px] font-black px-2 py-0.5 rounded-full', phase.numBg, phase.text)}>{phase.number}</span>
                       <Icon className={cn('w-4 h-4', phase.text)} />
                     </div>
-                    {/* Contador */}
                     {stats.loading ? (
                       <div className="h-8 w-10 bg-muted/30 rounded animate-pulse" />
                     ) : (
                       <p className={cn('text-3xl font-black leading-none', phase.text)}>{count}</p>
                     )}
-                    {/* Label */}
                     <div>
                       <p className={cn('text-xs font-black leading-snug', phase.text)}>{phase.label}</p>
                       <p className="text-[10px] text-muted-foreground/35 mt-0.5">{phase.sublabel}</p>
@@ -355,53 +385,53 @@ const SeguimientoCotizaciones: React.FC = () => {
               })}
             </div>
 
-            {/* Etiquetas de fase (stepper row) */}
+            {/* Stepper row */}
             <div className="mt-4 flex items-center gap-1 overflow-x-auto">
-              {PIPELINE_PHASES.map((phase, i) => {
-                const isLast = i === PIPELINE_PHASES.length - 1;
-                return (
-                  <React.Fragment key={i}>
-                    <div className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black whitespace-nowrap',
-                      phase.bg, phase.border, phase.text,
-                    )}>
-                      <span className="opacity-60">{phase.number}.</span>
-                      {phase.label}
-                    </div>
-                    {!isLast && (
-                      <svg className="w-4 h-4 text-border/40 shrink-0" fill="none" viewBox="0 0 16 16">
-                        <path d="M4 8h8M9 5l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </React.Fragment>
-                );
-              })}
+              {PIPELINE_PHASES.map((phase, i) => (
+                <React.Fragment key={i}>
+                  <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black whitespace-nowrap', phase.bg, phase.border, phase.text)}>
+                    <span className="opacity-60">{phase.number}.</span>{phase.label}
+                  </div>
+                  {i < PIPELINE_PHASES.length - 1 && (
+                    <svg className="w-4 h-4 text-border/40 shrink-0" fill="none" viewBox="0 0 16 16">
+                      <path d="M4 8h8M9 5l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </React.Fragment>
+              ))}
             </div>
           </div>
 
-          {/* Descripción de fases */}
+          {/* Descriptions */}
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border/20 border-t border-border/20">
             {PIPELINE_PHASES.map((phase, i) => (
               <div key={i} className="px-4 py-3">
-                <p className={cn('text-[9px] font-black uppercase tracking-widest mb-1', phase.text)}>
-                  Fase {phase.number}
-                </p>
+                <p className={cn('text-[9px] font-black uppercase tracking-widest mb-1', phase.text)}>Fase {phase.number}</p>
                 <p className="text-[10px] text-muted-foreground/40 leading-relaxed">{phase.description}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── ZONA 4: Tabla de seguimiento ─────────────────────────────────── */}
+        {/* ── ZONA 4: Tabla de seguimiento ───────────────────────────────── */}
         <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-3.5 h-3.5 text-primary/60" />
               <h3 className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">Cotizaciones en seguimiento</h3>
             </div>
-            {!tableLoading && tracked.length > 0 && (
-              <span className="text-[10px] font-bold text-muted-foreground/40">{tracked.length} activas</span>
-            )}
+            <div className="flex items-center gap-2">
+              {!tableLoading && tracked.length > 0 && (
+                <span className="text-[10px] font-bold text-muted-foreground/40">{tracked.length} activas</span>
+              )}
+              <button
+                onClick={load}
+                className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-muted/40 transition-colors"
+                title="Actualizar"
+              >
+                <RefreshCw className={cn('w-3 h-3 text-muted-foreground/40', tableLoading && 'animate-spin')} />
+              </button>
+            </div>
           </div>
 
           {tableLoading ? (
@@ -419,77 +449,184 @@ const SeguimientoCotizaciones: React.FC = () => {
           ) : (
             <div className="divide-y divide-border/20">
               {/* Header */}
-              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/10">
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 px-5 py-2.5 bg-muted/10">
                 <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider">Cliente</span>
                 <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider text-right">Monto</span>
                 <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider text-center">Días</span>
                 <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider text-center">Etapa</span>
                 <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider text-center">Últ. alerta</span>
+                <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-wider text-center">Acción</span>
               </div>
               {/* Rows */}
-              {tracked.map((q) => (
-                <div
-                  key={q.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-3.5 hover:bg-muted/10 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{q.clientName}</p>
-                    <p className="text-[10px] text-muted-foreground/40">{q.quotation_number ?? 'Sin número'}</p>
-                  </div>
-                  <p className="text-xs font-semibold text-muted-foreground/60 text-right self-center">
-                    {formatCOP(q.total)}
-                  </p>
-                  <div className="self-center text-center">
-                    <span className={cn(
-                      'text-xs font-black',
-                      q.stage === 'd7' ? 'text-red-400' : q.stage === 'd3' ? 'text-amber-400' : 'text-primary/70',
-                    )}>
-                      {q.daysElapsed}d
-                    </span>
-                  </div>
-                  <div className="self-center">
-                    <StageBadge stage={q.stage} />
-                  </div>
-                  <div className="self-center text-center">
-                    {q.alert_sent_at ? (
-                      <span className="text-[10px] text-emerald-400/60 font-semibold">
-                        {daysElapsed(q.alert_sent_at)}d atrás
+              {tracked.map((q) => {
+                const isLoading = reminderLoading === q.id;
+                return (
+                  <div
+                    key={q.id}
+                    className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 px-5 py-3.5 hover:bg-muted/10 transition-colors items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{q.clientName}</p>
+                      <p className="text-[10px] text-muted-foreground/40">{q.quotation_number ?? 'Sin número'}</p>
+                    </div>
+                    <p className="text-xs font-semibold text-muted-foreground/60 text-right">{formatCOP(q.total)}</p>
+                    <div className="text-center">
+                      <span className={cn('text-xs font-black',
+                        q.stage === 'd7' ? 'text-red-400' : q.stage === 'd3' ? 'text-amber-400' : 'text-primary/70',
+                      )}>
+                        {q.daysElapsed}d
                       </span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground/25">—</span>
-                    )}
+                    </div>
+                    <div className="flex justify-center">
+                      <StageBadge stage={q.stage} />
+                    </div>
+                    <div className="text-center">
+                      {q.alert_sent_at ? (
+                        <span className="text-[10px] text-emerald-400/60 font-semibold">{daysElapsed(q.alert_sent_at)}d atrás</span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/25">—</span>
+                      )}
+                    </div>
+                    {/* Botón Recordatorio */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => handleReminder(q)}
+                        disabled={!!reminderLoading}
+                        title="Enviar recordatorio ahora"
+                        className={cn(
+                          'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all duration-200',
+                          q.stage === 'd7'
+                            ? 'bg-red-900/20 border-red-700/40 text-red-400 hover:bg-red-900/40'
+                            : q.stage === 'd3'
+                            ? 'bg-amber-900/20 border-amber-700/40 text-amber-400 hover:bg-amber-900/40'
+                            : 'bg-primary/10 border-primary/30 text-primary/70 hover:bg-primary/20',
+                          !!reminderLoading && 'opacity-50 cursor-not-allowed',
+                        )}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <BellRing className="w-3 h-3" />
+                        )}
+                        {isLoading ? 'Enviando' : 'Recordar'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* ── ZONA 5: Configuración del agente ─────────────────────────────── */}
-        <div className="bg-card border border-border/50 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings2 className="w-3.5 h-3.5 text-primary/60" />
-            <h3 className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">Configuración del agente</h3>
+        {/* ── ZONA 5: Panel de control del agente ────────────────────────── */}
+        <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+            <div className="flex items-center gap-2">
+              <Settings2 className="w-3.5 h-3.5 text-primary/60" />
+              <h3 className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">Panel de control</h3>
+            </div>
+            {/* Toggle ON/OFF */}
+            <button
+              onClick={handleToggle}
+              disabled={agentActive === null || toggleLoading}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black border transition-all duration-200',
+                agentActive
+                  ? 'bg-emerald-900/20 border-emerald-700/30 text-emerald-400 hover:bg-emerald-900/40'
+                  : 'bg-muted/30 border-border/50 text-muted-foreground/50 hover:bg-muted/50',
+                (agentActive === null || toggleLoading) && 'opacity-60 cursor-not-allowed',
+              )}
+            >
+              {toggleLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : agentActive ? (
+                <Power className="w-3.5 h-3.5" />
+              ) : (
+                <PowerOff className="w-3.5 h-3.5" />
+              )}
+              {toggleLoading ? 'Actualizando…' : agentActive ? 'Activo — pausar' : agentActive === null ? 'Cargando…' : 'Inactivo — activar'}
+            </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: 'Ejecución', value: 'Diario 9:00 AM', sub: 'Colombia (COT)' },
-              { label: 'Trigger D+3', value: 'WhatsApp', sub: 'Recordatorio cliente' },
-              { label: 'Trigger D+7', value: 'WA + Alerta', sub: 'Cliente + comercial' },
-              { label: 'Registro', value: 'alert_sent_at', sub: 'Trazabilidad en CRM' },
-            ].map((item, i) => (
-              <div key={i} className="p-3 bg-muted/20 rounded-lg border border-border/30">
-                <p className="text-[9px] font-black text-muted-foreground/35 uppercase tracking-widest mb-1">{item.label}</p>
-                <p className="text-xs font-black text-foreground/80">{item.value}</p>
-                <p className="text-[10px] text-muted-foreground/40 mt-0.5">{item.sub}</p>
+
+          <div className="p-5 space-y-4">
+            {/* Config grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Ejecución',  value: 'Diario 9:00 AM', sub: 'Colombia (COT)' },
+                { label: 'Trigger D+3', value: 'WhatsApp',       sub: 'Recordatorio cliente' },
+                { label: 'Trigger D+7', value: 'WA + Alerta',    sub: 'Cliente + comercial' },
+                { label: 'Registro',   value: 'alert_sent_at',   sub: 'Trazabilidad en CRM' },
+              ].map((item, i) => (
+                <div key={i} className="p-3 bg-muted/20 rounded-lg border border-border/30">
+                  <p className="text-[9px] font-black text-muted-foreground/35 uppercase tracking-widest mb-1">{item.label}</p>
+                  <p className="text-xs font-black text-foreground/80">{item.value}</p>
+                  <p className="text-[10px] text-muted-foreground/40 mt-0.5">{item.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Ejecutar ahora */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 bg-muted/20 rounded-xl border border-border/30">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-foreground/80 mb-0.5">Ejecución manual</p>
+                <p className="text-[11px] text-muted-foreground/50">
+                  Procesa todas las cotizaciones pendientes ahora mismo, sin esperar al cron de las 9 AM.
+                </p>
               </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center gap-2 p-3 bg-emerald-900/10 border border-emerald-700/20 rounded-lg">
-            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_6px_#4ade80]" />
-            <p className="text-[11px] text-emerald-400/70 font-semibold">
-              Agente activo · Monitorea cotizaciones automáticamente cada día
-            </p>
+              <button
+                onClick={handleRunNow}
+                disabled={runLoading}
+                className={cn(
+                  'shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-black border transition-all duration-200',
+                  'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20',
+                  runLoading && 'opacity-70 cursor-not-allowed',
+                )}
+              >
+                {runLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                {runLoading ? 'Ejecutando…' : 'Ejecutar ahora'}
+              </button>
+            </div>
+
+            {/* Resultado de ejecución */}
+            {runResult && (
+              <div className={cn(
+                'p-4 rounded-xl border text-xs',
+                runResult.status === 'dry_run'
+                  ? 'bg-amber-900/10 border-amber-700/20 text-amber-400/80'
+                  : 'bg-emerald-900/10 border-emerald-700/20 text-emerald-400/80',
+              )}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-3.5 h-3.5 shrink-0" />
+                  <p className="font-black text-[11px] uppercase tracking-wider">
+                    {runResult.status === 'dry_run' ? 'Modo prueba (DRY_RUN)' : 'Ejecución completada'}
+                    {' — '}{runResult.count} cotizaciones
+                  </p>
+                </div>
+                {runResult.log && (
+                  <pre className="text-[10px] font-mono whitespace-pre-wrap opacity-70 leading-relaxed">
+                    {runResult.log}
+                  </pre>
+                )}
+              </div>
+            )}
+
+            {/* Status indicator */}
+            <div className={cn(
+              'flex items-center gap-2 p-3 rounded-lg border',
+              agentActive
+                ? 'bg-emerald-900/10 border-emerald-700/20'
+                : 'bg-muted/20 border-border/30',
+            )}>
+              <div className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                agentActive ? 'bg-emerald-400 shadow-[0_0_6px_#4ade80]' : 'bg-muted-foreground/30',
+              )} />
+              <p className={cn('text-[11px] font-semibold', agentActive ? 'text-emerald-400/70' : 'text-muted-foreground/40')}>
+                {agentActive
+                  ? 'Agente activo · Monitorea cotizaciones automáticamente cada día a las 9 AM'
+                  : 'Agente inactivo · El cron diario está pausado — usa "Ejecutar ahora" para correr manualmente'}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -498,9 +635,9 @@ const SeguimientoCotizaciones: React.FC = () => {
           <Zap size={13} className="text-primary/50 mt-0.5 shrink-0" />
           <div>
             <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-              El agente opera de forma autónoma. Cada mensaje enviado queda registrado en la cotización
-              para trazabilidad completa. Los recordatorios se envían por WhatsApp usando los templates
-              aprobados por Meta.
+              El agente opera de forma autónoma. Cada mensaje enviado queda registrado en la cotización para
+              trazabilidad completa. Los recordatorios se envían por WhatsApp usando los templates aprobados
+              por Meta. Modo DRY_RUN activo hasta que se aprueben los templates adicionales.
             </p>
             <button
               onClick={() => navigate('/quotations')}
