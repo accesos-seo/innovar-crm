@@ -22,6 +22,8 @@ import {
   PanelLeftOpen,
   Zap,
   Bot,
+  BookOpen,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/store/uiStore";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
+import { useAuthStore } from "@/store/authStore";
+import { notify } from "@/components/ui/PremiumToast";
 
 interface SubItem {
   label: string;
@@ -289,12 +293,73 @@ export const Sidebar = React.memo(function Sidebar() {
         </Link>
       </nav>
 
-      {/* Footer Sidebar - Removed User Info as requested */}
-      <div className="p-4 border-t border-border/5 bg-muted/5 flex justify-center">
+      {/* Footer Sidebar - Documentation + Logout */}
+      <FooterActions isSidebarCollapsed={isSidebarCollapsed} navigate={navigate} />
+    </aside>
+  );
+});
+
+interface FooterActionsProps {
+  isSidebarCollapsed: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+}
+
+const FooterActions: React.FC<FooterActionsProps> = ({ isSidebarCollapsed, navigate }) => {
+  const { logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      notify.info("Cerrando sesión...");
+      await logout();
+      notify.success("Sesión cerrada correctamente");
+      navigate("/login");
+    } catch (error) {
+      notify.error("Error al cerrar sesión");
+    }
+  };
+
+  return (
+    <div className="p-4 border-t border-border/5 bg-muted/5 space-y-2">
+      {/* Documentación Link */}
+      <Link
+        to="/docs"
+        className={cn(
+          "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+          isSidebarCollapsed ? "justify-center" : "justify-between",
+          "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+        )}
+        title="Documentación"
+      >
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 transition-colors group-hover:text-primary" />
+          {!isSidebarCollapsed && <span className="text-sm tracking-tight">Documentación</span>}
+        </div>
+        {!isSidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
+      </Link>
+
+      {/* Cerrar Sesión Button */}
+      <button
+        onClick={handleLogout}
+        className={cn(
+          "w-full group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+          isSidebarCollapsed ? "justify-center" : "justify-between",
+          "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        )}
+        title="Cerrar Sesión"
+      >
+        <div className="flex items-center gap-3">
+          <LogOut className="w-5 h-5 transition-colors" />
+          {!isSidebarCollapsed && <span className="text-sm tracking-tight">Cerrar Sesión</span>}
+        </div>
+        {!isSidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
+      </button>
+
+      {/* Version Info */}
+      <div className="pt-2 flex justify-center">
         <span className="text-[8px] font-bold text-muted-foreground/30">
           {isSidebarCollapsed ? "INV" : "Innovar v1.0"}
         </span>
       </div>
-    </aside>
+    </div>
   );
-});
+};
