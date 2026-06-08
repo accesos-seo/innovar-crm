@@ -111,7 +111,7 @@ const Agentes: React.FC = () => {
               <Bot className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-foreground tracking-tight">Agentes</h1>
+              <h1 className="text-xl font-black text-foreground tracking-tight">Zona Agentes</h1>
               <p className="text-xs text-muted-foreground/60">Automatizaciones activas del CRM</p>
             </div>
           </div>
