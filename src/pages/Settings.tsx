@@ -13,6 +13,7 @@ import {
   HandCoins,
   Settings2,
   Bell,
+  Clock,
 } from "lucide-react";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { QuickAccessGrid, type QuickAccessItem } from "@/components/ui/QuickAccessGrid";
@@ -108,6 +109,16 @@ const allItems: QuickAccessItem[] = [
     neonColor: "text-primary",
     neonShadow: "hover:shadow-[0_0_40px_rgba(68,221,193,0.15)]",
     neonBg: "bg-primary/10",
+  },
+  {
+    title: "Horas Laborales",
+    description: "Registro mensual de jornadas y progreso del período.",
+    icon: Clock,
+    path: "/horas",
+    category: "ACTIVIDAD",
+    neonColor: "text-indigo-400",
+    neonShadow: "hover:shadow-[0_0_40px_rgba(99,102,241,0.15)]",
+    neonBg: "bg-indigo-500/10",
   },
 ];
 

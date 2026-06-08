@@ -78,7 +78,6 @@ const navItems: NavItem[] = [
       { label: "Cierres contables", path: "/finanzas/cierres", icon: BarChart3 },
     ]
   },
-  { icon: Clock, label: "Horas", path: "/horas" },
 ];
 
 const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean }> = ({ item, isActive, isChildActive, isCollapsed }) => {
