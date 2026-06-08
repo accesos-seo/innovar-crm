@@ -5,7 +5,7 @@ import { Bot, ChevronRight, Zap, TrendingUp, Package2, Heart, BarChart3 } from '
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
-type AgentStatus = 'activo' | 'en_desarrollo';
+type AgentStatus = 'activo' | 'en_disenyo' | 'en_desarrollo';
 
 interface AgentDef {
   emoji: string;
@@ -45,15 +45,17 @@ const LAYERS: LayerDef[] = [
         emoji: '🤖',
         title: 'Calificador de Leads IA',
         description: 'Precalifica leads por WhatsApp usando IA. Detecta producto, presupuesto y urgencia antes de la primera llamada del comercial.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['IA conversacional', 'Precalificación', 'WhatsApp'],
+        path: '/agentes/calificador-leads-ia',
       },
       {
         emoji: '🎯',
         title: 'Detector de Abandono',
         description: 'Identifica leads sin actividad por +5 días y dispara automáticamente una secuencia de rescate al comercial responsable.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Inactividad 5d', 'Secuencia rescate', 'Alerta CRM'],
+        path: '/agentes/detector-abandono',
       },
     ],
   },
@@ -75,15 +77,17 @@ const LAYERS: LayerDef[] = [
         emoji: '📅',
         title: 'Orquestador de Agenda',
         description: 'Agenda visitas técnicas automáticamente según disponibilidad, envía confirmación y recordatorio 24 h antes de la visita.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Auto-agendado', 'Confirmación WA', 'Recordatorio 24 h'],
+        path: '/agentes/orquestador-agenda',
       },
       {
         emoji: '💸',
         title: 'Vigía de Pagos',
         description: 'Monitorea pagos pendientes tras la aprobación y envía alertas escalonadas D+1, D+7 y D+14 al cliente y al comercial.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['D+1/D+7/D+14', 'Cliente + comercial', 'Auto-escalado'],
+        path: '/agentes/vigia-pagos',
       },
     ],
   },
@@ -97,15 +101,17 @@ const LAYERS: LayerDef[] = [
         emoji: '📦',
         title: 'Notificador de Proyecto',
         description: 'Avisa automáticamente al cliente cuando su proyecto avanza de fase: diseño → materiales → fabricación → instalación.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Avance x fase', 'Notif. cliente', 'WhatsApp + foto'],
+        path: '/agentes/notificador-proyecto',
       },
       {
         emoji: '🔧',
         title: 'Coordinador de Producción',
         description: 'Al iniciar fabricación, notifica al taller con ficha técnica completa, medidas exactas y fecha comprometida de entrega.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Ficha técnica auto', 'Alerta taller', 'Fecha compromiso'],
+        path: '/agentes/coordinador-produccion',
       },
     ],
   },
@@ -119,15 +125,17 @@ const LAYERS: LayerDef[] = [
         emoji: '⭐',
         title: 'Asistente de Postventa',
         description: 'Al entregar el proyecto, dispara encuesta de satisfacción, información de garantía y solicitud de referido personalizada.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Encuesta NPS', 'Info garantía', 'Solicitud referido'],
+        path: '/agentes/asistente-postventa',
       },
       {
         emoji: '🔄',
         title: 'Reactivador de Clientes',
         description: 'A los 9 meses de un proyecto entregado, contacta al cliente para remodelación adicional o referido activo.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Ciclo 9 meses', 'Re-engagement', 'Referidos'],
+        path: '/agentes/reactivador-clientes',
       },
     ],
   },
@@ -141,15 +149,17 @@ const LAYERS: LayerDef[] = [
         emoji: '📈',
         title: 'Analista de Conversión',
         description: 'Reporte semanal automático vía WhatsApp: tasa Lead→Cotización→Aprobación, tiempo promedio por fase y cuellos de botella.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Reporte semanal', 'Conversión x fase', 'WhatsApp report'],
+        path: '/agentes/analista-conversion',
       },
       {
         emoji: '⚡',
         title: 'Monitor de Capacidad',
         description: 'Cruza proyectos activos vs. capacidad del taller y alerta con anticipación cuando hay riesgo de saturar producción.',
-        status: 'en_desarrollo',
+        status: 'en_disenyo',
         metrics: ['Carga en tiempo real', 'Alerta saturación', 'Prevención retraso'],
+        path: '/agentes/monitor-capacidad',
       },
     ],
   },
@@ -165,19 +175,26 @@ const AgentHubCard: React.FC<AgentHubCardProps> = ({
   emoji, title, description, status, metrics, onOpen,
 }) => {
   const isActive = status === 'activo';
+  const isDesign = status === 'en_disenyo';
+  const isClickable = isActive || isDesign;
 
   return (
     <div
-      onClick={isActive && onOpen ? onOpen : undefined}
+      onClick={isClickable && onOpen ? onOpen : undefined}
       className={cn(
         'group relative bg-card border rounded-xl p-5 transition-all duration-300',
         isActive
           ? 'border-border hover:border-primary/50 hover:shadow-[0_0_28px_rgba(68,221,193,0.1)] cursor-pointer'
-          : 'border-border/30 opacity-50 cursor-default',
+          : isDesign
+            ? 'border-border/60 hover:border-amber-500/40 hover:shadow-[0_0_20px_rgba(245,158,11,0.08)] cursor-pointer opacity-80 hover:opacity-100'
+            : 'border-border/30 opacity-40 cursor-default',
       )}
     >
       {isActive && (
         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.04] to-transparent pointer-events-none" />
+      )}
+      {isDesign && (
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/[0.03] to-transparent pointer-events-none" />
       )}
 
       {/* Header */}
@@ -189,9 +206,11 @@ const AgentHubCard: React.FC<AgentHubCardProps> = ({
           'text-[10px] font-black px-2.5 py-1 rounded-full border tracking-wide',
           isActive
             ? 'text-emerald-400 bg-emerald-900/20 border-emerald-700/40'
-            : 'text-muted-foreground/50 bg-muted/30 border-border/30',
+            : isDesign
+              ? 'text-amber-400/80 bg-amber-900/20 border-amber-700/30'
+              : 'text-muted-foreground/50 bg-muted/30 border-border/30',
         )}>
-          {isActive ? '● ACTIVO' : 'EN DISEÑO'}
+          {isActive ? '● ACTIVO' : isDesign ? '○ EN DISEÑO' : 'PRÓXIMAMENTE'}
         </span>
       </div>
 
@@ -220,6 +239,11 @@ const AgentHubCard: React.FC<AgentHubCardProps> = ({
             Ver agente
             <ChevronRight size={13} />
           </div>
+        ) : isDesign ? (
+          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400/60 group-hover:gap-3 group-hover:text-amber-400/90 transition-all duration-200">
+            Ver especificación
+            <ChevronRight size={13} />
+          </div>
         ) : (
           <p className="text-[10px] text-muted-foreground/25 font-black uppercase tracking-widest">
             Próximamente
@@ -240,6 +264,7 @@ const LayerSection: React.FC<LayerSectionProps> = ({
   number, title, subtitle, icon: Icon, agents, onNavigate,
 }) => {
   const activeCount = agents.filter(a => a.status === 'activo').length;
+  const designCount = agents.filter(a => a.status === 'en_disenyo').length;
 
   return (
     <div className="mb-10">
@@ -255,6 +280,11 @@ const LayerSection: React.FC<LayerSectionProps> = ({
         {activeCount > 0 && (
           <span className="text-[9px] font-bold text-emerald-400/70 shrink-0">
             {activeCount} activo{activeCount > 1 ? 's' : ''}
+          </span>
+        )}
+        {designCount > 0 && (
+          <span className="text-[9px] font-bold text-amber-400/50 shrink-0">
+            {designCount} en diseño
           </span>
         )}
         <div className="flex-1 h-px bg-border/20" />
@@ -283,8 +313,9 @@ const LayerSection: React.FC<LayerSectionProps> = ({
 const Agentes: React.FC = () => {
   const navigate = useNavigate();
 
-  const totalActive = LAYERS.flatMap(l => l.agents).filter(a => a.status === 'activo').length;
-  const totalDesign = LAYERS.flatMap(l => l.agents).filter(a => a.status === 'en_desarrollo').length;
+  const allAgents = LAYERS.flatMap(l => l.agents);
+  const totalActive = allAgents.filter(a => a.status === 'activo').length;
+  const totalDesign = allAgents.filter(a => a.status === 'en_disenyo').length;
 
   return (
     <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-background">
@@ -301,7 +332,7 @@ const Agentes: React.FC = () => {
               <p className="text-[11px] text-muted-foreground/50">
                 <span className="text-emerald-400/80 font-bold">{totalActive} activos</span>
                 {' · '}
-                <span className="text-sky-400/60">{totalDesign} en diseño</span>
+                <span className="text-amber-400/60 font-bold">{totalDesign} en diseño</span>
                 {' · '}
                 <span>5 capas de inteligencia</span>
               </p>

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+﻿import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -12,10 +12,10 @@ import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
 import { supabase } from "@/lib/supabaseClient";
 
-// ── Static imports (critical path — always needed) ─────────────────────────
+// â”€â”€ Static imports (critical path â€” always needed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import LoginPage from "./pages/Login";
 
-// ── Lazy imports (loaded only when the route is visited) ───────────────────
+// â”€â”€ Lazy imports (loaded only when the route is visited) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Dashboard             = lazy(() => import("./pages/Dashboard"));
 const ProjectsPage          = lazy(() => import("./pages/Projects"));
 const ProjectCreatePage     = lazy(() => import("./pages/ProjectCreate"));
@@ -57,6 +57,7 @@ const DictionaryPage        = lazy(() => import("./pages/Dictionary"));
 const MotorComercialPage             = lazy(() => import("./pages/MotorComercial"));
 const AgentesPage                    = lazy(() => import("./pages/Agentes"));
 const SeguimientoCotizacionesPage    = lazy(() => import("./pages/SeguimientoCotizaciones"));
+const AgentDetailPage                = lazy(() => import("./pages/agentes/AgentDetailPage"));
 const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
@@ -68,7 +69,7 @@ const DocsAutomatizacionesPage       = lazy(() => import("./pages/docs/DocsAutom
 const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutomatizacionDetailPage"));
 const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabilidadesPage"));
 
-// ── Route-level loading fallback ───────────────────────────────────────────
+// â”€â”€ Route-level loading fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -81,11 +82,11 @@ const queryErrorCache = new QueryCache({
   onError: (error, query) => {
     const msg = (error as Error)?.message ?? String(error);
     const tableHint = JSON.stringify(query.queryKey).slice(0, 80);
-    console.error(`[query-error] ${tableHint} → ${msg}`);
+    console.error(`[query-error] ${tableHint} â†’ ${msg}`);
     if (/network|fetch/i.test(msg)) {
       notify.error(
-        'Error de conexión',
-        `${msg.split('.')[0]}. Verifica tu conexión a internet.`
+        'Error de conexiÃ³n',
+        `${msg.split('.')[0]}. Verifica tu conexiÃ³n a internet.`
       );
     }
   },
@@ -119,8 +120,8 @@ export default function App() {
 
     if (!supabase) {
       notify.warning(
-        "Modo Demostración Activo",
-        "Supabase no está configurado. Se están usando datos locales de prueba."
+        "Modo DemostraciÃ³n Activo",
+        "Supabase no estÃ¡ configurado. Se estÃ¡n usando datos locales de prueba."
       );
     }
   }, [initializeAuth]);
@@ -133,20 +134,20 @@ export default function App() {
             <ScrollToTop />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* ── Public routes ── */}
+                {/* â”€â”€ Public routes â”€â”€ */}
                 <Route path="/login" element={<LoginPage />} />
-                {/* Link público que el cliente recibe por WhatsApp para
-                    agendar su visita técnica. Sin ProtectedRoute, sin Layout. */}
+                {/* Link pÃºblico que el cliente recibe por WhatsApp para
+                    agendar su visita tÃ©cnica. Sin ProtectedRoute, sin Layout. */}
                 <Route path="/agendar/:token" element={<PublicBookingPage />} />
-                {/* URL corta /v/:code → resuelve el short_code y reusa el flujo. */}
+                {/* URL corta /v/:code â†’ resuelve el short_code y reusa el flujo. */}
                 <Route path="/v/:code" element={<PublicBookingByCodePage />} />
-                {/* Cotización pública (Fase 4 Slice 2). Standalone, sin auth, sin Layout.
-                    Si VITE_FF_PHASE_4_QUOTATION_PUBLIC=false la página devuelve 404. */}
+                {/* CotizaciÃ³n pÃºblica (Fase 4 Slice 2). Standalone, sin auth, sin Layout.
+                    Si VITE_FF_PHASE_4_QUOTATION_PUBLIC=false la pÃ¡gina devuelve 404. */}
                 <Route path="/cotizacion/:token" element={<PublicQuotationPage />} />
-                {/* URL corta /c/:code → resuelve short_code y redirige al token largo. */}
+                {/* URL corta /c/:code â†’ resuelve short_code y redirige al token largo. */}
                 <Route path="/c/:code" element={<PublicQuotationByCodePage />} />
 
-                {/* ── Dev/admin tooling ── */}
+                {/* â”€â”€ Dev/admin tooling â”€â”€ */}
                 <Route
                   path="/debugger"
                   element={
@@ -156,12 +157,13 @@ export default function App() {
                   }
                 />
 
-                {/* ── Core app ── */}
+                {/* â”€â”€ Core app â”€â”€ */}
                 <Route path="/" element={<Protected><Dashboard /></Protected>} />
 
                 {/* Agentes hub */}
                 <Route path="/agentes" element={<Protected><AgentesPage /></Protected>} />
                 <Route path="/agentes/seguimiento-cotizaciones" element={<Protected><SeguimientoCotizacionesPage /></Protected>} />
+                <Route path="/agentes/:agentId" element={<Protected><AgentDetailPage /></Protected>} />
 
                 {/* Motor Comercial */}
                 <Route path="/motor-comercial" element={<Protected><MotorComercialPage /></Protected>} />
@@ -249,7 +251,7 @@ export default function App() {
                   element={<Protected roles={["admin", "super_admin"]}><DictionaryPage /></Protected>}
                 />
 
-                {/* Documentación */}
+                {/* DocumentaciÃ³n */}
                 <Route path="/docs"                          element={<Protected><DocsHomePage /></Protected>} />
                 <Route path="/docs/automatizaciones"         element={<Protected><DocsAutomatizacionesPage /></Protected>} />
                 <Route path="/docs/automatizaciones/:slug"   element={<Protected><DocsAutomatizacionDetailPage /></Protected>} />
