@@ -417,7 +417,7 @@ const MotorComercial: React.FC = () => {
           title="Motor Comercial"
           subtitle="Pipeline de ventas Innovar: 9 fases automáticas desde el lead hasta la producción"
           icon={Zap}
-          onBack={() => navigate('/')}
+          onBack={() => navigate('/agentes')}
           status={{ label: `${agentesActivos} automatizaciones activas`, variant: 'primary' }}
         />
 

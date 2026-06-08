@@ -21,6 +21,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Zap,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Zap, label: "Motor Comercial", path: "/motor-comercial" },
   { icon: PencilRuler, label: "Proyectos", path: "/projects" },
   { 
     icon: Users, 
@@ -240,17 +240,53 @@ export const Sidebar = React.memo(function Sidebar() {
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           const isChildActive = item.children?.some(child => location.pathname === child.path) || false;
-          
+
           return (
-            <NavItemComponent 
-              key={item.label} 
-              item={item} 
-              isActive={isActive} 
-              isChildActive={isChildActive} 
+            <NavItemComponent
+              key={item.label}
+              item={item}
+              isActive={isActive}
+              isChildActive={isChildActive}
               isCollapsed={isSidebarCollapsed}
             />
           );
         })}
+
+        {/* ── Agentes section ── */}
+        <div className="pt-4 pb-1">
+          <div className="w-full h-px bg-gradient-to-r from-primary/30 via-border/40 to-transparent mb-3" />
+          {!isSidebarCollapsed && (
+            <div className="px-4 mb-2">
+              <span className="text-[10px] font-black text-primary/50 tracking-widest uppercase">Agentes</span>
+            </div>
+          )}
+        </div>
+        <Link
+          to="/agentes"
+          className={cn(
+            "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+            isSidebarCollapsed ? "justify-center" : "justify-between",
+            location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")
+              ? "text-primary bg-primary/5 font-bold"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <Bot className={cn(
+              "w-5 h-5 transition-colors",
+              location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")
+                ? "text-primary"
+                : "group-hover:text-primary"
+            )} />
+            {!isSidebarCollapsed && <span className="text-sm tracking-tight">Agentes</span>}
+          </div>
+          {!isSidebarCollapsed && (location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")) && (
+            <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+          )}
+          {!isSidebarCollapsed && !(location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")) && (
+            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+          )}
+        </Link>
       </nav>
 
       {/* Footer Sidebar - Removed User Info as requested */}

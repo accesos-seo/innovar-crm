@@ -55,6 +55,7 @@ const NotificationsSettingsPage = lazy(() => import("./pages/settings/Notificati
 const MaintenanceSettingsPage   = lazy(() => import("./pages/settings/Maintenance"));
 const DictionaryPage        = lazy(() => import("./pages/Dictionary"));
 const MotorComercialPage    = lazy(() => import("./pages/MotorComercial"));
+const AgentesPage           = lazy(() => import("./pages/Agentes"));
 const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
@@ -152,6 +153,9 @@ export default function App() {
 
                 {/* ── Core app ── */}
                 <Route path="/" element={<Protected><Dashboard /></Protected>} />
+
+                {/* Agentes hub */}
+                <Route path="/agentes" element={<Protected><AgentesPage /></Protected>} />
 
                 {/* Motor Comercial */}
                 <Route path="/motor-comercial" element={<Protected><MotorComercialPage /></Protected>} />
