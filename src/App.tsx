@@ -54,8 +54,9 @@ const ParametersSettingsPage    = lazy(() => import("./pages/settings/Parameters
 const NotificationsSettingsPage = lazy(() => import("./pages/settings/Notifications"));
 const MaintenanceSettingsPage   = lazy(() => import("./pages/settings/Maintenance"));
 const DictionaryPage        = lazy(() => import("./pages/Dictionary"));
-const MotorComercialPage    = lazy(() => import("./pages/MotorComercial"));
-const AgentesPage           = lazy(() => import("./pages/Agentes"));
+const MotorComercialPage             = lazy(() => import("./pages/MotorComercial"));
+const AgentesPage                    = lazy(() => import("./pages/Agentes"));
+const SeguimientoCotizacionesPage    = lazy(() => import("./pages/SeguimientoCotizaciones"));
 const Debugger              = lazy(() => import("./pages/Debugger"));
 const NotFoundPage          = lazy(() => import("./pages/NotFound"));
 const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
@@ -156,6 +157,7 @@ export default function App() {
 
                 {/* Agentes hub */}
                 <Route path="/agentes" element={<Protected><AgentesPage /></Protected>} />
+                <Route path="/agentes/seguimiento-cotizaciones" element={<Protected><SeguimientoCotizacionesPage /></Protected>} />
 
                 {/* Motor Comercial */}
                 <Route path="/motor-comercial" element={<Protected><MotorComercialPage /></Protected>} />
