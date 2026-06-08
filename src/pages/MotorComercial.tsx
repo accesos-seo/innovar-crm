@@ -13,6 +13,8 @@ import {
   FileText,
   FolderOpen,
   Activity,
+  Calendar,
+  UserCircle,
 } from 'lucide-react';
 import { CategoryHeader } from '@/components/shared/CategoryHeader';
 import { supabase } from '@/lib/supabaseClient';
@@ -32,7 +34,7 @@ const phaseStatusConfig: Record<PhaseStatus, { icon: React.ReactNode; textColor:
     textColor: 'text-emerald-400',
   },
   current: {
-    icon: <Loader2 className="w-4 h-4 text-primary animate-spin" />,
+    icon: <Circle className="w-4 h-4 text-primary" />,
     textColor: 'text-primary',
   },
   pending: {
@@ -95,6 +97,14 @@ function formatDate(iso: string) {
 
 // ─── Pipeline Canvas ──────────────────────────────────────────────────────────
 
+const MODULE_NAV = [
+  { label: 'Leads',        icon: Users,      path: '/leads' },
+  { label: 'Cotizaciones', icon: FileText,   path: '/quotations' },
+  { label: 'Proyectos',    icon: FolderOpen, path: '/projects' },
+  { label: 'Agenda',       icon: Calendar,   path: '/agenda' },
+  { label: 'Clientes',     icon: UserCircle, path: '/clients' },
+];
+
 const PIPELINE_PHASES = [
   { step: 1, label: 'Captura',    fill: '#44ddc1', stroke: '#44ddc1' },
   { step: 2, label: 'Contacto',   fill: '#818cf8', stroke: '#818cf8' },
@@ -110,8 +120,8 @@ const PIPELINE_PHASES = [
 const PipelineCanvas: React.FC = () => {
   // Row 1 (top, left→right): phases 1-5 at y=75
   // Row 2 (bottom, right→left): phases 6-9 at y=175
-  const r1 = PIPELINE_PHASES.slice(0, 5).map((p, i) => ({ ...p, x: 90 + i * 175, y: 75 }));
-  const r2 = PIPELINE_PHASES.slice(5).map((p, i) => ({ ...p, x: 790 - i * 175, y: 175 }));
+  const r1 = PIPELINE_PHASES.slice(0, 5).map((p, i) => ({ ...p, x: 90 + i * 175, y: 80 }));
+  const r2 = PIPELINE_PHASES.slice(5).map((p, i) => ({ ...p, x: 790 - i * 175, y: 190 }));
   const all = [...r1, ...r2];
 
   return (
@@ -123,9 +133,8 @@ const PipelineCanvas: React.FC = () => {
         <p className="text-[11px] text-muted-foreground/40 mt-0.5">9 fases — del lead a la entrega</p>
       </div>
 
-      <svg viewBox="0 0 900 250" className="w-full h-auto" style={{ maxHeight: 180 }}>
+      <svg viewBox="0 0 900 270" className="w-full h-auto" style={{ maxHeight: 200 }}>
         <defs>
-          {/* Single arrow marker — orient="auto" rotates with the line */}
           <marker id="mc-arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="#44ddc1" fillOpacity="0.45" />
           </marker>
@@ -135,8 +144,8 @@ const PipelineCanvas: React.FC = () => {
         {r1.slice(0, -1).map((phase, i) => (
           <line
             key={`h1-${i}`}
-            x1={phase.x + 26} y1={phase.y}
-            x2={r1[i + 1].x - 26} y2={r1[i + 1].y}
+            x1={phase.x + 30} y1={phase.y}
+            x2={r1[i + 1].x - 30} y2={r1[i + 1].y}
             stroke="#44ddc1" strokeWidth="1.5" strokeOpacity="0.35"
             markerEnd="url(#mc-arr)"
           />
@@ -144,8 +153,8 @@ const PipelineCanvas: React.FC = () => {
 
         {/* Vertical connector: phase 5 down to phase 6 */}
         <line
-          x1={790} y1={75 + 26}
-          x2={790} y2={175 - 26}
+          x1={790} y1={80 + 30}
+          x2={790} y2={190 - 30}
           stroke="#44ddc1" strokeWidth="1.5" strokeOpacity="0.35"
           markerEnd="url(#mc-arr)"
         />
@@ -154,8 +163,8 @@ const PipelineCanvas: React.FC = () => {
         {r2.slice(0, -1).map((phase, i) => (
           <line
             key={`h2-${i}`}
-            x1={phase.x - 26} y1={phase.y}
-            x2={r2[i + 1].x + 26} y2={r2[i + 1].y}
+            x1={phase.x - 30} y1={phase.y}
+            x2={r2[i + 1].x + 30} y2={r2[i + 1].y}
             stroke="#44ddc1" strokeWidth="1.5" strokeOpacity="0.35"
             markerEnd="url(#mc-arr)"
           />
@@ -165,25 +174,25 @@ const PipelineCanvas: React.FC = () => {
         {all.map((phase) => (
           <g key={phase.step}>
             {/* Outer glow */}
-            <circle cx={phase.x} cy={phase.y} r={33} fill={phase.fill} opacity="0.07" />
+            <circle cx={phase.x} cy={phase.y} r={38} fill={phase.fill} opacity="0.07" />
             {/* Main circle */}
             <circle
-              cx={phase.x} cy={phase.y} r={24}
-              fill={phase.fill} fillOpacity="0.12"
-              stroke={phase.stroke} strokeWidth="1.5" strokeOpacity="0.6"
+              cx={phase.x} cy={phase.y} r={28}
+              fill={phase.fill} fillOpacity="0.14"
+              stroke={phase.stroke} strokeWidth="1.5" strokeOpacity="0.65"
             />
             {/* Step number */}
             <text
               x={phase.x} y={phase.y}
               textAnchor="middle" dominantBaseline="central"
-              fill={phase.fill} fontSize="13" fontWeight="700"
+              fill={phase.fill} fontSize="15" fontWeight="700"
               fontFamily="'Plus Jakarta Sans', sans-serif"
             >
               {phase.step}
             </text>
-            {/* Label — above for row 2, below for row 1 */}
+            {/* Label: row 1 above (y-46), row 2 below (y+46) — no overlap */}
             <text
-              x={phase.x} y={phase.y + (phase.y < 130 ? 42 : -42)}
+              x={phase.x} y={phase.y + (phase.y < 130 ? -46 : 46)}
               textAnchor="middle"
               fill="#bbcac4" fillOpacity="0.8" fontSize="10"
               fontFamily="'Inter', sans-serif"
@@ -463,6 +472,20 @@ const MotorComercial: React.FC = () => {
 
         </div>
 
+        {/* ── Navegación rápida a módulos ────────────────────────────────────── */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {MODULE_NAV.map((mod) => (
+            <button
+              key={mod.path}
+              onClick={() => navigate(mod.path, { state: { from: '/motor-comercial' } })}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/30 text-muted-foreground text-xs hover:border-primary/40 hover:text-primary transition-colors"
+            >
+              <mod.icon size={12} />
+              {mod.label}
+            </button>
+          ))}
+        </div>
+
         {/* ── ZONA 3: Stepper ────────────────────────────────────────────────── */}
         <ModuleStepBar />
 
@@ -486,19 +509,25 @@ const MotorComercial: React.FC = () => {
           )}
         </div>
 
-        {/* ── ZONA 6: Agent Cards ─────────────────────────────────────────────── */}
-        <div className="space-y-3">
+        {/* ── ZONA 6: Agent Cards (2 por fila, expand a full-width) ─────────── */}
+        <div className="space-y-4">
           <h2 className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-wider">
             Automatizaciones del motor
           </h2>
-          {motorComercialAgentes.map((agente) => (
-            <AgentCard
-              key={agente.id}
-              agente={agente}
-              isOpen={openCard === agente.id}
-              onToggle={() => toggleCard(agente.id)}
-            />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {motorComercialAgentes.map((agente) => (
+              <div
+                key={agente.id}
+                className={cn('col-span-1', openCard === agente.id && 'md:col-span-2')}
+              >
+                <AgentCard
+                  agente={agente}
+                  isOpen={openCard === agente.id}
+                  onToggle={() => toggleCard(agente.id)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── ZONA 7: Actividad reciente ──────────────────────────────────────── */}
