@@ -225,7 +225,7 @@ export const Sidebar = React.memo(function Sidebar() {
       <div className="p-4">
         <PrimaryButton 
           onClick={() => navigate("/projects/new")}
-          label={isSidebarCollapsed ? "" : "Nuevo proyecto"}
+          label={isSidebarCollapsed ? "" : "Nuevo prospecto"}
           icon={Plus}
           className={cn(
             "w-full h-12 rounded-md",
