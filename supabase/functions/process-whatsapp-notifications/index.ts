@@ -28,6 +28,8 @@
 //   - visit_summary_client_v1        · 2 vars {{1}}=nombre, {{2}}=plazo_horas (S5)
 //
 //   Fase 4 · Slice 3 · Pago → Proyecto (migraciones 037 + 038):
+//   - payment_request_v1             · 5 vars {{1}}=nombre cliente, {{2}}=banco, {{3}}=cuenta, {{4}}=titular, {{5}}=monto anticipo
+//   - quotation_reactivation_admin_v1· 3 vars {{1}}=nombre admin, {{2}}=nombre cliente, {{3}}=número cotización
 //   - payment_proof_rejected_v1      · 4 vars {{1}}=nombre cliente, {{2}}=número cotización, {{3}}=motivo, {{4}}=link reintento
 //   - project_assigned_designer_v1   · 3 vars {{1}}=primer nombre diseñador, {{2}}=cliente, {{3}}=path proyecto
 //   - project_fully_paid_v1          · 2 vars {{1}}=primer nombre cliente, {{2}}=nombre proyecto
@@ -101,6 +103,8 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   visit_summary_client_v1: bodyBuilder("visit_summary_client_v1", 2),
 
   // — Fase 4 · Slice 3 · Pago → Proyecto —
+  payment_request_v1: bodyBuilder("payment_request_v1", 5),
+  quotation_reactivation_admin_v1: bodyBuilder("quotation_reactivation_admin_v1", 3),
   payment_proof_rejected_v1: bodyBuilder("payment_proof_rejected_v1", 4),
   project_assigned_designer_v1: bodyBuilder("project_assigned_designer_v1", 3),
   project_fully_paid_v1: bodyBuilder("project_fully_paid_v1", 2),
