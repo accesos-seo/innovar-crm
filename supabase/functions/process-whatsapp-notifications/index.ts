@@ -216,6 +216,15 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Modo prueba: si `wa_test_phone_override` está en system_settings, todos los
+    // mensajes se redirigen a ese número. Eliminar o poner NULL para producción.
+    const { data: testPhoneSetting } = await admin
+      .from("system_settings")
+      .select("value")
+      .eq("key", "wa_test_phone_override")
+      .maybeSingle();
+    const testPhoneOverride: string | null = testPhoneSetting?.value ?? null;
+
     // 1. Reclamar lote de filas pendientes (status pending, attempt_count < 3).
     const { data: claimed, error: claimErr } = await admin
       .from("notification_queue")
@@ -252,7 +261,10 @@ Deno.serve(async (req: Request) => {
     const results: Array<{ id: string; status: "sent" | "failed"; detail?: string }> = [];
 
     for (const row of rows) {
-      const result = await sendOneMessage(row, META_ACCESS_TOKEN, META_PHONE_NUMBER_ID, dryRun);
+      const effectiveRow = testPhoneOverride
+        ? { ...row, recipient_phone: testPhoneOverride }
+        : row;
+      const result = await sendOneMessage(effectiveRow, META_ACCESS_TOKEN, META_PHONE_NUMBER_ID, dryRun);
       const nextAttempt = (row.attempt_count ?? 0) + 1;
 
       if (result.ok) {
