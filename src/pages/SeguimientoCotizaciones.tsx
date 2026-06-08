@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   FileText, Clock, AlertTriangle, CheckCircle2, ChevronRight,
-  Zap, Activity, Settings2, ArrowRight, BarChart3, Send,
+  Zap, Activity, Settings2, BarChart3, Send,
+  Users, Calendar, Briefcase, TrendingUp,
 } from 'lucide-react';
 import { CategoryHeader } from '@/components/shared/CategoryHeader';
 import { supabase } from '@/lib/supabaseClient';
@@ -90,45 +91,58 @@ const StatCard: React.FC<{
   );
 };
 
-// ─── Flow Visual ─────────────────────────────────────────────────────────────
+// ─── Pipeline phases config ───────────────────────────────────────────────────
 
-const FlowStep: React.FC<{
-  icon: React.ElementType;
-  label: string;
-  sublabel: string;
-  color: 'muted' | 'primary' | 'amber' | 'red' | 'green';
-  isLast?: boolean;
-}> = ({ icon: Icon, label, sublabel, color, isLast }) => {
-  const colorMap = {
-    muted: 'border-border/40 text-muted-foreground/40',
-    primary: 'border-primary/40 text-primary',
-    amber: 'border-amber-600/40 text-amber-400',
-    red: 'border-red-600/40 text-red-400',
-    green: 'border-emerald-600/40 text-emerald-400',
-  };
-  const bgMap = {
-    muted: 'bg-muted/30',
-    primary: 'bg-primary/10',
-    amber: 'bg-amber-900/20',
-    red: 'bg-red-900/20',
-    green: 'bg-emerald-900/20',
-  };
-
-  return (
-    <div className="flex items-center gap-2 flex-1 min-w-0">
-      <div className="flex flex-col items-center min-w-0 flex-1">
-        <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center mb-2', bgMap[color], colorMap[color])}>
-          <Icon className="w-4 h-4" />
-        </div>
-        <p className={cn('text-[10px] font-black text-center leading-tight', colorMap[color])}>{label}</p>
-        <p className="text-[9px] text-muted-foreground/30 text-center mt-0.5">{sublabel}</p>
-      </div>
-      {!isLast && (
-        <ArrowRight className="w-3 h-3 text-border/40 shrink-0" />
-      )}
-    </div>
-  );
-};
+const PIPELINE_PHASES = [
+  {
+    number: 1,
+    label: 'Enviada',
+    sublabel: 'Días 0–2',
+    icon: Send,
+    bg: 'bg-primary/10',
+    border: 'border-primary/30',
+    text: 'text-primary',
+    numBg: 'bg-primary/20',
+    getCount: (s: StatsState) => s.recentCount,
+    description: 'Cotización enviada al cliente. El agente inicia el monitoreo.',
+  },
+  {
+    number: 2,
+    label: 'D+3 Recordatorio',
+    sublabel: 'Día 3–6',
+    icon: Clock,
+    bg: 'bg-amber-900/20',
+    border: 'border-amber-700/30',
+    text: 'text-amber-400',
+    numBg: 'bg-amber-900/40',
+    getCount: (s: StatsState) => s.d3Count,
+    description: 'WhatsApp automático recordando que la cotización sigue vigente.',
+  },
+  {
+    number: 3,
+    label: 'D+7 Urgente',
+    sublabel: 'Día 7+',
+    icon: AlertTriangle,
+    bg: 'bg-red-900/20',
+    border: 'border-red-700/30',
+    text: 'text-red-400',
+    numBg: 'bg-red-900/40',
+    getCount: (s: StatsState) => s.d7Count,
+    description: 'WhatsApp urgente + alerta directa al comercial para seguimiento.',
+  },
+  {
+    number: 4,
+    label: 'Resuelta',
+    sublabel: 'Esta semana',
+    icon: CheckCircle2,
+    bg: 'bg-emerald-900/20',
+    border: 'border-emerald-700/30',
+    text: 'text-emerald-400',
+    numBg: 'bg-emerald-900/40',
+    getCount: (s: StatsState) => s.resolvedThisWeek,
+    description: 'Cotización aprobada. El agente cierra el ciclo de seguimiento.',
+  },
+];
 
 // ─── Stage Badge ─────────────────────────────────────────────────────────────
 
@@ -233,6 +247,25 @@ const SeguimientoCotizaciones: React.FC = () => {
           status={{ label: 'Activo', variant: 'primary' }}
         />
 
+        {/* ── ZONA 1.5: Módulos relacionados ──────────────────────────────── */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: 'Cotizaciones', path: '/quotations', icon: FileText },
+            { label: 'Clientes',     path: '/clients',    icon: Users },
+            { label: 'Leads',        path: '/leads',      icon: Briefcase },
+            { label: 'Agenda',       path: '/agenda',     icon: Calendar },
+          ].map(({ label, path, icon: Icon }) => (
+            <button
+              key={label}
+              onClick={() => navigate(path)}
+              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground/60 bg-card border border-border/50 px-3 py-2 rounded-lg hover:border-primary/40 hover:text-primary/80 transition-all duration-200"
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* ── ZONA 2: Stats ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
@@ -269,64 +302,93 @@ const SeguimientoCotizaciones: React.FC = () => {
           />
         </div>
 
-        {/* ── ZONA 3: Flow visual ──────────────────────────────────────────── */}
-        <div className="bg-card border border-border/50 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-5">
-            <Activity className="w-3.5 h-3.5 text-primary/60" />
-            <h3 className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">Lógica del agente</h3>
+        {/* ── ZONA 3: Pipeline prominente ──────────────────────────────────── */}
+        <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
+          {/* Header del pipeline */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-3.5 h-3.5 text-primary/60" />
+              <h3 className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">Pipeline de seguimiento</h3>
+            </div>
+            {!stats.loading && (
+              <span className="text-[10px] font-bold text-muted-foreground/30">{stats.total} activas</span>
+            )}
           </div>
-          <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
-            <FlowStep
-              icon={Send}
-              label="Enviada"
-              sublabel="Día 0"
-              color="muted"
-            />
-            <FlowStep
-              icon={Clock}
-              label="Espera"
-              sublabel="1–2 días"
-              color="primary"
-            />
-            <FlowStep
-              icon={FileText}
-              label="Recordatorio"
-              sublabel="Día 3 · WhatsApp"
-              color="amber"
-            />
-            <FlowStep
-              icon={AlertTriangle}
-              label="Urgente"
-              sublabel="Día 7 · WA + alerta"
-              color="red"
-            />
-            <FlowStep
-              icon={CheckCircle2}
-              label="Resuelto"
-              sublabel="Aprobado / cerrado"
-              color="green"
-              isLast
-            />
+
+          {/* Fases en grid */}
+          <div className="p-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {PIPELINE_PHASES.map((phase, i) => {
+                const Icon = phase.icon;
+                const count = phase.getCount(stats);
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      'relative rounded-xl border p-4 flex flex-col gap-3 transition-all duration-200',
+                      phase.bg, phase.border,
+                    )}
+                  >
+                    {/* Número + ícono */}
+                    <div className="flex items-center justify-between">
+                      <span className={cn(
+                        'text-[10px] font-black px-2 py-0.5 rounded-full',
+                        phase.numBg, phase.text,
+                      )}>
+                        {phase.number}
+                      </span>
+                      <Icon className={cn('w-4 h-4', phase.text)} />
+                    </div>
+                    {/* Contador */}
+                    {stats.loading ? (
+                      <div className="h-8 w-10 bg-muted/30 rounded animate-pulse" />
+                    ) : (
+                      <p className={cn('text-3xl font-black leading-none', phase.text)}>{count}</p>
+                    )}
+                    {/* Label */}
+                    <div>
+                      <p className={cn('text-xs font-black leading-snug', phase.text)}>{phase.label}</p>
+                      <p className="text-[10px] text-muted-foreground/35 mt-0.5">{phase.sublabel}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Etiquetas de fase (stepper row) */}
+            <div className="mt-4 flex items-center gap-1 overflow-x-auto">
+              {PIPELINE_PHASES.map((phase, i) => {
+                const isLast = i === PIPELINE_PHASES.length - 1;
+                return (
+                  <React.Fragment key={i}>
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black whitespace-nowrap',
+                      phase.bg, phase.border, phase.text,
+                    )}>
+                      <span className="opacity-60">{phase.number}.</span>
+                      {phase.label}
+                    </div>
+                    {!isLast && (
+                      <svg className="w-4 h-4 text-border/40 shrink-0" fill="none" viewBox="0 0 16 16">
+                        <path d="M4 8h8M9 5l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <div className="p-3 bg-primary/[0.04] border border-primary/15 rounded-lg">
-              <p className="text-[10px] font-black text-primary/60 uppercase tracking-wider mb-1">D+3 — Recordatorio</p>
-              <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-                WhatsApp al cliente recordando que la cotización sigue vigente y ofreciendo atención inmediata.
-              </p>
-            </div>
-            <div className="p-3 bg-amber-900/10 border border-amber-700/20 rounded-lg">
-              <p className="text-[10px] font-black text-amber-400/60 uppercase tracking-wider mb-1">D+7 — Urgente</p>
-              <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-                Segundo WhatsApp al cliente + alerta interna al comercial para seguimiento personal.
-              </p>
-            </div>
-            <div className="p-3 bg-muted/20 border border-border/30 rounded-lg">
-              <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-wider mb-1">Registro</p>
-              <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-                Cada acción queda registrada en la cotización con fecha y estado para trazabilidad completa.
-              </p>
-            </div>
+
+          {/* Descripción de fases */}
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border/20 border-t border-border/20">
+            {PIPELINE_PHASES.map((phase, i) => (
+              <div key={i} className="px-4 py-3">
+                <p className={cn('text-[9px] font-black uppercase tracking-widest mb-1', phase.text)}>
+                  Fase {phase.number}
+                </p>
+                <p className="text-[10px] text-muted-foreground/40 leading-relaxed">{phase.description}</p>
+              </div>
+            ))}
           </div>
         </div>
 
