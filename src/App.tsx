@@ -63,6 +63,10 @@ const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
 const PublicBookingByCodePage = lazy(() => import("./pages/PublicBookingByCode"));
 const PublicQuotationPage   = lazy(() => import("./pages/PublicQuotation"));
 const PublicQuotationByCodePage = lazy(() => import("./pages/PublicQuotationByCode"));
+const DocsHomePage                   = lazy(() => import("./pages/docs/DocsHomePage"));
+const DocsAutomatizacionesPage       = lazy(() => import("./pages/docs/DocsAutomatizacionesPage"));
+const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutomatizacionDetailPage"));
+const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabilidadesPage"));
 
 // ── Route-level loading fallback ───────────────────────────────────────────
 function PageLoader() {
@@ -244,6 +248,12 @@ export default function App() {
                   path="/admin/dictionary"
                   element={<Protected roles={["admin", "super_admin"]}><DictionaryPage /></Protected>}
                 />
+
+                {/* Documentación */}
+                <Route path="/docs"                          element={<Protected><DocsHomePage /></Protected>} />
+                <Route path="/docs/automatizaciones"         element={<Protected><DocsAutomatizacionesPage /></Protected>} />
+                <Route path="/docs/automatizaciones/:slug"   element={<Protected><DocsAutomatizacionDetailPage /></Protected>} />
+                <Route path="/docs/habilidades"              element={<Protected><DocsHabilidadesPage /></Protected>} />
 
                 {/* 404 catch-all */}
                 <Route path="*" element={<Protected><NotFoundPage /></Protected>} />
