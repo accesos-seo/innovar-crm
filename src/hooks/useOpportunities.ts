@@ -203,9 +203,10 @@ export function useOpportunities(
       const phoneWithPlus = `+${normalizedPhone}`;
 
       // 1a. Buscar cliente activo sin prefijo "+".
+      // Seleccionamos id + name para poder informar en UI cuando el cliente ya existe.
       const { data: foundWithout, error: lookupErr } = await supabase
         .from("clients")
-        .select("id")
+        .select("id, name")
         .eq("whatsapp_phone", normalizedPhone)
         .is("deleted_at", null)
         .limit(1);
@@ -216,7 +217,7 @@ export function useOpportunities(
       if (!existingClients?.length) {
         const { data: foundWith, error: lookupErr2 } = await supabase
           .from("clients")
-          .select("id")
+          .select("id, name")
           .eq("whatsapp_phone", phoneWithPlus)
           .is("deleted_at", null)
           .limit(1);
@@ -224,7 +225,18 @@ export function useOpportunities(
         existingClients = foundWith;
       }
 
-      let clientId = existingClients?.[0]?.id;
+      const existingClient = existingClients?.[0] ?? null;
+      let clientId = existingClient?.id;
+
+      // Si el cliente ya existe, avisar al llamador a través del toast para que
+      // el usuario sepa que la oportunidad se crea para ese cliente, no para el
+      // nombre que escribió en el form. Esto evita confusión cuando el teléfono
+      // pertenece a alguien diferente al nombre ingresado.
+      if (existingClient?.name) {
+        toast.info(
+          `El teléfono ya pertenece a "${existingClient.name}". La oportunidad se registrará para ese cliente.`,
+        );
+      }
 
       // 2. Si no existe, crearlo.
       // services y urgency también se escriben en clients para que el trigger
