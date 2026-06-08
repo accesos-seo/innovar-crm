@@ -1,10 +1,10 @@
 import * as React from "react";
-import { 
-  LayoutDashboard, 
-  PencilRuler, 
-  Users, 
-  CreditCard, 
-  Plus, 
+import {
+  LayoutDashboard,
+  PencilRuler,
+  Users,
+  CreditCard,
+  Plus,
   Calendar,
   ChevronRight,
   ChevronDown,
@@ -19,7 +19,8 @@ import {
   Receipt,
   BarChart3,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Zap, label: "Motor Comercial", path: "/motor-comercial" },
   { icon: PencilRuler, label: "Proyectos", path: "/projects" },
   { 
     icon: Users, 
