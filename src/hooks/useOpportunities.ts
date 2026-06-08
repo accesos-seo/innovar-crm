@@ -255,36 +255,43 @@ export function useOpportunities(
         clientId = newClient.id;
       }
 
-      // 3. Insertar la opportunity (el trigger round-robin asignará el owner).
-      // Usamos getUser() en lugar de getSession(): getUser() valida el JWT contra
-      // el servidor de Supabase Auth y refresca el access_token si está vencido.
-      // getSession() solo lee el localStorage y puede devolver un token expirado
-      // que PostgREST rechaza (tratándolo como anon → auth.uid() = NULL → 403).
+      // 3. Insertar la opportunity mediante RPC SECURITY DEFINER.
+      // Ruta directa a tabla (INSERT + RLS) retornaba 403 porque el JWT no se
+      // propagaba correctamente al contexto de PostgREST (auth.uid() = NULL).
+      // create_opportunity_v1 es SECURITY DEFINER: corre como postgres, bypasea
+      // RLS, pero valida auth.uid() internamente para asegurar autenticación.
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr) throw mapSupabaseError(userErr);
       const currentUserId = userData?.user?.id;
+      // Validación local defensiva antes de ir al servidor.
       if (!currentUserId) throw new Error("Sesión expirada. Volvé a iniciar sesión.");
 
-      const payload: OpportunityInsert = opportunityInsertSchema.parse({
-        client_id: clientId,
-        status: input.status ?? "new",
-        services: input.services,
-        priority: input.priority,
-        data_origin: input.dataOrigin,
-        notes: input.notes ?? null,
-        city: input.city ?? null,
-        address: input.address ?? null,
-        created_by: currentUserId,
-      });
-
-      const { data: opp, error: oppErr } = await supabase
-        .from("opportunities")
-        .insert([payload])
-        .select("*")
-        .single();
+      // RPC SECURITY DEFINER: bypasea RLS (corre como postgres) pero valida
+      // auth.uid() internamente. Solución al 403 que producía el INSERT directo
+      // cuando el JWT no propagaba al contexto de PostgREST (auth.uid()=NULL).
+      const { data: rpcData, error: oppErr } = await supabase.rpc(
+        "create_opportunity_v1",
+        {
+          p_client_id:   clientId,
+          p_status:      input.status ?? "new",
+          p_services:    input.services,
+          p_priority:    input.priority,
+          p_data_origin: input.dataOrigin,
+          p_notes:       input.notes ?? null,
+          p_city:        input.city ?? null,
+          p_address:     input.address ?? null,
+          p_created_by:  currentUserId,
+        },
+      );
       if (oppErr) throw mapSupabaseError(oppErr);
 
-      return opp as OpportunityRow;
+      // rpcData es json (row_to_json) — guard para respuesta vacía inesperada.
+      if (!rpcData) throw new Error("Error al crear oportunidad: respuesta vacía del servidor.");
+
+      // El cast es necesario porque .rpc() tipea el retorno como `unknown`
+      // cuando el tipo de retorno es `json`. La estructura es idéntica a OpportunityRow
+      // (row_to_json(opportunities.*)).
+      return rpcData as unknown as OpportunityRow;
     },
     onSuccess: () => {
       toast.success("Oportunidad creada correctamente");
