@@ -256,12 +256,13 @@ export function useOpportunities(
       }
 
       // 3. Insertar la opportunity (el trigger round-robin asignará el owner).
-      // created_by es obligatorio para que la policy RLS opportunities_insert_authenticated
-      // evalúe como TRUE (created_by = auth.uid()). Sin él la columna queda NULL y el
-      // INSERT retorna 403 aunque el usuario esté autenticado.
-      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) throw mapSupabaseError(sessionErr);
-      const currentUserId = sessionData?.session?.user?.id;
+      // Usamos getUser() en lugar de getSession(): getUser() valida el JWT contra
+      // el servidor de Supabase Auth y refresca el access_token si está vencido.
+      // getSession() solo lee el localStorage y puede devolver un token expirado
+      // que PostgREST rechaza (tratándolo como anon → auth.uid() = NULL → 403).
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw mapSupabaseError(userErr);
+      const currentUserId = userData?.user?.id;
       if (!currentUserId) throw new Error("Sesión expirada. Volvé a iniciar sesión.");
 
       const payload: OpportunityInsert = opportunityInsertSchema.parse({
