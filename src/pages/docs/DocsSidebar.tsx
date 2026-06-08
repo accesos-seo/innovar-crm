@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useSearchParams, useParams } from 'react-router-dom';
-import { Zap, Wand2, LayoutGrid, ChevronRight } from 'lucide-react';
+import { Wand2, LayoutGrid, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { automatizaciones, AutomatizacionCategoria, categoriaLabel } from '@/data/automatizacionesContent';
 import { habilidadesData } from '@/data/docsData';
 
-const ACTIVE_LINK = 'font-semibold text-[#44ddc1] bg-[#e0faf7] dark:bg-[rgba(68,221,193,0.18)]';
-const INACTIVE_LINK = 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white';
+const BRAND_COLOR = '#44ddc1';
+const ACTIVE_LINK = 'font-semibold bg-primary/10 text-primary';
+const INACTIVE_LINK = 'text-muted-foreground hover:bg-accent/60 hover:text-foreground';
 const VALID_CATS = new Set(Object.keys(categoriaLabel));
 
 type SidebarSection = 'automatizaciones' | 'habilidades';
@@ -33,13 +34,18 @@ const AutoSidebar: React.FC<{ activeSlug?: string }> = ({ activeSlug }) => {
 
   return (
     <nav className="py-5 px-3 flex flex-col gap-0.5 text-sm select-none">
-      <Link to="/docs/automatizaciones" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors', isAllActive ? ACTIVE_LINK : INACTIVE_LINK)}>
+      <Link
+        to="/docs/automatizaciones"
+        className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors', isAllActive ? ACTIVE_LINK : INACTIVE_LINK)}
+      >
         <LayoutGrid size={13} className="shrink-0" />
         <span className="flex-1 text-[13px]">Todas</span>
-        <span className="text-[11px] text-slate-400">{automatizaciones.length}</span>
+        <span className="text-[11px] text-muted-foreground/50">{automatizaciones.length}</span>
       </Link>
-      <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
-      <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Categorías</p>
+
+      <div className="my-2 border-t border-border/15" />
+      <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40 mb-1">Categorías</p>
+
       {(Object.entries(categoriaLabel) as [AutomatizacionCategoria, string][]).map(([cat, label]) => {
         const isCatActive = activeCat === cat;
         const isExpanded = isDetail && isCatActive;
@@ -51,21 +57,22 @@ const AutoSidebar: React.FC<{ activeSlug?: string }> = ({ activeSlug }) => {
               className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors', isCatActive ? ACTIVE_LINK : INACTIVE_LINK)}
             >
               <span className="flex-1 text-[13px]">{label}</span>
-              <span className="text-[11px] text-slate-400">{categoryCounts[cat]}</span>
+              <span className="text-[11px] text-muted-foreground/50">{categoryCounts[cat]}</span>
             </Link>
             {isExpanded && catItems.length > 0 && (
-              <div className="ml-4 mt-0.5 mb-1 flex flex-col gap-0.5 border-l-2 border-[#e0faf7] dark:border-[rgba(68,221,193,0.25)] pl-3">
+              <div className="ml-4 mt-0.5 mb-1 flex flex-col gap-0.5 border-l-2 border-primary/20 pl-3">
                 {catItems.map(aut => {
                   const isCurrent = aut.slug === activeSlug;
                   return (
                     <Link
                       key={aut.slug}
                       to={`/docs/automatizaciones/${aut.slug}`}
-                      className={cn('flex items-center gap-1.5 py-1.5 px-2 rounded-md transition-colors text-[12px]',
-                        isCurrent ? 'font-semibold text-[#44ddc1]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                      className={cn(
+                        'flex items-center gap-1.5 py-1.5 px-2 rounded-md transition-colors text-[12px]',
+                        isCurrent ? 'font-semibold text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
                       )}
                     >
-                      {isCurrent && <ChevronRight size={10} className="text-[#44ddc1]" />}
+                      {isCurrent && <ChevronRight size={10} className="text-primary" />}
                       <span className="line-clamp-2 leading-tight">{aut.nombre}</span>
                     </Link>
                   );
@@ -81,14 +88,14 @@ const AutoSidebar: React.FC<{ activeSlug?: string }> = ({ activeSlug }) => {
 
 const HabilidadesSidebarNav: React.FC = () => (
   <nav className="py-5 px-3 flex flex-col gap-0.5 text-sm select-none">
-    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold mb-1 text-[#44ddc1]">
+    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold mb-1" style={{ color: BRAND_COLOR }}>
       <Wand2 size={13} className="shrink-0" />
       <span className="text-[13px]">Todas las habilidades</span>
     </div>
-    <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-    <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Skills</p>
+    <div className="my-1 border-t border-border/15" />
+    <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40 mb-1">Skills</p>
     {habilidadesData.map(item => (
-      <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-slate-500 cursor-default">
+      <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground/60 cursor-default">
         <span className="opacity-30">•</span>
         {item.title}
       </div>
