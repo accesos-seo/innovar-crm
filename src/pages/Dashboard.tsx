@@ -399,38 +399,6 @@ export default function Dashboard() {
       >
         <WelcomeBanner userName={friendlyName} />
 
-        {/* ── Próxima reunión ── */}
-        {nextMeeting && (
-          <motion.button
-            variants={itemVariants}
-            onClick={() => navigate("/reuniones")}
-            className="group relative w-full text-left overflow-hidden bg-card border border-primary/20 rounded-sm shadow-lg shadow-primary/5 hover:border-primary/40 transition-colors"
-          >
-            <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/10 blur-3xl" />
-            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-sm border border-primary/20 shrink-0">
-                  <CalendarClock className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
-                    Próxima reunión
-                  </span>
-                  <p className="text-lg font-black tracking-tight text-foreground leading-tight">
-                    {nextMeetingLabel}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {MEETING_HOUR_LABEL} · Visita de {VISITOR_NAME} a domicilio
-                  </p>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary group-hover:gap-3 transition-all">
-                <CalendarPlus className="w-4 h-4" /> Ver agenda <ArrowUpRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </motion.button>
-        )}
-
         {/* ── Metric Cards ── */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <MetricCard
@@ -495,6 +463,38 @@ export default function Dashboard() {
         <motion.div variants={itemVariants}>
           <DashboardQuickAccess />
         </motion.div>
+
+        {/* ── Próxima reunión ── */}
+        {nextMeeting && (
+          <motion.button
+            variants={itemVariants}
+            onClick={() => navigate("/reuniones")}
+            className="group relative w-full text-left overflow-hidden bg-card border border-primary/20 rounded-sm shadow-lg shadow-primary/5 hover:border-primary/40 transition-colors"
+          >
+            <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-sm border border-primary/20 shrink-0">
+                  <CalendarClock className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
+                    Próxima reunión
+                  </span>
+                  <p className="text-lg font-black tracking-tight text-foreground leading-tight">
+                    {nextMeetingLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {MEETING_HOUR_LABEL} · Visita de {VISITOR_NAME} a domicilio
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary group-hover:gap-3 transition-all">
+                <CalendarPlus className="w-4 h-4" /> Ver agenda <ArrowUpRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </motion.button>
+        )}
 
         {/* ── Middle Row ── */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
