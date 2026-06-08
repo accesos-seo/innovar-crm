@@ -227,6 +227,14 @@ export function useOpportunities(
       let clientId = existingClients?.[0]?.id;
 
       // 2. Si no existe, crearlo.
+      // services y urgency también se escriben en clients para que el trigger
+      // tr_on_new_lead_email → smart-api pueda leerlos en el email de bienvenida.
+      // La priority en opportunities usa "LON" pero smart-api espera "LONG".
+      const clientUrgency =
+        input.priority === "LON" ? "LONG" : (input.priority ?? null);
+      const clientServices =
+        input.services?.length ? input.services.join(", ") : null;
+
       if (!clientId) {
         const { data: newClient, error: clientErr } = await supabase
           .from("clients")
@@ -237,6 +245,8 @@ export function useOpportunities(
               email: input.email || null,
               address: input.address || null,
               city: input.city || null,
+              services: clientServices,
+              urgency: clientUrgency,
             },
           ])
           .select("id")
