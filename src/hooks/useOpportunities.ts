@@ -138,11 +138,51 @@ export function useOpportunities(
   const archiveMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       assertSupabase(supabase);
+
+      // 1. Obtener los client_ids antes de archivar (para limpiar después).
+      const { data: oppsToArchive, error: fetchErr } = await supabase
+        .from("opportunities")
+        .select("id, client_id")
+        .in("id", ids)
+        .is("deleted_at", null);
+      if (fetchErr) throw mapSupabaseError(fetchErr);
+
+      const clientIds = [...new Set(
+        (oppsToArchive ?? []).map((o: { id: string; client_id: string | null }) => o.client_id).filter(Boolean) as string[]
+      )];
+
+      // 2. Archivar las oportunidades.
       const { error } = await supabase
         .from("opportunities")
         .update({ deleted_at: new Date().toISOString() })
         .in("id", ids);
       if (error) throw mapSupabaseError(error);
+
+      // 3. Para cada cliente afectado, si ya no tiene oportunidades activas,
+      //    archivarlo también — esto libera el UNIQUE parcial de whatsapp_phone
+      //    y permite reutilizar el teléfono en la próxima prueba o registro.
+      if (clientIds.length) {
+        const { data: stillActive } = await supabase
+          .from("opportunities")
+          .select("client_id")
+          .in("client_id", clientIds)
+          .is("deleted_at", null);
+
+        const activeClientIds = new Set(
+          (stillActive ?? [])
+            .map((o: { client_id: string | null }) => o.client_id)
+            .filter(Boolean) as string[]
+        );
+        const clientsToArchive = clientIds.filter((id) => !activeClientIds.has(id));
+
+        if (clientsToArchive.length) {
+          await supabase
+            .from("clients")
+            .update({ deleted_at: new Date().toISOString() })
+            .in("id", clientsToArchive)
+            .is("deleted_at", null);
+        }
+      }
     },
     onSuccess: (_data, ids) => {
       toast.success(
@@ -151,6 +191,7 @@ export function useOpportunities(
           : `${ids.length} oportunidades archivadas`,
       );
       queryClient.invalidateQueries({ queryKey: [OPPORTUNITIES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
     onError: (error) => notifyError(error, "Error al archivar oportunidades"),
   });
