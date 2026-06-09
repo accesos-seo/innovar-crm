@@ -74,7 +74,7 @@ BEGIN
     recipient_phone,
     recipient_name,
     template_name,
-    template_params,
+    template_parameters,
     event_type,
     payload,
     status
