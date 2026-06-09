@@ -103,12 +103,13 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   visit_summary_client_v1: bodyBuilder("visit_summary_client_v1", 2),
 
   // — Fase 4 · Slice 3 · Pago → Proyecto —
+  quotation_sent_v1: bodyBuilder("quotation_sent_v1", 3),        // {{1}}=cliente {{2}}=nro cotización {{3}}=link
+  quotation_v2_sent_v1: bodyBuilder("quotation_v2_sent_v1", 3),
   payment_request_v1: bodyBuilder("payment_request_v1", 5),
   quotation_reactivation_admin_v1: bodyBuilder("quotation_reactivation_admin_v1", 3),
   payment_proof_rejected_v1: bodyBuilder("payment_proof_rejected_v1", 4),
   project_assigned_designer_v1: bodyBuilder("project_assigned_designer_v1", 3),
   project_fully_paid_v1: bodyBuilder("project_fully_paid_v1", 2),
-  quotation_v2_sent_v1: bodyBuilder("quotation_v2_sent_v1", 3),
   admin_quotation_expired_v1: bodyBuilder("admin_quotation_expired_v1", 4),
 };
 
