@@ -167,7 +167,7 @@ export const InnovarChatbot: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 group animate-in zoom-in duration-300"
+          className="fixed bottom-20 right-6 z-50 group animate-in zoom-in duration-300"
           aria-label="Abrir asistente NOVA"
         >
           <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse group-hover:bg-amber-500/30 transition-all" />
