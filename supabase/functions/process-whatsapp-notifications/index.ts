@@ -95,6 +95,10 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   welcome_lead_v1: bodyBuilder("welcome_lead_v1", 1),
   booking_link_v1: bodyBuilder("booking_link_v1", 3),
 
+  // — Citas y tareas —
+  appointment_booked: bodyBuilder("appointment_booked", 4),          // {{1}}=nombre {{2}}=título {{3}}=fecha {{4}}=hora
+  task_assigned: bodyBuilder("task_assigned", 4),                    // {{1}}=equipo {{2}}=tarea {{3}}=vencimiento {{4}}=cliente
+
   // — Fase 3 · Visita técnica —
   visit_assigned_admin_v1: bodyBuilder("visit_assigned_admin_v1", 4),
   visit_reminder_24h_internal_v1: bodyBuilder("visit_reminder_24h_internal_v1", 5),
