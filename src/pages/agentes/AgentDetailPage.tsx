@@ -263,7 +263,7 @@ const AgentDetailPage: React.FC = () => {
           <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">⚙️ Configuración del agente</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {agent.config.map((item, i) => (
-              <ConfigCard key={`config-${i}`} item={item} index={i} />
+              <ConfigCard key={`${item.label}-${i}`} item={item} index={i} />
             ))}
           </div>
         </div>
