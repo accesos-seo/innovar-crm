@@ -78,8 +78,14 @@ BEGIN
   -- 1. Cambiar status modificando NEW directamente (BEFORE trigger — atómico con el UPDATE original)
   NEW.status := 'completado';
 
-  -- 2. Encolar WhatsApp al cliente (solo si tiene teléfono)
-  IF v_client_phone IS NOT NULL THEN
+  -- 2. Encolar WhatsApp al cliente (solo si tiene teléfono y no hay notificación previa)
+  IF v_client_phone IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.notification_queue
+        WHERE payload->>'project_id' = NEW.id::text
+          AND event_type = 'project.completed'
+     )
+  THEN
     INSERT INTO public.notification_queue (
       recipient_phone,
       recipient_name,
@@ -106,8 +112,14 @@ BEGIN
     );
   END IF;
 
-  -- 3. Crear tarea "Solicitar reseña" con 7 días de plazo
-  IF v_responsable IS NOT NULL THEN
+  -- 3. Crear tarea "Solicitar reseña" solo si no existe ya para este proyecto
+  IF v_responsable IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.tasks
+        WHERE 'project:' || NEW.id::text = ANY(tags)
+          AND title LIKE 'Solicitar reseña%'
+     )
+  THEN
     INSERT INTO public.tasks (
       client_id,
       assigned_to,

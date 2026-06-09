@@ -410,8 +410,14 @@ BEGIN
   END IF;
   -- 1. Cambio atómico de status — sin UPDATE separado
   NEW.status := 'completado';
-  -- 2. WA al cliente
-  IF v_client_phone IS NOT NULL THEN
+  -- 2. WA al cliente (dedup: solo si no existe notificación previa para este proyecto)
+  IF v_client_phone IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.notification_queue
+        WHERE payload->>'project_id' = NEW.id::text
+          AND event_type = 'project.completed'
+     )
+  THEN
     INSERT INTO public.notification_queue (
       recipient_phone, recipient_name, template_name, template_params,
       event_type, payload, status
@@ -427,8 +433,14 @@ BEGIN
       'pending'
     );
   END IF;
-  -- 3. Tarea "Solicitar reseña"
-  IF v_responsable IS NOT NULL THEN
+  -- 3. Tarea "Solicitar reseña" (dedup: solo si no existe tarea previa para este proyecto)
+  IF v_responsable IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.tasks
+        WHERE 'project:' || NEW.id::text = ANY(tags)
+          AND title LIKE 'Solicitar reseña%'
+     )
+  THEN
     INSERT INTO public.tasks (
       client_id, assigned_to, created_by, title, description,
       status, priority, due_date, task_category, tags, kanban_order
