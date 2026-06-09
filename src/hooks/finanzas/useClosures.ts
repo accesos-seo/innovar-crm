@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { AccountingClosure } from "@/types/database";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
 
 export function useClosures(filters?: {
@@ -35,7 +34,7 @@ export function useClosures(filters?: {
         query = query.lte("closure_date", filters.date_to);
       }
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as AccountingClosure[]) || [];

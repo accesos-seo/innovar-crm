@@ -7,6 +7,13 @@ import { Calendar, User, ExternalLink, Receipt, CreditCard, Tag, HandCoins, Calc
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatSentenceCase } from '@/lib/format-utils';
+import {
+  PAYMENT_METHOD_LABELS_ES,
+  PAYMENT_TYPE_LABELS_ES,
+  PAYMENT_TYPE_NEON_COLORS,
+  type PaymentMethod,
+  type PaymentType,
+} from '@/schemas/payment';
 
 interface PaymentDetailPanelProps {
   payment: Payment | null;
@@ -26,9 +33,11 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
       title={formatCurrency(payment.amount)}
       icon={HandCoins}
       subtitle={formatSentenceCase(`FINANZAS > INGRESOS > COMPROBANTE DE PAGO`)}
-      status={{ 
-        label: formatSentenceCase(payment.payment_type.replace('_', ' ')), 
-        variant: "secondary" 
+      status={{
+        label:
+          PAYMENT_TYPE_LABELS_ES[payment.payment_type as PaymentType] ??
+          payment.payment_type ?? '---',
+        variant: `${payment.payment_type}-neon` as any
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -49,13 +58,16 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Método de pago</p>
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold uppercase">{payment.payment_method.replace('_', ' ')}</span>
+                  <span className="text-sm font-bold uppercase">
+                    {PAYMENT_METHOD_LABELS_ES[payment.payment_method as PaymentMethod] ??
+                      payment.payment_method?.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: NOTAS Y COMPROBANTE */}
           <div className="space-y-8">
@@ -103,7 +115,10 @@ export function PaymentDetailPanel({ payment, isOpen, onClose }: PaymentDetailPa
             <div className="space-y-2">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Entidad / Cliente</p>
               {payment.clients && (
-                <a href={`/directory/${payment.clients.id}`} className="flex items-center gap-2 text-primary hover:underline group">
+                <a
+                  href={`/clients?clientId=${payment.clients.id}`}
+                  className="flex items-center gap-2 text-primary hover:underline group"
+                >
                   <User className="w-3 h-3" />
                   <span className="text-xs font-bold truncate">{payment.clients.name}</span>
                 </a>

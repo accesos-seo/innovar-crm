@@ -146,17 +146,26 @@ export interface Payment {
   client_id: string;
   amount: number;
   payment_method: 'efectivo' | 'transferencia' | 'credito' | 'cheque' | 'nequi' | 'daviplata' | 'pse' | string;
-  payment_type: 'anticipo' | 'abono' | 'pago_final' | 'reembolso' | string;
+  payment_type: 'advance' | 'installment' | 'final' | 'refund' | string;
   received_at: string;
   receipt_url?: string | null;
   registered_by: string;
   notes?: string | null;
   created_at: string;
-  
+
+  // Slice 3 columns (optional until backfilled into all rows).
+  quotation_id?: string | null;
+  verification_status?: 'pending' | 'verified' | 'rejected' | null;
+  payment_source?: 'client_upload' | 'admin_manual' | null;
+  rejection_reason?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+
   // Relations
   projects?: { id: string; name: string };
   clients?: { id: string; name: string };
   profiles?: { id: string; full_name: string };
+  quotations?: { id: string; quotation_number?: string | null; total_amount?: number | null };
 }
 
 export interface Expense {

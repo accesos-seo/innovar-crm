@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError } from "@/lib/errors";
 
 export interface FinancialSummary {
@@ -21,7 +20,7 @@ export function useFinancialSummary(dateFrom?: string, dateTo?: string) {
         p_date_to: dateTo || null,
       });
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (

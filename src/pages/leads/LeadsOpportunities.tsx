@@ -322,6 +322,7 @@ export default function LeadsOpportunitiesPage() {
         }
         deleteConfirmText={filters.onlyArchived ? "Restaurar" : "Archivar"}
         deleteButtonLabel={filters.onlyArchived ? "Restaurar" : "Archivar"}
+        deleteVariant={filters.onlyArchived ? "default" : "warning"}
         emptyTitle="No hay oportunidades"
         emptyDescription="No se encontraron oportunidades que coincidan con los filtros actuales. Crea una nueva oportunidad."
       />

@@ -47,7 +47,7 @@ import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
 
-import { useQuotations } from "@/hooks/useQuotations";
+import { useQuotations, useUpdateQuotation, useArchiveQuotations } from "@/hooks/useQuotations";
 
 import { statusMap, columns } from "./quotations/QuotationsColumns";
 
@@ -72,6 +72,9 @@ export default function QuotationsPage() {
   const { data, isLoading, isError, error } = useQuotations(
     filters.status.length > 0 ? { status: filters.status[0] } : undefined
   );
+
+  const updateQuotation = useUpdateQuotation();
+  const archiveQuotations = useArchiveQuotations();
 
   React.useEffect(() => {
     if (isError) {
@@ -109,18 +112,48 @@ export default function QuotationsPage() {
     { title: formatSentenceCase("Vencidas"), value: filteredData.filter(q => q.status === "expired" || q.status === "rejected").length, description: formatSentenceCase("Requieren revisión"), icon: FileWarning, trend: "down", color: "red" },
   ], [totalCount, filteredData]);
 
-  const handleDelete = async () => {
-    // Backend API would go here
-    setQuotationsToDelete([]);
-    setIsDeleteDialogOpen(false);
-    notify.success("Cotizaciones eliminadas", "Los registros han sido eliminados correctamente.");
+  const handleArchive = async () => {
+    const ids = quotationsToDelete.map((q: any) => q.id as string);
+    try {
+      await archiveQuotations.mutateAsync(ids);
+    } finally {
+      setQuotationsToDelete([]);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const navigate = useNavigate();
 
-  const handleSaveField = async (field: string, value: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    notify.success("Campo actualizado", `Información actualizada.`);
+  /**
+   * Solo permitimos editar inline los campos seguros: notes y valid_until.
+   * client_id, total_amount y version_number tienen restricciones (FK,
+   * calculado, system-managed) — se editan desde la página "Edición completa".
+   */
+  const handleSaveField = async (field: "notes" | "valid_until", value: string) => {
+    if (!selectedQuotation?.id) {
+      notify.error("Error", "No se puede actualizar: cotización sin ID");
+      return;
+    }
+
+    try {
+      const updates: any = { id: selectedQuotation.id };
+      updates[field] = field === "valid_until" && !value ? null : value;
+
+      const updated = await updateQuotation.mutateAsync(updates);
+      // Mantener el join client/items que tenía el panel — el update solo
+      // devuelve la fila plana, así que re-mergeamos lo que ya teníamos.
+      setSelectedQuotation((prev: any) => prev ? {
+        ...prev,
+        ...updated,
+        client: prev.client,
+        items: prev.items,
+      } : prev);
+      notify.success("Cotización actualizada", `${field} guardado correctamente`);
+    } catch (e: any) {
+      // notifyError ya disparó toast desde el hook; re-throw para que
+      // InlineEditField NO cierre el modo edición silenciosamente.
+      throw e;
+    }
   };
 
   const toggleStatusFilter = (status: string) => {
@@ -256,6 +289,7 @@ export default function QuotationsPage() {
           setQuotationsToDelete(rows);
           setIsDeleteDialogOpen(true);
         }}
+        deleteButtonLabel="Archivar"
         emptyMessage={
           <EmptyState 
             title="No hay información actual"
@@ -276,35 +310,20 @@ export default function QuotationsPage() {
         title={`Cotización ${selectedQuotation?.id?.split('-')[0] || ""}`}
         icon={FileText}
         subtitle={formatSentenceCase(`VENTAS > COTIZACIONES > ${selectedQuotation?.client?.name || "CLIENTE"}`)}
-        status={{ 
-          label: formatSentenceCase(statusMap[selectedQuotation?.status as QuotationStatus]?.label || "Borrador"), 
+        status={{
+          label: formatSentenceCase(statusMap[selectedQuotation?.status as QuotationStatus]?.label || "Borrador"),
           variant: statusMap[selectedQuotation?.status as QuotationStatus]?.variant || statusMap.draft.variant
         }}
-        editHref={selectedQuotation ? `/quotations/${selectedQuotation.id}/edit` : undefined}
-        onNavigate={navigate}
         footer={
-          <div className="flex gap-4 w-full">
-            <Button 
-              variant="outline" 
-              className="flex-1 border-primary/20 text-foreground hover:bg-primary/5 font-bold text-[10px] h-12 rounded-none"
-              onClick={() => {
-                navigate(`/quotations/${selectedQuotation?.id}`);
-                setSelectedQuotation(null);
-              }}
-            >
-              {formatSentenceCase("Detalle completo")}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1 border-primary/20 text-primary hover:bg-primary/10 font-bold text-[10px] h-12 rounded-none"
-              onClick={() => {
-                navigate(`/quotations/${selectedQuotation?.id}/edit`);
-                setSelectedQuotation(null);
-              }}
-            >
-              {formatSentenceCase("Editar información")}
-            </Button>
-          </div>
+          <Button
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] h-12 rounded-none"
+            onClick={() => {
+              navigate(`/quotations/${selectedQuotation?.id}`);
+              setSelectedQuotation(null);
+            }}
+          >
+            {formatSentenceCase("Ver detalle completo")}
+          </Button>
         }
       >
         <div className="flex flex-col space-y-12">
@@ -318,24 +337,32 @@ export default function QuotationsPage() {
               <InlineEditField
                 label={formatSentenceCase("Cliente asignado")}
                 value={selectedQuotation?.client?.name || ""}
-                onSave={(v) => handleSaveField("client", v)}
+                emptyLabel="Sin cliente asignado"
+                // FK a clients. Cambiar el cliente requiere reasignación
+                // (edición completa), no edición inline del nombre.
+                editable={false}
+                onSave={async () => {}}
               />
               <InlineEditField
                 label={formatSentenceCase("Monto total")}
                 value={`$${(selectedQuotation?.total_amount || 0).toLocaleString()}`}
-                onSave={(v) => handleSaveField("total_amount", v)}
+                // Se calcula automáticamente de quotation_items. Editar el
+                // total a mano causaría inconsistencia con las líneas.
+                editable={false}
+                onSave={async () => {}}
               />
               <div className="col-span-2">
                 <InlineEditField
                   label={formatSentenceCase("Notas / Descripción del presupuesto")}
-                  value={selectedQuotation?.notes || formatSentenceCase("---")}
+                  value={selectedQuotation?.notes || ""}
+                  emptyLabel="Sin notas adicionales"
                   onSave={(v) => handleSaveField("notes", v)}
                 />
               </div>
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: CONTROL DE VERSIONES Y VALIDEZ */}
           <div className="space-y-6">
@@ -347,7 +374,11 @@ export default function QuotationsPage() {
               <InlineEditField
                 label={formatSentenceCase("Versión de documento")}
                 value={`v${selectedQuotation?.version_number || 1}`}
-                onSave={(v) => handleSaveField("version", v)}
+                // version_number lo administra el sistema cuando se crea una
+                // nueva versión de la cotización. Editar a mano rompería la
+                // cadena de versiones.
+                editable={false}
+                onSave={async () => {}}
               />
               <InlineEditDateField
                 label={formatSentenceCase("Válido hasta")}
@@ -357,7 +388,7 @@ export default function QuotationsPage() {
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 4: AUDITORÍA */}
           <div className="grid grid-cols-2 gap-x-12 gap-y-12 bg-muted/5 p-8 border border-border/10">
@@ -376,11 +407,11 @@ export default function QuotationsPage() {
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        isLoading={false}
-        title={formatSentenceCase("¿Eliminar cotizaciones?")}
-        description={formatSentenceCase(`¿Estás seguro de que deseas eliminar ${quotationsToDelete.length} cotización(es)? Esta acción no se puede deshacer.`)}
-        confirmText={formatSentenceCase("Eliminar")}
+        onConfirm={handleArchive}
+        isLoading={archiveQuotations.isPending}
+        title={formatSentenceCase("¿Archivar cotizaciones?")}
+        description={formatSentenceCase(`Vas a archivar ${quotationsToDelete.length} cotización(es). Se ocultarán del listado pero se conservan y podés recuperarlas desde el filtro 'Mostrar archivadas'.`)}
+        confirmText={formatSentenceCase("Archivar")}
         cancelText={formatSentenceCase("Cancelar")}
       />
     </div>

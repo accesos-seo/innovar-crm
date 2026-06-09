@@ -20,10 +20,11 @@ export function useCancelAppointment() {
           console.warn("Could not free availability slot");
       }
 
-      // 2. Eliminar la tarea
+      // 2. Marcar la tarea como cancelada (soft delete para no romper FKs de
+      //    notificaciones / comentarios / adjuntos que apunten a esta tarea)
       const { error: taskError } = await supabase
         .from("tasks")
-        .delete()
+        .update({ status: "cancelado", updated_at: new Date().toISOString() })
         .eq("id", taskId);
 
       if (taskError) throw mapSupabaseError(taskError);

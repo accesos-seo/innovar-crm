@@ -66,9 +66,9 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
       }}
       footer={
         canEditDetails && onDeleteClick && (
-          <Button 
-            variant="outline" 
-            className="w-full h-12 border-destructive/20 text-destructive hover:bg-destructive hover:text-white rounded-none text-[10px] font-black uppercase tracking-widest transition-all" 
+          <Button
+            variant="destructive"
+            className="w-full h-12 rounded-none text-[10px] font-black uppercase tracking-widest transition-all border border-white/25 text-white hover:bg-destructive/30"
             onClick={() => onDeleteClick(task.id)}
           >
             <Trash2 className="w-4 h-4 mr-2" />
@@ -115,7 +115,7 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 2: DESCRIPCIÓN */}
           <div className="space-y-6">
@@ -130,12 +130,12 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
             </div>
           </div>
 
-          <div className="h-px bg-border/10 w-full" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           {/* SECCIÓN 3: ADJUNTOS Y COMENTARIOS */}
           <div className="space-y-8">
             <TaskAttachments taskId={task.id} />
-            <div className="h-px bg-border/10 w-full" />
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <TaskComments taskId={task.id} />
           </div>
         </div>

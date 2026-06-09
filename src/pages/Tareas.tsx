@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckSquare, Plus, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TaskMetrics } from '@/components/tareas/TaskMetrics';
@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Task } from '@/types/database';
 import { notify } from '@/components/ui/PremiumToast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 import { useActiveStaff } from '@/hooks/agenda/useActiveStaff';
 
@@ -25,19 +26,27 @@ import { PrimaryButton } from '@/components/shared/PrimaryButton';
 
 export default function TareasPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuthStore();
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
-  
+
   const [filters, setFilters] = useState({ category: 'all', assigned_to: 'all', priority: -1, status: 'all', searchTerm: '' });
+
+  // ── PATRÓN DEEP-LINK: id recibido por navigate(..., { state: { taskId } }) ──
+  const pendingTaskIdRef = useRef<string | null>(
+    (location.state as { taskId?: string } | null)?.taskId ?? null
+  );
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState('pendiente');
   
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data: staff = [] } = useActiveStaff();
   const { data: tasks = [] } = useTasks(filters);
+
   const reorderKanban = useReorderKanban();
   const { bulkUpdateStatus, bulkDelete } = useTaskBulkActions();
 
@@ -48,6 +57,16 @@ export default function TareasPage() {
     setSelectedTask(task);
     setIsDetailOpen(true);
   };
+
+  // ── PATRÓN DEEP-LINK: disparar modal cuando lleguen los datos ────────────────
+  // pendingTaskIdRef se carga una sola vez desde location.state.taskId (useRef, no useState)
+  useEffect(() => {
+    if (!pendingTaskIdRef.current || tasks.length === 0) return;
+    const target = tasks.find(t => t.id === pendingTaskIdRef.current);
+    if (!target) return;
+    pendingTaskIdRef.current = null; // one-shot: descarta antes de setState
+    handleTaskClick(target);
+  }, [tasks]); // handleTaskClick es estable (no depende de props/estado externo)
 
   const handleAddTask = (status: string = 'pendiente') => {
     setNewTaskStatus(status);
@@ -83,14 +102,20 @@ export default function TareasPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Está seguro de eliminar esta tarea?")) return;
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await bulkDelete.mutateAsync([id]);
-      notify.success("Tarea eliminada", "");
+      await bulkDelete.mutateAsync([deleteConfirmId]);
+      notify.success("Tarea eliminada", "La tarea fue eliminada correctamente.");
       setIsDetailOpen(false);
     } catch {
       notify.error("Error", "No se pudo eliminar la tarea");
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -191,11 +216,23 @@ export default function TareasPage() {
         onDeleteClick={isAdmin ? handleDelete : undefined}
       />
 
-      <NewTaskModal 
+      <NewTaskModal
         isOpen={isNewTaskOpen}
         onClose={() => setIsNewTaskOpen(false)}
         staff={staff}
         defaultStatus={newTaskStatus}
+      />
+
+      <ConfirmationDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={bulkDelete.isPending}
+        variant="destructive"
+        title={formatSentenceCase("¿Eliminar esta tarea?")}
+        description={formatSentenceCase("Esta acción no se puede deshacer. La tarea será eliminada permanentemente.")}
+        confirmText={formatSentenceCase("Sí, eliminar")}
+        cancelText={formatSentenceCase("Cancelar")}
       />
 
     </div>

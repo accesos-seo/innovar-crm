@@ -417,7 +417,7 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           <div className="grid grid-cols-2 gap-x-12 gap-y-8 py-8">
             <InlineEditField
@@ -432,7 +432,7 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           <div className="grid grid-cols-2 gap-x-12 gap-y-8 pt-8">
             <InlineEditField

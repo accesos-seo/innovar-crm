@@ -5,9 +5,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserCog } from "lucide-react";
+import { Plus, UserCog, ArrowRightLeft } from "lucide-react";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { useOpportunityTransition } from "@/hooks/useOpportunityTransition";
 import {
@@ -55,23 +54,24 @@ export function OpportunityActions({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          {formatSentenceCase("Cambiar estado")}
-        </label>
-        <Select value={pendingStatus} onValueChange={handleStatusChange}>
-          <SelectTrigger className="h-12 rounded-none">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {OPPORTUNITY_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {formatSentenceCase(opportunityStatusConfig[s].label)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select value={pendingStatus} onValueChange={handleStatusChange}>
+        <SelectTrigger
+          aria-label={formatSentenceCase("Cambiar estado")}
+          className="w-full !h-12 px-4 rounded-none gap-2 text-sm font-bold border border-border/50 bg-background hover:border-primary/40 transition-colors"
+        >
+          <ArrowRightLeft className="w-4 h-4 text-primary shrink-0" />
+          <span className="truncate flex-1 text-left">
+            {formatSentenceCase(opportunityStatusConfig[pendingStatus]?.label ?? pendingStatus)}
+          </span>
+        </SelectTrigger>
+        <SelectContent>
+          {OPPORTUNITY_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {formatSentenceCase(opportunityStatusConfig[s].label)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <Button
         variant="outline"

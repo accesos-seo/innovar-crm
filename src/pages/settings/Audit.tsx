@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { 
@@ -33,14 +34,13 @@ import { CalendarPopover } from "@/components/ui/calendar-popover";
 import { parseISO } from "date-fns";
 
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 interface AuditLog {
   id: string;
   userId: string;
   userName: string;
-  action: 'create' | 'update' | 'delete' | 'restore';
+  action: string;
   tableName: string;
   recordId: string;
   changesSummary: string;
@@ -49,11 +49,48 @@ interface AuditLog {
   timestamp: string;
 }
 
-const actionMap: Record<AuditLog['action'], { label: string; color: string }> = {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const KEY_LABELS: Record<string, string> = {
+  amount: "Monto", method: "Método", type: "Tipo", designer: "Diseñador",
+  status: "Estado", field: "Campo", from: "De", to: "A",
+  name: "Nombre", client: "Cliente", quotation: "Cotización",
+};
+
+const VALUE_LABELS: Record<string, string> = {
+  advance: "Anticipo", installment: "Abono", final: "Pago Final", refund: "Reembolso",
+  pending: "Pendiente", verified: "Verificado", rejected: "Rechazado",
+  cancelled: "Cancelado", approved: "Aprobado",
+};
+
+function formatSummary(summary: string): string {
+  if (!summary) return "—";
+  const pairs = summary.match(/\w+=\S+/g);
+  if (!pairs || pairs.length === 0) return summary;
+  return pairs.map(pair => {
+    const eqIdx = pair.indexOf("=");
+    const key = pair.slice(0, eqIdx);
+    let val = pair.slice(eqIdx + 1);
+    if (UUID_RE.test(val)) val = val.slice(0, 8) + "…";
+    else if (key === "amount") val = `$${Number(val).toLocaleString("es-CO")}`;
+    else val = VALUE_LABELS[val] ?? val;
+    return `${KEY_LABELS[key] ?? key}: ${val}`;
+  }).join(" · ");
+}
+
+const PAGE_SIZE = 20;
+
+const actionMap: Record<string, { label: string; color: string }> = {
   create: { label: "Creación", color: "bg-emerald-500/10 text-emerald-500" },
   update: { label: "Edición", color: "bg-blue-500/10 text-blue-500" },
   delete: { label: "Eliminación", color: "bg-destructive/10 text-destructive" },
   restore: { label: "Restauración", color: "bg-purple-500/10 text-purple-500" },
+  quotation_cancelled: { label: "Cotización Cancelada", color: "bg-destructive/10 text-destructive" },
+  quotation_status_changed: { label: "Estado Cotización", color: "bg-blue-500/10 text-blue-500" },
+  quotation_superseded: { label: "Cotización Reemplazada", color: "bg-yellow-500/10 text-yellow-500" },
+  payment_verified: { label: "Pago Verificado", color: "bg-emerald-500/10 text-emerald-500" },
+  payment_rejected: { label: "Pago Rechazado", color: "bg-destructive/10 text-destructive" },
+  payment_registered_manual: { label: "Pago Manual", color: "bg-purple-500/10 text-purple-500" },
 };
 
 const columns: ColumnDef<AuditLog>[] = [
@@ -77,7 +114,7 @@ const columns: ColumnDef<AuditLog>[] = [
     header: "Acción",
     cell: ({ row }) => (
       <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-tighter rounded-none", actionMap[row.original.action]?.color)}>
-        {actionMap[row.original.action].label}
+        {actionMap[row.original.action]?.label ?? row.original.action}
       </Badge>
     ),
   },
@@ -89,15 +126,68 @@ const columns: ColumnDef<AuditLog>[] = [
   {
     accessorKey: "changesSummary",
     header: "Resumen de Cambios",
-    cell: ({ row }) => <span className="text-xs text-foreground truncate max-w-[300px]">{row.original.changesSummary}</span>,
+    cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground max-w-[320px] truncate block">
+        {formatSummary(row.original.changesSummary)}
+      </span>
+    ),
   },
 ];
 
+function exportLogsToCSV(logs: AuditLog[]) {
+  if (logs.length === 0) {
+    return false;
+  }
+  const headers = [
+    "Fecha/Hora", "Usuario", "Acción", "Módulo",
+    "ID Registro", "Resumen de Cambios", "IP", "Dispositivo",
+  ];
+  const rows = logs.map(log => [
+    log.timestamp,
+    log.userName || "Sistema",
+    actionMap[log.action]?.label ?? log.action,
+    log.tableName,
+    log.recordId || "",
+    formatSummary(log.changesSummary),
+    log.ipAddress || "",
+    log.userAgent || "",
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
 export default function AuditSettingsPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [logs, setLogs] = React.useState<AuditLog[]>([]);
   const [selectedLog, setSelectedLog] = React.useState<AuditLog | null>(null);
+  const [pageIndex, setPageIndex] = React.useState(0);
+
+  const { data: logs = [], isLoading } = useQuery<AuditLog[]>({
+    queryKey: ['audit_logs'],
+    queryFn: async () => {
+      if (!supabase) return [];
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(200);
+      if (error) {
+        toast.error("Error de auditoría", { description: "No se pudieron obtener los registros de auditoría." });
+        return [];
+      }
+      return (data || []) as AuditLog[];
+    },
+  });
 
   const metrics: MetricData[] = [
     { title: "Eventos Totales", value: logs.length, description: "Historial acumulado", icon: Activity, trend: "up", color: "blue" },
@@ -105,40 +195,6 @@ export default function AuditSettingsPage() {
     { title: "Tablas Afectadas", value: new Set(logs.map(l => l.tableName)).size, description: "Módulos activos", icon: Database, trend: "neutral", color: "green" },
     { title: "Usuarios Activos", value: new Set(logs.map(l => l.userId)).size, description: "Realizando cambios", icon: User, trend: "up", color: "yellow" },
   ];
-
-  const fetchLogs = async () => {
-    try {
-      setIsLoading(true);
-      if (!supabase) {
-        setLogs([]);
-        return;
-      }
-      
-      const query = supabase
-        .from('audit_logs')
-        .select('*')
-        .order('timestamp', { ascending: false });
-
-      const response = await withTimeout(query as any);
-      const { data, error } = response as any;
-
-      if (error) {
-        toast.error("Error de auditoría", { description: "No se pudieron obtener los registros de auditoría." });
-        setLogs([]);
-        return;
-      }
-      setLogs(data || []);
-    } catch (error: any) {
-      toast.error("Error inesperado", { description: "Tiempo de espera agotado al recuperar historial." });
-      setLogs([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchLogs();
-  }, []);
 
   return (
     <motion.div 
@@ -154,7 +210,11 @@ export default function AuditSettingsPage() {
         action={{
           label: "Exportar Log",
           icon: Download,
-          onClick: () => toast.success("Exportando auditoría en formato CSV...")
+          onClick: () => {
+            const ok = exportLogsToCSV(logs);
+            if (ok) toast.success(`${logs.length} registros exportados como CSV`);
+            else toast.error("Sin registros para exportar");
+          }
         }}
       />
 
@@ -197,13 +257,13 @@ export default function AuditSettingsPage() {
 
           <DataTable
             columns={columns}
-            data={logs}
+            data={logs.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE)}
             isLoading={isLoading}
             totalCount={logs.length}
-            pageCount={1}
-            pageIndex={0}
-            pageSize={10}
-            onPageChange={() => {}}
+            pageCount={Math.max(1, Math.ceil(logs.length / PAGE_SIZE))}
+            pageIndex={pageIndex}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPageIndex}
             onPageSizeChange={() => {}}
             onRowClick={setSelectedLog}
             emptyMessage={
@@ -231,7 +291,7 @@ export default function AuditSettingsPage() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Acción Ejecutada</p>
               <Badge variant="outline" className={cn("mt-1 text-[10px] font-bold uppercase tracking-widest", selectedLog ? actionMap[selectedLog.action]?.color : "")}>
-                {selectedLog ? actionMap[selectedLog.action].label : ""}
+                {selectedLog ? (actionMap[selectedLog.action]?.label ?? selectedLog.action) : ""}
               </Badge>
             </div>
           </div>
@@ -249,8 +309,15 @@ export default function AuditSettingsPage() {
             </div>
             <div className="col-span-2 space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Resumen de Cambios</p>
-              <div className="bg-muted/30 p-4 border border-border/10 rounded-sm">
-                <p className="text-sm text-foreground leading-relaxed">{selectedLog?.changesSummary}</p>
+              <div className="bg-muted/30 p-4 border border-border/10 rounded-sm space-y-2">
+                <p className="text-sm text-foreground leading-relaxed">
+                  {selectedLog ? formatSummary(selectedLog.changesSummary) : ""}
+                </p>
+                {selectedLog?.changesSummary && (
+                  <p className="text-[10px] font-mono text-muted-foreground/50 break-all">
+                    {selectedLog.changesSummary}
+                  </p>
+                )}
               </div>
             </div>
           </div>

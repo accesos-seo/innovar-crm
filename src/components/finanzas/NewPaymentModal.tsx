@@ -11,7 +11,14 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useCreatePayment } from '@/hooks/finanzas/useCreatePayment';
-import { type PaymentMethod, type PaymentType } from '@/schemas';
+import {
+  PAYMENT_METHOD_LABELS_ES,
+  PAYMENT_TYPE_LABELS_ES,
+  paymentMethodSchema,
+  paymentTypeSchema,
+  type PaymentMethod,
+  type PaymentType,
+} from '@/schemas/payment';
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { notify } from '@/components/ui/PremiumToast';
@@ -40,22 +47,15 @@ interface NewPaymentModalProps {
   onClose: () => void;
 }
 
-const METHOD_OPTIONS = [
-  { value: "efectivo", label: "Efectivo" },
-  { value: "transferencia", label: "Transferencia" },
-  { value: "credito", label: "Crédito" },
-  { value: "cheque", label: "Cheque" },
-  { value: "nequi", label: "Nequi" },
-  { value: "daviplata", label: "Daviplata" },
-  { value: "pse", label: "PSE" },
-];
+const METHOD_OPTIONS = paymentMethodSchema.options.map((value) => ({
+  value,
+  label: PAYMENT_METHOD_LABELS_ES[value],
+}));
 
-const TYPE_OPTIONS = [
-  { value: "anticipo", label: "Anticipo" },
-  { value: "abono", label: "Abono" },
-  { value: "pago_final", label: "Pago Final" },
-  { value: "reembolso", label: "Reembolso" },
-];
+const TYPE_OPTIONS = paymentTypeSchema.options.map((value) => ({
+  value,
+  label: PAYMENT_TYPE_LABELS_ES[value],
+}));
 
 export function NewPaymentModal({ isOpen, onClose }: NewPaymentModalProps) {
   const createPayment = useCreatePayment();

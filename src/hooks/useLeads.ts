@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { Client as Lead } from "@/types/database";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import { clientSchema, type ClientInsert } from "@/schemas/client";
@@ -82,7 +81,7 @@ export function useLeads(
         ordered = ordered.range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
       }
 
-      const response = (await withTimeout(ordered)) as any;
+      const response = (await ordered) as any;
       const { data, error, count } = response;
 
       if (error) throw mapSupabaseError(error);
@@ -166,4 +165,34 @@ export function useLeads(
     restoreLeads: async (ids: string[]) => restoreMutation.mutateAsync(ids),
     createLead: async (leadData: Partial<ClientInsert>) => createMutation.mutateAsync(leadData),
   };
+}
+
+/**
+ * Mutación standalone para actualizar un lead (fila en tabla `clients`).
+ * Hook separado de `useLeads` para no obligar a montar la query de listado
+ * cuando un componente solo necesita guardar cambios.
+ *
+ * Invalida tanto `leads` como `clients` porque comparten tabla.
+ */
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ClientInsert> }) => {
+      assertSupabase(supabase);
+      const { data, error } = await supabase
+        .from("clients")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw mapSupabaseError(error);
+      return data as Lead;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [LEADS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (error) => notifyError(error, "Error al actualizar solicitud"),
+  });
 }

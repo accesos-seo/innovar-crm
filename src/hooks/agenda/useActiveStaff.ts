@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { withTimeout } from '@/lib/timeout';
 import { assertSupabase, mapSupabaseError } from '@/lib/errors';
 
 interface Profile {
@@ -19,7 +18,7 @@ export function useActiveStaff() {
         .from('profiles')
         .select('id, full_name, role');
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
 
       if (error) throw mapSupabaseError(error);

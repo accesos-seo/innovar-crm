@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type ConfirmVariant = "destructive" | "warning" | "default";
+
 interface ConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,8 +22,44 @@ interface ConfirmationDialogProps {
   description: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: "destructive" | "default";
+  /**
+   * Tono visual del confirm dialog:
+   * - "destructive" (rojo): acciones IRREVERSIBLES (DELETE permanente, force-push).
+   * - "warning" (ámbar):   acciones REVERSIBLES con impacto (archivar, suspender).
+   * - "default" (verde):   acciones rutinarias positivas.
+   *
+   * Default cambió a "warning" porque casi todos los usos del diálogo son
+   * archivar/desactivar (reversibles). Las acciones destructive reales son raras
+   * y se piden explícitamente.
+   */
+  variant?: ConfirmVariant;
 }
+
+const VARIANT_STYLES: Record<ConfirmVariant, {
+  bar: string;
+  iconBg: string;
+  iconColor: string;
+  button: string;
+}> = {
+  destructive: {
+    bar: "bg-red-500",
+    iconBg: "bg-red-500/10",
+    iconColor: "text-red-400",
+    button: "bg-red-500 text-white hover:bg-red-600",
+  },
+  warning: {
+    bar: "bg-amber-500",
+    iconBg: "bg-amber-500/10",
+    iconColor: "text-amber-400",
+    button: "bg-amber-500 text-black hover:bg-amber-400",
+  },
+  default: {
+    bar: "bg-primary",
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    button: "bg-primary text-primary-foreground hover:bg-primary/90",
+  },
+};
 
 export function ConfirmationDialog({
   isOpen,
@@ -32,21 +70,19 @@ export function ConfirmationDialog({
   description,
   confirmText = "Confirmar",
   cancelText = "Cancelar",
-  variant = "destructive",
+  variant = "warning",
 }: ConfirmationDialogProps) {
+  const s = VARIANT_STYLES[variant];
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-card border-border/10 sm:max-w-[400px] p-0 overflow-hidden gap-0">
-        <div className={cn(
-          "h-1 w-full shrink-0",
-          variant === "destructive" ? "bg-destructive/50" : "bg-primary/50"
-        )} />
-        
+        <div className={cn("h-1 w-full shrink-0", s.bar)} />
+
         <div className="p-8 space-y-6">
           <DialogHeader className="space-y-4">
             <div className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center mx-auto",
-              variant === "destructive" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+              s.iconBg, s.iconColor,
             )}>
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -62,12 +98,11 @@ export function ConfirmationDialog({
 
           <DialogFooter className="flex flex-col sm:flex-col gap-2 sm:space-x-0">
             <Button
-              variant={variant}
               onClick={onConfirm}
               disabled={isLoading}
               className={cn(
-                "w-full h-12 font-bold uppercase text-xs tracking-widest rounded-none transition-all duration-300",
-                variant === "destructive" ? "hover:bg-destructive/90" : "hover:bg-primary/90"
+                "w-full h-12 font-bold uppercase text-xs tracking-widest rounded-none transition-colors duration-200",
+                s.button,
               )}
             >
               {isLoading ? (
@@ -83,7 +118,7 @@ export function ConfirmationDialog({
               variant="ghost"
               onClick={onClose}
               disabled={isLoading}
-              className="w-full h-12 font-bold uppercase text-xs tracking-widest rounded-none text-muted-foreground hover:text-foreground"
+              className="w-full h-12 font-bold uppercase text-xs tracking-widest rounded-none text-muted-foreground hover:text-foreground hover:bg-muted/40"
             >
               {cancelText}
             </Button>

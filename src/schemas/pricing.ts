@@ -7,17 +7,13 @@ import { z } from "zod";
  * for historical reasons. Schema mirrors them as-is.
  */
 export const pricingCategorySchema = z.enum([
-  "cocina_base",
-  "mesones",
-  "muebles_especiales",
-  "extras",
-  "puertas_tapas",
-  "herrajes",
-  "closets",
-  "puertas_producto",
-  "centros_tv",
-  "otros",
-  "acabados_especiales",
+  "cocina",
+  "closet",
+  "puerta",
+  "centro_tv",
+  "meson",
+  "herraje",
+  "otro",
 ]);
 
 export const pricingSchema = z.object({

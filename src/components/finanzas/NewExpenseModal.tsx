@@ -141,8 +141,8 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
         </div>
       }
     >
-      <form id="new-expense-form" onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <form id="new-expense-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* SECCIÓN 1: IDENTIFICACIÓN */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 border-l-4 border-primary pl-4">

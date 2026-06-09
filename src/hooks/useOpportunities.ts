@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import { toast } from "sonner";
 import {
@@ -28,6 +27,7 @@ export interface OpportunityWithClient extends OpportunityRow {
     id: string;
     full_name: string | null;
     email: string | null;
+    avatar_url: string | null;
   } | null;
 }
 
@@ -60,7 +60,7 @@ export function useOpportunities(
         .select(
           `*,
            client:clients!opportunities_client_id_fkey(id,name,email,whatsapp_phone,address),
-           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email)`,
+           assigned_user:profiles!opportunities_assigned_to_fkey(id,full_name,email,avatar_url)`,
           { count: "exact" },
         );
 
@@ -107,7 +107,7 @@ export function useOpportunities(
         );
       }
 
-      const response = (await withTimeout(ordered)) as any;
+      const response = (await ordered) as any;
       const { data, error, count } = response;
       if (error) throw mapSupabaseError(error);
 
@@ -138,11 +138,51 @@ export function useOpportunities(
   const archiveMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       assertSupabase(supabase);
+
+      // 1. Obtener los client_ids antes de archivar (para limpiar después).
+      const { data: oppsToArchive, error: fetchErr } = await supabase
+        .from("opportunities")
+        .select("id, client_id")
+        .in("id", ids)
+        .is("deleted_at", null);
+      if (fetchErr) throw mapSupabaseError(fetchErr);
+
+      const clientIds = [...new Set(
+        (oppsToArchive ?? []).map((o: { id: string; client_id: string | null }) => o.client_id).filter(Boolean) as string[]
+      )];
+
+      // 2. Archivar las oportunidades.
       const { error } = await supabase
         .from("opportunities")
         .update({ deleted_at: new Date().toISOString() })
         .in("id", ids);
       if (error) throw mapSupabaseError(error);
+
+      // 3. Para cada cliente afectado, si ya no tiene oportunidades activas,
+      //    archivarlo también — esto libera el UNIQUE parcial de whatsapp_phone
+      //    y permite reutilizar el teléfono en la próxima prueba o registro.
+      if (clientIds.length) {
+        const { data: stillActive } = await supabase
+          .from("opportunities")
+          .select("client_id")
+          .in("client_id", clientIds)
+          .is("deleted_at", null);
+
+        const activeClientIds = new Set(
+          (stillActive ?? [])
+            .map((o: { client_id: string | null }) => o.client_id)
+            .filter(Boolean) as string[]
+        );
+        const clientsToArchive = clientIds.filter((id) => !activeClientIds.has(id));
+
+        if (clientsToArchive.length) {
+          await supabase
+            .from("clients")
+            .update({ deleted_at: new Date().toISOString() })
+            .in("id", clientsToArchive)
+            .is("deleted_at", null);
+        }
+      }
     },
     onSuccess: (_data, ids) => {
       toast.success(
@@ -151,6 +191,7 @@ export function useOpportunities(
           : `${ids.length} oportunidades archivadas`,
       );
       queryClient.invalidateQueries({ queryKey: [OPPORTUNITIES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
     onError: (error) => notifyError(error, "Error al archivar oportunidades"),
   });
@@ -196,20 +237,57 @@ export function useOpportunities(
     }) => {
       assertSupabase(supabase);
 
+      // Normalizado: solo dígitos (ej. "573183061286"). Usado para insertar y
+      // para lookup. También buscamos la variante con "+" por compatibilidad con
+      // registros legacy que puedan tener el prefijo.
       const normalizedPhone = input.whatsappPhone.replace(/[^0-9]/g, "");
+      const phoneWithPlus = `+${normalizedPhone}`;
 
-      // 1. Buscar cliente activo con ese teléfono normalizado.
-      const { data: existingClients, error: lookupErr } = await supabase
+      // 1a. Buscar cliente activo sin prefijo "+".
+      // Seleccionamos id + name para poder informar en UI cuando el cliente ya existe.
+      const { data: foundWithout, error: lookupErr } = await supabase
         .from("clients")
-        .select("id")
+        .select("id, name")
         .eq("whatsapp_phone", normalizedPhone)
         .is("deleted_at", null)
         .limit(1);
       if (lookupErr) throw mapSupabaseError(lookupErr);
 
-      let clientId = existingClients?.[0]?.id;
+      // 1b. Si no encontró, buscar con prefijo "+" (registros legacy).
+      let existingClients = foundWithout;
+      if (!existingClients?.length) {
+        const { data: foundWith, error: lookupErr2 } = await supabase
+          .from("clients")
+          .select("id, name")
+          .eq("whatsapp_phone", phoneWithPlus)
+          .is("deleted_at", null)
+          .limit(1);
+        if (lookupErr2) throw mapSupabaseError(lookupErr2);
+        existingClients = foundWith;
+      }
+
+      const existingClient = existingClients?.[0] ?? null;
+      let clientId = existingClient?.id;
+
+      // Si el cliente ya existe, avisar al llamador a través del toast para que
+      // el usuario sepa que la oportunidad se crea para ese cliente, no para el
+      // nombre que escribió en el form. Esto evita confusión cuando el teléfono
+      // pertenece a alguien diferente al nombre ingresado.
+      if (existingClient?.name) {
+        toast.info(
+          `El teléfono ya pertenece a "${existingClient.name}". La oportunidad se registrará para ese cliente.`,
+        );
+      }
 
       // 2. Si no existe, crearlo.
+      // services y urgency también se escriben en clients para que el trigger
+      // tr_on_new_lead_email → smart-api pueda leerlos en el email de bienvenida.
+      // La priority en opportunities usa "LON" pero smart-api espera "LONG".
+      const clientUrgency =
+        input.priority === "LON" ? "LONG" : (input.priority ?? null);
+      const clientServices =
+        input.services?.length ? input.services.join(", ") : null;
+
       if (!clientId) {
         const { data: newClient, error: clientErr } = await supabase
           .from("clients")
@@ -220,6 +298,8 @@ export function useOpportunities(
               email: input.email || null,
               address: input.address || null,
               city: input.city || null,
+              services: clientServices,
+              urgency: clientUrgency,
             },
           ])
           .select("id")
@@ -228,26 +308,43 @@ export function useOpportunities(
         clientId = newClient.id;
       }
 
-      // 3. Insertar la opportunity (el trigger round-robin asignará el owner).
-      const payload: OpportunityInsert = opportunityInsertSchema.parse({
-        client_id: clientId,
-        status: input.status ?? "new",
-        services: input.services,
-        priority: input.priority,
-        data_origin: input.dataOrigin,
-        notes: input.notes ?? null,
-        city: input.city ?? null,
-        address: input.address ?? null,
-      });
+      // 3. Insertar la opportunity mediante RPC SECURITY DEFINER.
+      // Ruta directa a tabla (INSERT + RLS) retornaba 403 porque el JWT no se
+      // propagaba correctamente al contexto de PostgREST (auth.uid() = NULL).
+      // create_opportunity_v1 es SECURITY DEFINER: corre como postgres, bypasea
+      // RLS, pero valida auth.uid() internamente para asegurar autenticación.
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw mapSupabaseError(userErr);
+      const currentUserId = userData?.user?.id;
+      // Validación local defensiva antes de ir al servidor.
+      if (!currentUserId) throw new Error("Sesión expirada. Volvé a iniciar sesión.");
 
-      const { data: opp, error: oppErr } = await supabase
-        .from("opportunities")
-        .insert([payload])
-        .select("*")
-        .single();
+      // RPC SECURITY DEFINER: bypasea RLS (corre como postgres) pero valida
+      // auth.uid() internamente. Solución al 403 que producía el INSERT directo
+      // cuando el JWT no propagaba al contexto de PostgREST (auth.uid()=NULL).
+      const { data: rpcData, error: oppErr } = await supabase.rpc(
+        "create_opportunity_v1",
+        {
+          p_client_id:   clientId,
+          p_status:      input.status ?? "new",
+          p_services:    input.services,
+          p_priority:    input.priority,
+          p_data_origin: input.dataOrigin,
+          p_notes:       input.notes ?? null,
+          p_city:        input.city ?? null,
+          p_address:     input.address ?? null,
+          p_created_by:  currentUserId,
+        },
+      );
       if (oppErr) throw mapSupabaseError(oppErr);
 
-      return opp as OpportunityRow;
+      // rpcData es json (row_to_json) — guard para respuesta vacía inesperada.
+      if (!rpcData) throw new Error("Error al crear oportunidad: respuesta vacía del servidor.");
+
+      // El cast es necesario porque .rpc() tipea el retorno como `unknown`
+      // cuando el tipo de retorno es `json`. La estructura es idéntica a OpportunityRow
+      // (row_to_json(opportunities.*)).
+      return rpcData as unknown as OpportunityRow;
     },
     onSuccess: () => {
       toast.success("Oportunidad creada correctamente");
@@ -268,4 +365,40 @@ export function useOpportunities(
       restoreMutation.mutateAsync(ids),
     createOpportunity: createOpportunityMutation.mutateAsync,
   };
+}
+
+/**
+ * Mutación standalone para editar campos de una oportunidad desde el modal de
+ * detalle (Servicios, Ciudad, Dirección, Urgencia, Notas).
+ *
+ * Para transiciones de status usar `useOpportunityTransition` — ese hook valida
+ * los estados permitidos y dispara side-effects (notificaciones, history).
+ */
+export function useUpdateOpportunity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<OpportunityRow>;
+    }) => {
+      assertSupabase(supabase);
+      const { data, error } = await supabase
+        .from("opportunities")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw mapSupabaseError(error);
+      return data as OpportunityRow;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITIES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["opportunity", vars.id] });
+    },
+    onError: (error) => notifyError(error, "Error al actualizar oportunidad"),
+  });
 }

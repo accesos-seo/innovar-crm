@@ -14,6 +14,7 @@ export function WhatsAppField({ countries, onChange, initialValue, label = "What
   const {
     selectedCountryCode,
     phoneNumberBody,
+    formattedPhone,
     isPhoneDropdownOpen,
     setIsPhoneDropdownOpen,
     phoneDropdownRef,
@@ -72,14 +73,18 @@ export function WhatsAppField({ countries, onChange, initialValue, label = "What
         <div className="relative flex-1">
           <input
             type="text"
-            value={phoneNumberBody}
+            inputMode="tel"
+            value={formattedPhone}
             onChange={handlePhoneBodyChange}
-            placeholder="300 123 4567"
-            maxLength={10}
+            placeholder="(300) 123 4567"
+            maxLength={14}
             className={cn(
-              "w-full bg-background border px-4 h-14 rounded-sm text-base font-bold transition-all focus:outline-none placeholder:text-muted-foreground placeholder:font-normal",
-              isComplete ? "border-primary text-foreground shadow-[0_0_15px_rgba(68,221,193,0.1)]" : "border-border/40 text-foreground",
-              hasError && "border-red-500/50 bg-red-500/5 focus:border-red-500 transition-colors"
+              // Borde neutro siempre, verde solo con focus (no permanente).
+              // La validación de "10/10 dígitos OK" se comunica via icono Zap
+              // a la derecha + contador del label, NO via borde fijo, para que
+              // no parezca que el campo sigue en edición tras guardar.
+              "w-full bg-background border border-border/40 px-4 h-14 rounded-sm text-base font-bold tracking-wider text-foreground transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(68,221,193,0.1)] placeholder:text-muted-foreground/40 placeholder:font-normal",
+              hasError && "border-red-500/50 bg-red-500/5 focus:border-red-500"
             )}
           />
           <Zap className={cn(

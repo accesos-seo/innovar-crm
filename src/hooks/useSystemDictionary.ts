@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { withTimeout } from '@/lib/timeout';
 import { SystemDictionaryEntry } from '@/types/database';
 import { toast } from 'sonner';
 import { assertSupabase, mapSupabaseError, notifyError } from '@/lib/errors';
@@ -30,7 +29,7 @@ export function useSystemDictionary(filters?: { category?: string; status?: stri
         query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
 
-      const response = await withTimeout(query.order('category', { ascending: true }).order('name', { ascending: true })) as any;
+      const response = await query.order('category', { ascending: true }).order('name', { ascending: true }) as any;
       const { data, error } = response;
 
       if (error) throw mapSupabaseError(error);

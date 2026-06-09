@@ -1,10 +1,10 @@
 import * as React from "react";
-import { 
-  LayoutDashboard, 
-  PencilRuler, 
-  Users, 
-  CreditCard, 
-  Plus, 
+import {
+  LayoutDashboard,
+  PencilRuler,
+  Users,
+  CreditCard,
+  Plus,
   Calendar,
   ChevronRight,
   ChevronDown,
@@ -12,13 +12,18 @@ import {
   UserCircle,
   FileText,
   Clock,
+  CalendarClock,
   CheckSquare,
   Bell,
   Wallet,
   Receipt,
   BarChart3,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Zap,
+  Bot,
+  BookOpen,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/store/uiStore";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
+import { useAuthStore } from "@/store/authStore";
+import { notify } from "@/components/ui/PremiumToast";
 
 interface SubItem {
   label: string;
@@ -58,12 +65,13 @@ const navItems: NavItem[] = [
     label: "Agenda & Tareas", 
     children: [
       { label: "Citas", path: "/agenda", icon: Clock },
+      { label: "Reuniones", path: "/reuniones", icon: CalendarClock },
       { label: "Tareas", path: "/tasks", icon: CheckSquare },
     ]
   },
-  { 
-    icon: CreditCard, 
-    label: "Finanzas", 
+  {
+    icon: CreditCard,
+    label: "Finanzas",
     children: [
       { label: "Pagos", path: "/finanzas/pagos", icon: Wallet },
       { label: "Gastos", path: "/finanzas/gastos", icon: Receipt },
@@ -72,20 +80,14 @@ const navItems: NavItem[] = [
   },
 ];
 
-const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean }> = ({ item, isActive, isChildActive, isCollapsed }) => {
-  const [isOpen, setIsOpen] = React.useState(isChildActive);
+const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean; isOpen: boolean; onToggle: () => void }> = ({ item, isActive, isChildActive, isCollapsed, isOpen, onToggle }) => {
   const location = useLocation();
-
-  // Update open state if a child becomes active externally
-  React.useEffect(() => {
-    if (isChildActive) setIsOpen(true);
-  }, [isChildActive]);
 
   if (item.children) {
     return (
       <div className="space-y-1">
         <button
-          onClick={() => !isCollapsed && setIsOpen(!isOpen)}
+          onClick={() => !isCollapsed && onToggle()}
           className={cn(
             "w-full group flex items-center px-4 py-3 rounded-md transition-all duration-200",
             isCollapsed ? "justify-center" : "justify-between",
@@ -170,6 +172,18 @@ export const Sidebar = React.memo(function Sidebar() {
   const navigate = useNavigate();
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
 
+  const initialOpen = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+  const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
+
+  React.useEffect(() => {
+    const activeParent = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+    if (activeParent) setOpenSection(activeParent);
+  }, [location.pathname, navItems]);
+
+  const handleToggle = React.useCallback((label: string) => {
+    setOpenSection(prev => prev === label ? null : label);
+  }, []);
+
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate("/");
@@ -216,8 +230,8 @@ export const Sidebar = React.memo(function Sidebar() {
       {/* Primary Action Section */}
       <div className="p-4">
         <PrimaryButton 
-          onClick={() => navigate("/projects/new")}
-          label={isSidebarCollapsed ? "" : "Nuevo proyecto"}
+          onClick={() => navigate("/leads/new")}
+          label={isSidebarCollapsed ? "" : "Nuevo prospecto"}
           icon={Plus}
           className={cn(
             "w-full h-12 rounded-md",
@@ -236,25 +250,126 @@ export const Sidebar = React.memo(function Sidebar() {
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           const isChildActive = item.children?.some(child => location.pathname === child.path) || false;
-          
+
           return (
-            <NavItemComponent 
-              key={item.label} 
-              item={item} 
-              isActive={isActive} 
-              isChildActive={isChildActive} 
+            <NavItemComponent
+              key={item.label}
+              item={item}
+              isActive={isActive}
+              isChildActive={isChildActive}
               isCollapsed={isSidebarCollapsed}
+              isOpen={openSection === item.label}
+              onToggle={() => handleToggle(item.label)}
             />
           );
         })}
+
+        {/* ── Agentes section ── */}
+        <div className="pt-4 pb-1">
+          <div className="w-full h-px bg-gradient-to-r from-primary/30 via-border/40 to-transparent mb-3" />
+          {!isSidebarCollapsed && (
+            <div className="px-4 mb-2">
+              <span className="text-[10px] font-black text-primary/50 tracking-widest uppercase">Agentes</span>
+            </div>
+          )}
+        </div>
+        <Link
+          to="/agentes"
+          className={cn(
+            "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+            isSidebarCollapsed ? "justify-center" : "justify-between",
+            location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")
+              ? "text-primary bg-primary/5 font-bold"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <Bot className={cn(
+              "w-5 h-5 transition-colors",
+              location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")
+                ? "text-primary"
+                : "group-hover:text-primary"
+            )} />
+            {!isSidebarCollapsed && <span className="text-sm tracking-tight">Agentes</span>}
+          </div>
+          {!isSidebarCollapsed && (location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")) && (
+            <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+          )}
+          {!isSidebarCollapsed && !(location.pathname.startsWith("/agentes") || location.pathname.startsWith("/motor-comercial")) && (
+            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+          )}
+        </Link>
       </nav>
 
-      {/* Footer Sidebar - Removed User Info as requested */}
-      <div className="p-4 border-t border-border/5 bg-muted/5 flex justify-center">
+      {/* Footer Sidebar - Documentation + Logout */}
+      <FooterActions isSidebarCollapsed={isSidebarCollapsed} navigate={navigate} />
+    </aside>
+  );
+});
+
+interface FooterActionsProps {
+  isSidebarCollapsed: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+}
+
+const FooterActions: React.FC<FooterActionsProps> = ({ isSidebarCollapsed, navigate }) => {
+  const { logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      notify.info("Cerrando sesión...");
+      await logout();
+      notify.success("Sesión cerrada correctamente");
+      navigate("/login");
+    } catch (error) {
+      notify.error("Error al cerrar sesión");
+    }
+  };
+
+  return (
+    <div className="p-4 border-t border-border/5 bg-muted/5 space-y-2">
+      {/* Documentación Link */}
+      <a
+        href="/docs"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+          isSidebarCollapsed ? "justify-center" : "justify-between",
+          "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+        )}
+        title="Documentación"
+      >
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 transition-colors group-hover:text-primary" />
+          {!isSidebarCollapsed && <span className="text-sm tracking-tight">Documentación</span>}
+        </div>
+        {!isSidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
+      </a>
+
+      {/* Cerrar Sesión Button */}
+      <button
+        onClick={handleLogout}
+        className={cn(
+          "w-full group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+          isSidebarCollapsed ? "justify-center" : "justify-between",
+          "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        )}
+        title="Cerrar Sesión"
+      >
+        <div className="flex items-center gap-3">
+          <LogOut className="w-5 h-5 transition-colors" />
+          {!isSidebarCollapsed && <span className="text-sm tracking-tight">Cerrar Sesión</span>}
+        </div>
+        {!isSidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />}
+      </button>
+
+      {/* Version Info */}
+      <div className="pt-2 flex justify-center">
         <span className="text-[8px] font-bold text-muted-foreground/30">
           {isSidebarCollapsed ? "INV" : "Innovar v1.0"}
         </span>
       </div>
-    </aside>
+    </div>
   );
-});
+};

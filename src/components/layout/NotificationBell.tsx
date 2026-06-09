@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, MapPin, CheckCircle, RefreshCcw, Info, Clock, AlertCircle, Check } from 'lucide-react';
+import { Bell, MapPin, CheckCircle, RefreshCcw, Info, Clock, AlertCircle, Check, FileCheck, MessageSquare, XCircle, Upload, Briefcase, FileText } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +23,27 @@ export const getNotificationIcon = (type: string) => {
       return <CheckCircle className="w-5 h-5 text-green-500" />;
     case 'booking_cancelled':
       return <AlertCircle className="w-5 h-5 text-destructive" />;
+    case 'visit_overdue':
+      return <Clock className="w-5 h-5 text-orange-500" />;
     case 'project_status':
       return <RefreshCcw className="w-5 h-5 text-primary" />;
+    // Fase 4 — flujo de cotización pública
+    case 'quotation_sent':
+      return <FileText className="w-5 h-5 text-blue-500" />;
+    case 'quotation_accepted':
+      return <FileCheck className="w-5 h-5 text-green-500" />;
+    case 'quotation_adjustments_requested':
+      return <MessageSquare className="w-5 h-5 text-yellow-500" />;
+    case 'quotation_rejected':
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    case 'quotation_expired':
+      return <Clock className="w-5 h-5 text-orange-500" />;
+    case 'quotation_reactivation_requested':
+      return <RefreshCcw className="w-5 h-5 text-blue-500" />;
+    case 'payment_proof_uploaded':
+      return <Upload className="w-5 h-5 text-blue-500" />;
+    case 'project_assigned':
+      return <Briefcase className="w-5 h-5 text-green-500" />;
     case 'system':
     default:
       return <Info className="w-5 h-5 text-muted-foreground" />;
@@ -59,7 +78,7 @@ export function NotificationBell() {
 
   const handleViewAll = () => {
     setOpen(false);
-    navigate('/agenda/recordatorios');
+    navigate('/notifications');
   };
 
   return (

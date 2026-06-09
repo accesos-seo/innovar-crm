@@ -4,6 +4,7 @@ import { TopBar } from "./TopBar";
 import { Footer } from "./Footer";
 import { useUIStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
+import { InnovarChatbot } from "@/components/ui/InnovarChatbot";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <Footer />
       </main>
+      <InnovarChatbot />
     </div>
   );
 }

@@ -230,13 +230,14 @@ export function calcularCocina(
   console.log(`[kitchen.engine]   🪵 Costo muebles: $${desglose.costoMuebles.toLocaleString()}`);
 
   // ── PASO 3: Módulos Especiales ───────────────────────────
-  // REGLA (Fuente: ejemplos numéricos PASO 8 del documento):
-  //   Los módulos SOLO descuentan metraje — NO generan cargo adicional.
-  //   "Precio: Incluido en muebles" — el costo ya está absorbido
-  //   en la estructura de precios de la cocina completa.
-  //   costoModulos = 0 siempre.
-  //   (Los precios listados en PASO 2 son referencia interna de producción.)
-  console.log(`[kitchen.engine]   📦 Módulos: solo descuento de metraje aplicado. Sin cargo adicional.`);
+  // REGLA ACTUALIZADA: cada módulo cobra su precio de referencia del catálogo
+  // Y descuenta los metros que ocupa del metraje base (PASO 1 ya lo hizo).
+  for (const modulo of config.modulosEspeciales) {
+    const precioModulo = precio(catalog, modulo.codigo);
+    desglose.costoModulos += Math.round(precioModulo * modulo.cantidad);
+    console.log(`[kitchen.engine]   📦 ${modulo.codigo} ×${modulo.cantidad}: $${(precioModulo * modulo.cantidad).toLocaleString()}`);
+  }
+  console.log(`[kitchen.engine]   📦 Total módulos: $${desglose.costoModulos.toLocaleString()}`);
 
   // ── PASO 4: Mesón Principal ───────────────────────────────
   // SOLO_SUPERIOR y FRENTE_POLLO no llevan mesón (validación de negocio)

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
 import {
   materialInsertSchema,
@@ -36,9 +35,7 @@ export function useMaterials() {
     staleTime: 1000 * 60 * 10,
     queryFn: async (): Promise<HardwareItem[]> => {
       assertSupabase(supabase);
-      const response = (await withTimeout(
-        supabase.from("materials").select("*").order("name", { ascending: true }) as any
-      )) as any;
+      const response = (await (supabase.from("materials").select("*").order("name", { ascending: true }) as any)) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as HardwareItem[]) || [];

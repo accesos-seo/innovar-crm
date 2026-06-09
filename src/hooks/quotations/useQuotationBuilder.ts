@@ -202,7 +202,6 @@ export function useQuotationBuilder() {
           description: `Configuración de ${item.category}`,
           unit_price: item.calculatedTotal,
           quantity: 1,
-          calculated_total: item.calculatedTotal,
           configuration: item.configuration
         })));
       if (itemsError) throw itemsError;

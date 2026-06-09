@@ -144,7 +144,7 @@ export function ExpenseDetailPanel({ expense, isOpen, onClose }: ExpenseDetailPa
           </div>
         </div>
 
-        <div className="h-[1px] w-full bg-border/10" />
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* SECCIÓN 3: REGISTRO Y REVISIÓN */}
         <div className="space-y-6">
@@ -180,7 +180,7 @@ export function ExpenseDetailPanel({ expense, isOpen, onClose }: ExpenseDetailPa
           </div>
         </div>
 
-        <div className="h-[1px] w-full bg-border/10" />
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* SECCIÓN 4: COMPROBANTE */}
         <div className="space-y-6">

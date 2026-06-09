@@ -13,7 +13,27 @@
 - **Carpeta real del proyecto:** `C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main`
 - **Alias en OneDrive (mismo contenido, sincronizado):** `C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main`
 
-> **IMPORTANTE:** Usar siempre la ruta del **Escritorio** para comandos de git y deploy. Las tareas PowerShell en background se cuelgan en rutas de OneDrive — dar siempre comandos al usuario para ejecutar en su terminal.
+> **IMPORTANTE:** Usar siempre la ruta del **Escritorio** para comandos de git y deploy. Las **tareas PowerShell en background largo** se cuelgan en rutas de OneDrive — para esos casos puntuales (git push, vercel --prod, npm run dev) dar el comando al usuario. **Para todo lo demás (Supabase queries, Management API, lecturas, regenerar logs, escribir archivos) el agente ejecuta directamente.**
+
+---
+
+## Autonomía operativa (Innovar)
+
+Hereda el "Modo de autonomía por defecto" del `CLAUDE.md` global (`C:\Users\ceoel\.claude\CLAUDE.md`). Casos específicos de este proyecto:
+
+### El agente HACE SOLO (no delegar)
+- **SQL en Supabase Innovar** (`xdzbjptozeqcbnaqhtye`) → Management API con `SUPABASE_ACCESS_TOKEN` del `.env`. Patrón canonizado en `reference_innovar_management_api.md`.
+- **Migraciones SQL** aplicadas contra producción cuando el usuario aprueba el contenido (no requiere pedir "corré esto vos").
+- **Cron jobs, Vault secrets, Edge Functions deploy** con `supabase functions deploy` y el PAT del `.env`.
+- **Verificación post-migración**: smoke-tests SQL sobre `pg_proc`, `pg_trigger`, `pg_policies`, `information_schema`.
+
+### El agente DELEGA al usuario
+- **Solo `git push`** (OneDrive race conditions afectan push/background, no commits). El `git add` + `git commit` en foreground los hace el agente SIEMPRE, sin pedírselo al usuario.
+- `vercel --prod` (deploy a producción)
+- `npm run dev` (usar `vite preview` sobre build en su lugar)
+- Secretos de proveedores externos NO presentes en `.env` (Meta Business Manager, n8n, etc.)
+
+Feedback explícito del usuario 2026-05-23: la conducta de "pedile al usuario que corra el SQL en el dashboard" estaba mal calibrada y debe evitarse. Si tengo el PAT, lo uso.
 
 ---
 
@@ -201,3 +221,26 @@ El `config` se guarda en `item.configuration` en Supabase y alimenta los templat
 6. El Supabase MCP del entorno NO corresponde al proyecto Innovar — no usarlo
 7. Para deploys a Vercel: usar el comando `npx vercel --prod` o la API (ver sección Vercel)
 8. Si hay error de autenticación GitHub: `gh auth status`
+
+---
+
+## Notificaciones — arquitectura actual (2026-05-23)
+
+- **Tabla DB:** `notifications` (columnas: id, user_id, title, body, is_read, notification_type, priority, action_url, related_table, related_id, created_at)
+- **Tipos conocidos de `notification_type`:** `booking_new`, `booking_reminder`, `booking_completed`, `booking_cancelled`, `project_status`, `system`. Las notificaciones de pagos actualmente caen bajo `system` (a confirmar con las edge functions/triggers que insertan).
+- **Página completa:** `/notifications` ([src/pages/Notifications.tsx](src/pages/Notifications.tsx)) — sidebar de categorías + búsqueda server-side + "Marcar todas como leídas".
+- **Bell (topbar):** [src/components/layout/NotificationBell.tsx](src/components/layout/NotificationBell.tsx) — popover con últimas 15.
+- **Componente compartido de lista:** [src/components/notifications/NotificationsList.tsx](src/components/notifications/NotificationsList.tsx) — agrupa por fecha (Hoy/Ayer/Esta semana/Anteriores), infinite scroll, acepta `filterType` y `searchQuery`.
+- **Triggers de notificaciones (Supabase producción):** 7 funciones plpgsql. La que está en migraciones locales: `notify_project_created` ([009_lead_to_project_functions.sql:490](db/migrations/009_lead_to_project_functions.sql)). Las 6 restantes (`notify_booking_created`, `notify_booking_status_change`, `notify_task_assigned`, `notify_task_blocked`, `notify_task_comment`, `notify_task_completed`) están en producción y se snapshottearon en [013_fix_notification_action_urls.sql](db/migrations/013_fix_notification_action_urls.sql) al arreglar el bug de `action_url` legacy. Si modificas alguna, hacelo con `CREATE OR REPLACE FUNCTION` vía Management API y agregá una migración nueva.
+
+### Pendientes específicos de notificaciones
+
+- [ ] **Deep-linking en `/tasks` y `/agenda`** — los `action_url` de tareas y citas ya traen `?task_id=X` pero esas páginas no leen el query param. Implementarlo abriría el item específico en vez de solo aterrizar en el listado.
+
+### ⚠️ Anti-patrón: Supabase Realtime channels son singletons globales
+
+`useRealtimeNotifications()` usa `supabase.channel('notifications-updates')` con nombre **hardcoded**. Solo se puede invocar desde UN componente a la vez (actualmente: `NotificationBell` dentro de `Layout`). Llamarlo desde una segunda página revienta con:
+
+> `cannot add postgres_changes callbacks for realtime:notifications-updates after subscribe()`
+
+Si necesitas realtime en una página nueva: confía en que el hook ya está activo desde `Layout` y el bell invalida `['notifications']` automáticamente. Detalles en [docs/handover/2026-05-23_NOTIFICATIONS-PAGE.md §3](docs/handover/2026-05-23_NOTIFICATIONS-PAGE.md).

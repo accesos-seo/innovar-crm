@@ -124,6 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (session?.user) {
+        // ensureProfile en init: corre UNA vez al arrancar la app. Permitido.
         const profile = (await ensureProfile(session.user)) || fallbackProfile(session.user);
         set({ user: session.user, profile, initialized: true });
       } else {
@@ -138,8 +139,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         if (session?.user) {
-          const profile = (await ensureProfile(session.user)) || fallbackProfile(session.user);
-          set({ user: session.user, profile });
+          // DIAGNÓSTICO 2026-05-22 — TEST DE BISECCIÓN DENTRO DE ensureProfile.
+          // ensureProfile REMOVIDO del listener: cada token refresh ya NO dispara
+          // una query a profiles desde adentro de onAuthStateChange (patrón que
+          // suele causar deadlocks en el SDK Supabase JS).
+          // El profile se mantiene del init (set hace merge en Zustand).
+          // Si /settings/users y WhatsApp dejan de colgarse → confirmado.
+          set({ user: session.user });
         }
       });
     } catch (error: any) {
@@ -160,12 +166,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password) => {
     if (!supabase) throw new Error("Supabase no está configurado.");
     set({ isLoading: true });
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       set({ isLoading: false });
       throw error;
     }
-    // onAuthStateChange will populate user/profile.
+    // Load profile immediately after sign-in. Cannot rely on onAuthStateChange
+    // because that handler intentionally skips ensureProfile to avoid SDK deadlock
+    // (see comment at line ~145). ensureProfile here is safe — not inside auth callback.
+    if (data.user) {
+      const profile = (await ensureProfile(data.user)) || fallbackProfile(data.user);
+      set({ user: data.user, profile });
+    }
     set({ isLoading: false });
   },
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
-import { withTimeout } from "@/lib/timeout";
 import { useAuthStore } from "@/store/authStore";
 import {
   quotationInsertSchema,
@@ -83,7 +83,7 @@ export const useQuotations = (filters?: { status?: string; client_id?: string })
       if (filters?.status) query = query.eq("status", filters.status);
       if (filters?.client_id) query = query.eq("client_id", filters.client_id);
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as Quotation[]) || [];
@@ -112,7 +112,7 @@ export const useQuotation = (id: string | null) => {
         .eq("id", id)
         .single();
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) {
         const mapped = mapSupabaseError(error);
@@ -140,7 +140,7 @@ export const useClientQuotations = (clientId: string | null) => {
         .is("deleted_at", null)
         .order("version_number", { ascending: false });
 
-      const response = (await withTimeout(query as any)) as any;
+      const response = (await query) as any;
       const { data, error } = response;
       if (error) throw mapSupabaseError(error);
       return (data as Quotation[]) || [];
@@ -224,6 +224,30 @@ export const useUpdateQuotation = () => {
       queryClient.invalidateQueries({ queryKey: [QUOTATIONS_KEY] });
     },
     onError: (error) => notifyError(error, "Error al actualizar cotización"),
+  });
+};
+
+// ── Archivar cotizaciones (soft delete) ──────────────────────────────────────
+export const useArchiveQuotations = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      assertSupabase(supabase);
+      const { error } = await supabase
+        .from("quotations")
+        .update({ deleted_at: new Date().toISOString() } as never)
+        .in("id", ids);
+      if (error) throw mapSupabaseError(error);
+    },
+    onSuccess: (_data, ids) => {
+      toast.success(
+        ids.length === 1
+          ? "Cotización archivada"
+          : `${ids.length} cotizaciones archivadas`,
+      );
+      queryClient.invalidateQueries({ queryKey: [QUOTATIONS_KEY] });
+    },
+    onError: (error) => notifyError(error, "Error al archivar cotizaciones"),
   });
 };
 

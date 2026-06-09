@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'comercial' | 'diseno' | 'produccion';
+export type UserRole = 'admin' | 'super_admin' | 'comercial' | 'diseno' | 'produccion';
 
 export interface UserPermissions {
   canViewFinances: boolean;
@@ -15,5 +15,9 @@ export interface UserProfile {
   full_name: string;
   role: UserRole;
   avatar_url?: string;
+  whatsapp_phone?: string | null;
+  is_active?: boolean;
+  notification_preferences?: Record<string, unknown>;
   created_at?: string;
+  updated_at?: string;
 }

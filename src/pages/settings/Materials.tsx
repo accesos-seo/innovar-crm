@@ -79,6 +79,9 @@ const materialSchema = z.object({
 type MaterialFormData = z.infer<typeof materialSchema>;
 
 import { useMaterials, HardwareItem } from "@/hooks/useMaterials";
+import { useMaterialPriceHistory } from "@/hooks/useMaterialPriceHistory";
+import { useQueryClient } from "@tanstack/react-query";
+import { TrendingUp, TrendingDown, Minus, History } from "lucide-react";
 
 const categoryMap: Record<HardwareItem['category'], { label: string; color: string }> = {
   cocinas: { label: "Cocinas", color: "bg-emerald-500/10 text-emerald-500" },
@@ -95,7 +98,7 @@ const columns: ColumnDef<HardwareItem>[] = [
     header: "Imagen",
     cell: ({ row }) => (
       <div className="h-10 w-10 bg-muted rounded-sm overflow-hidden border border-border/30">
-        <img src={row.original.photoUrl || null} alt={row.original.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+        <img src={row.original.photoUrl || undefined} alt={row.original.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
       </div>
     ),
   },
@@ -141,8 +144,13 @@ const columns: ColumnDef<HardwareItem>[] = [
 
 export default function MaterialsSettingsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { items: materials, isLoading, isSaving, createItem, updateItem } = useMaterials();
   const [selectedItem, setSelectedItem] = React.useState<HardwareItem | null>(null);
+  const [showPriceHistory, setShowPriceHistory] = React.useState(false);
+  const { data: priceHistory = [], isLoading: historyLoading } = useMaterialPriceHistory(
+    showPriceHistory ? selectedItem?.id ?? null : null
+  );
 
   const metrics: MetricData[] = [
     { title: "Total Ítems", value: materials.length, description: "Catálogo activo", icon: Package, trend: "up", color: "blue" },
@@ -153,10 +161,12 @@ export default function MaterialsSettingsPage() {
 
   const handleUpdate = async (field: keyof HardwareItem, value: any) => {
     if (!selectedItem) return;
-    
     try {
       await updateItem({ id: selectedItem.id, [field]: value });
       setSelectedItem(prev => prev ? { ...prev, [field]: value } : null);
+      if (field === 'price') {
+        queryClient.invalidateQueries({ queryKey: ['material-price-history', selectedItem.id] });
+      }
     } catch (error) {
       // Error handled in hook
     }
@@ -259,7 +269,7 @@ export default function MaterialsSettingsPage() {
           <div className="grid grid-cols-2 gap-x-12 gap-y-8 pb-8">
             <div className="col-span-2 flex justify-center mb-4">
               <div className="h-48 w-48 bg-muted rounded-sm border border-border/10 overflow-hidden relative group">
-                <img src={selectedItem?.photoUrl || null} alt={selectedItem?.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                <img src={selectedItem?.photoUrl || undefined} alt={selectedItem?.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Button variant="outline" className="text-white border-white/40 hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest">Cambiar Imagen</Button>
                 </div>
@@ -321,11 +331,82 @@ export default function MaterialsSettingsPage() {
             <Layout className="w-4 h-4" />
             Gestionar Opciones
           </Button>
-          <Button variant="outline" className="flex-1 border-border/50 text-muted-foreground hover:bg-accent/50 font-bold uppercase text-[10px] tracking-widest h-12 gap-2">
-            <Tag className="w-4 h-4" />
+          <Button
+            variant="outline"
+            onClick={() => setShowPriceHistory(true)}
+            className="flex-1 border-border/50 text-muted-foreground hover:bg-accent/50 font-bold uppercase text-[10px] tracking-widest h-12 gap-2"
+          >
+            <History className="w-4 h-4" />
             Ver Historial Precios
           </Button>
         </div>
+
+        {/* Price history panel */}
+        {showPriceHistory && (
+          <div className="mt-6 border border-border/20 rounded-sm bg-card/30">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/10">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-foreground">Historial de Precios</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPriceHistory(false)}
+                className="text-[10px] text-muted-foreground hover:text-foreground h-7 px-2"
+              >
+                Cerrar
+              </Button>
+            </div>
+
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : priceHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+                <Tag className="w-8 h-8 opacity-30" />
+                <p className="text-[11px] uppercase tracking-widest font-bold">Sin cambios registrados</p>
+                <p className="text-xs opacity-60">Los cambios de precio se registran automáticamente al editar el campo.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/10">
+                {priceHistory.map((entry) => {
+                  const delta = entry.new_price - entry.previous_price;
+                  const pct = entry.previous_price > 0 ? ((delta / entry.previous_price) * 100).toFixed(1) : "—";
+                  const isUp = delta > 0;
+                  const isDown = delta < 0;
+                  return (
+                    <div key={entry.id} className="flex items-center justify-between px-5 py-3">
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {new Date(entry.changed_at).toLocaleDateString("es-CO", {
+                          day: "2-digit", month: "short", year: "numeric",
+                          hour: "2-digit", minute: "2-digit"
+                        })}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground font-mono line-through opacity-50">
+                          ${entry.previous_price.toLocaleString("es-CO")}
+                        </span>
+                        <span className="text-xs font-bold font-mono text-foreground">
+                          ${entry.new_price.toLocaleString("es-CO")}
+                        </span>
+                        <span className={cn(
+                          "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide",
+                          isUp ? "text-emerald-500" : isDown ? "text-destructive" : "text-muted-foreground"
+                        )}>
+                          {isUp ? <TrendingUp className="w-3 h-3" /> : isDown ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                          {isUp ? "+" : ""}{pct}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </FullscreenDetail>
     </motion.div>
   );

@@ -15,6 +15,41 @@ export const quotationLineItemSchema = z.object({
   }).optional(),
 });
 
+// Quotation lifecycle statuses — superset of the DB enum at any point in time.
+// Slice 3 adds `client_approved`, `pending_payment_verification`, `cancelled`,
+// `superseded` (the first two existed in prod since S2 but were missing here).
+export const quotationStatusSchema = z.enum([
+  'draft',
+  'sent',
+  'viewed',
+  'negotiation',
+  'approved',
+  'rejected',
+  'expired',
+  'replaced',
+  'client_approved',
+  'pending_payment_verification',
+  'cancelled',
+  'superseded',
+]);
+
+export type QuotationStatus = z.infer<typeof quotationStatusSchema>;
+
+export const QUOTATION_STATUS_LABELS_ES: Record<QuotationStatus, string> = {
+  draft: 'Borrador',
+  sent: 'Enviada',
+  viewed: 'Vista',
+  negotiation: 'En negociación',
+  approved: 'Aprobada',
+  rejected: 'Rechazada',
+  expired: 'Vencida',
+  replaced: 'Reemplazada',
+  client_approved: 'Aceptada por cliente',
+  pending_payment_verification: 'Pago en verificación',
+  cancelled: 'Cancelada',
+  superseded: 'Reemplazada por V2',
+};
+
 export const quotationSchema = z.object({
   client_id: z.string().uuid('Cliente requerido'),
   /**
@@ -35,10 +70,7 @@ export const quotationSchema = z.object({
   notes: z.string().max(1000).nullable().optional(),
   is_locked: z.boolean().default(false),
 
-  status: z.enum([
-    'draft', 'sent', 'viewed', 'negotiation',
-    'approved', 'rejected', 'expired', 'replaced'
-  ]).default('draft'),
+  status: quotationStatusSchema.default('draft'),
 });
 
 export const quotationInsertSchema = quotationSchema.extend({
@@ -55,6 +87,27 @@ export const quotationApproveSchema = z.object({
   design_deadline: z.string().datetime().optional(),
   adjusted_total: z.number().positive().optional(),
 });
+
+// ─── Slice 3 RPC payload schemas ─────────────────────────────────────────────
+
+export const cancelQuotationAcceptanceSchema = z.object({
+  quotation_id: z.string().uuid(),
+  reason: z.string().min(10, 'Mínimo 10 caracteres').max(2000),
+});
+
+export type CancelQuotationAcceptanceInput = z.infer<typeof cancelQuotationAcceptanceSchema>;
+
+export const createQuotationRevisionSchema = z.object({
+  quotation_id: z.string().uuid(),
+});
+
+export type CreateQuotationRevisionInput = z.infer<typeof createQuotationRevisionSchema>;
+
+export const reactivateExpiredQuotationSchema = z.object({
+  quotation_id: z.string().uuid(),
+});
+
+export type ReactivateExpiredQuotationInput = z.infer<typeof reactivateExpiredQuotationSchema>;
 
 export type QuotationLineItem = z.infer<typeof quotationLineItemSchema>;
 export type QuotationInsert = z.infer<typeof quotationInsertSchema>;

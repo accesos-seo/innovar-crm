@@ -2,24 +2,30 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
-import { Users, Save, X, Zap, Shield, Mail } from "lucide-react";
+import { Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailInputField } from "@/components/shared/EmailInputField";
+import { WhatsAppField } from "@/components/shared/WhatsAppField";
+import { DEFAULT_COUNTRIES } from "@/hooks/usePhoneInput";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
+import { supabase } from "@/lib/supabaseClient";
 
 import * as z from "zod";
 
+// Valores exactos del enum DB `public.user_role` (verificado 2026-05-23):
+// admin, comercial, diseno, produccion, super_admin.
+// El form viejo tenía 'disenador', 'operario', 'user' — esos NO existen
+// y romperían el INSERT con CHECK constraint violation.
 const ROLES = [
   { value: "super_admin", label: "Super Admin" },
   { value: "admin", label: "Administrador" },
-  { value: "disenador", label: "Diseñador" },
-  { value: "operario", label: "Operario" },
-  { value: "user", label: "Usuario Estándar" }
+  { value: "comercial", label: "Comercial" },
+  { value: "diseno", label: "Diseño" },
+  { value: "produccion", label: "Producción" }
 ];
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,8 +40,15 @@ import {
 const userSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   email: z.string().email("Correo electrónico inválido"),
-  role: z.string().min(1, "El rol es obligatorio"),
-  phone: z.string().optional()
+  role: z.enum(["super_admin", "admin", "comercial", "diseno", "produccion"], {
+    errorMap: () => ({ message: "Rol inválido" })
+  }),
+  // Opcional. Si se pasa, debe ser formato internacional completo: +<código país><10 dígitos>.
+  phone: z
+    .string()
+    .regex(/^\+\d{11,15}$/, "Teléfono incompleto (formato +código país + número)")
+    .optional()
+    .or(z.literal(""))
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -49,21 +62,59 @@ export default function UserCreate() {
     defaultValues: {
       name: "",
       email: "",
-      role: "user",
+      role: "comercial",
       phone: ""
     },
   });
 
   const onSubmit = async (values: UserFormValues) => {
+    if (!supabase) {
+      toast.error("Supabase no está configurado");
+      return;
+    }
     setIsSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Usuario invitado", {
-        description: `Se ha enviado una invitación a ${values.email}`
+      // La Edge Function admin-invite-user (deployada 2026-05-23, proyecto
+      // xdzbjptozeqcbnaqhtye) usa service_role para llamar
+      // auth.admin.inviteUserByEmail() y luego pisa role/whatsapp_phone del
+      // profile creado por el trigger handle_new_user. Solo admin/super_admin
+      // pueden invocarla (chequeo interno en la propia función).
+      const { data, error } = await supabase.functions.invoke("admin-invite-user", {
+        body: {
+          email: values.email.trim().toLowerCase(),
+          full_name: values.name.trim(),
+          role: values.role,
+          phone: values.phone || null,
+        },
       });
+
+      if (error) {
+        // FunctionsHttpError trae statusCode + el body de la respuesta del edge
+        // como `context`. Tratamos de extraer el mensaje JSON si existe.
+        let msg = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore parse errors */ }
+        toast.error("No se pudo invitar al usuario", { description: msg });
+        return;
+      }
+
+      if (data?.partial) {
+        toast.warning("Invitación enviada con observaciones", {
+          description: data.error,
+        });
+      } else {
+        toast.success("Invitación enviada", {
+          description: `Se mandó un correo a ${values.email} para activar la cuenta.`,
+        });
+      }
       navigate("/settings/users");
-    } catch (error) {
-      toast.error("Error al guardar");
+    } catch (err: any) {
+      toast.error("Error inesperado al invitar", { description: err.message });
     } finally {
       setIsSaving(false);
     }
@@ -96,8 +147,8 @@ export default function UserCreate() {
                     <FormItem className="space-y-2">
                       <FormLabel className="text-xs font-bold text-muted-foreground">{formatSentenceCase("Nombre Completo *")}</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder={formatSentenceCase("Ej. Sarah Connor")} 
+                        <Input
+                          placeholder={formatSentenceCase("Ej. Sarah Connor")}
                           {...field}
                           className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary font-bold"
                         />
@@ -114,7 +165,7 @@ export default function UserCreate() {
                   render={({ field, fieldState }) => (
                     <FormItem>
                       <FormControl>
-                        <EmailInputField 
+                        <EmailInputField
                           label="Correo Electrónico *"
                           placeholder="sarah.c@innovar.com"
                           error={fieldState.error?.message}
@@ -156,16 +207,21 @@ export default function UserCreate() {
                 <FormField
                   control={form.control}
                   name="phone"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem className="space-y-2">
-                      <FormLabel className="text-xs font-bold text-muted-foreground">{formatSentenceCase("Teléfono de Contacto")}</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="+57 300 000 0000" 
-                          {...field}
-                          className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary font-mono"
+                        <WhatsAppField
+                          countries={DEFAULT_COUNTRIES}
+                          initialValue={field.value || ""}
+                          onChange={(fullPhone) => field.onChange(fullPhone)}
+                          label="Teléfono de contacto"
                         />
                       </FormControl>
+                      {fieldState.error && (
+                        <p className="text-xs text-destructive font-bold uppercase tracking-tighter">
+                          {fieldState.error.message}
+                        </p>
+                      )}
                     </FormItem>
                   )}
                 />

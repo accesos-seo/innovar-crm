@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DetailModal, InlineEditField, InlineEditPhoneField, InlineEditDateField } from "@/components/shared/DetailModal";
+import { DetailModal, InlineEditField, InlineEditPhoneField, InlineEditDateField, InlineEditMultiSelectField, InlineEditSelectField } from "@/components/shared/DetailModal";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { formatSentenceCase } from "@/lib/format-utils";
 import { notify } from "@/components/ui/PremiumToast";
@@ -20,7 +20,9 @@ import { PrimaryButton } from "@/components/shared/PrimaryButton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { parseISO } from "date-fns";
 import { CalendarPopover } from "@/components/ui/calendar-popover";
-import { useLeads, LeadFilters } from "@/hooks/useLeads";
+import { useLeads, useUpdateLead, LeadFilters } from "@/hooks/useLeads";
+import { useActiveStaff } from "@/hooks/agenda/useActiveStaff";
+import { formatPersonName } from "@/lib/format-utils";
 import { ResourceListPage, ResourceQueryResult } from "@/components/shared/ResourceListPage";
 import { Lead, columns, statusMap, urgencyMap } from "./LeadsColumns";
 
@@ -79,9 +81,42 @@ export default function LeadsLegacyPage() {
 
   const isFiltered = filters.status.length > 0 || filters.urgency.length > 0 || !!filters.city || !!filters.dateFrom || !!filters.dateTo || !!filters.onlyArchived;
 
+  const updateLead = useUpdateLead();
+
+  // Comerciales asignables al lead. Incluimos admin/super_admin porque también
+  // toman leads en la práctica (Robert es admin y aparece como asignado en
+  // varios). Si más adelante se quiere filtrar solo a 'comercial', se filtra
+  // acá.
+  const { data: staffData } = useActiveStaff();
+  const assignableStaff = React.useMemo(
+    () => (staffData || []).filter((s) =>
+      ['comercial', 'admin', 'super_admin'].includes(s.role || '')
+    ),
+    [staffData]
+  );
+
   const handleSaveField = async (field: keyof Lead, value: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    notify.success("Campo actualizado", `Solicitud: ${field} actualizado.`);
+    if (!selectedLead?.id) {
+      notify.error("Error", "No se puede actualizar: lead sin ID");
+      return;
+    }
+
+    try {
+      // assigned_to es UUID en DB. Si el usuario "limpia" el campo (string vacío)
+      // hay que mandar NULL, no "" — Postgres rechaza string vacío en columna UUID.
+      const normalizedValue =
+        field === 'assigned_to' && !value ? null : value;
+      const updates = { [field]: normalizedValue } as any;
+      const updated = await updateLead.mutateAsync({ id: selectedLead.id, updates });
+      // Refrescar el panel con la fila actualizada para que próximos edits
+      // partan del estado real (y no del initial render).
+      setSelectedLead(updated);
+      notify.success("Campo actualizado", `${field} guardado correctamente`);
+    } catch (e: any) {
+      // notifyError ya disparó el toast desde el hook; este re-throw evita que
+      // InlineEditField cierre el modo edición silenciosamente al "guardar OK".
+      throw e;
+    }
   };
 
   return (
@@ -263,13 +298,14 @@ export default function LeadsLegacyPage() {
                 <InlineEditField
                   label={formatSentenceCase("Dirección para visita técnica")}
                   value={selectedLead?.address || ""}
+                  emptyLabel="Dirección no registrada"
                   onSave={(v) => handleSaveField("address", v)}
                 />
               </div>
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           <div className="space-y-6">
             <div className="flex items-center gap-2 border-l-2 border-primary pl-4">
@@ -277,24 +313,42 @@ export default function LeadsLegacyPage() {
               <h3 className="text-xs font-black text-foreground">{formatSentenceCase("Información del proyecto")}</h3>
             </div>
             <div className="grid grid-cols-2 gap-x-12 gap-y-12">
-              <InlineEditField
-                label={formatSentenceCase("Servicios de interés")}
-                value={(() => {
-                  const s = selectedLead?.services;
-                  if (Array.isArray(s)) return s.join(", ");
-                  if (typeof s === "string") return s;
-                  return formatSentenceCase("No especificado");
-                })()}
+              <InlineEditMultiSelectField
+                label="Servicios de interés"
+                value={selectedLead?.services as string | string[] | null | undefined}
+                options={["Cocina", "Closet", "Centro TV", "Herrajes", "Otros"]}
+                emptyLabel="No especificado"
                 onSave={(v) => handleSaveField("services", v)}
               />
-              <InlineEditField
-                label={formatSentenceCase("Ciudad / zona")}
-                value={selectedLead?.city || (typeof selectedLead?.address === "string" ? selectedLead.address.split(",")[0] : "") || "---"}
+              <InlineEditSelectField
+                label="Ciudad / zona"
+                value={selectedLead?.city || ""}
+                // Mismas opciones que LeadCreate.tsx para mantener consistencia
+                // entre alta de lead y edición inline.
+                options={[
+                  { value: "Pereira", label: "Pereira" },
+                  { value: "La Virginia", label: "La Virginia" },
+                  { value: "Dosquebradas", label: "Dosquebradas" },
+                  { value: "Cuba", label: "Cuba" },
+                  { value: "Santa Rosa", label: "Santa Rosa" },
+                  { value: "Otro", label: "Otra ciudad" },
+                ]}
+                emptyLabel="No registrada"
                 onSave={(v) => handleSaveField("city", v)}
               />
-              <InlineEditField
-                label={formatSentenceCase("Prioridad / Urgencia")}
-                value={selectedLead?.urgency || ""}
+              <InlineEditSelectField
+                label="Prioridad / Urgencia"
+                value={(() => {
+                  const u = selectedLead?.urgency as string | undefined;
+                  if (!u) return "";
+                  return u === "ASAP" ? "high" : u === "SHORT" ? "medium" : u === "LON" ? "low" : u;
+                })()}
+                options={[
+                  { value: "high", label: "Alta / Lo antes posible" },
+                  { value: "medium", label: "Media / Mediano plazo" },
+                  { value: "low", label: "Baja / Solo averiguando" },
+                ]}
+                emptyLabel="Normal / No definida"
                 displayValue={(() => {
                   const u = selectedLead?.urgency as string | undefined;
                   if (!u) return <span className="text-sm font-bold text-muted-foreground italic">{formatSentenceCase("Normal / No definida")}</span>;
@@ -311,7 +365,7 @@ export default function LeadsLegacyPage() {
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           <div className="space-y-6">
             <div className="flex items-center gap-2 border-l-2 border-primary pl-4">
@@ -319,9 +373,35 @@ export default function LeadsLegacyPage() {
               <h3 className="text-xs font-black text-foreground">{formatSentenceCase("Asignación comercial")}</h3>
             </div>
             <div className="grid grid-cols-2 gap-x-12 gap-y-12">
-              <InlineEditField
-                label={formatSentenceCase("Asignado a")}
-                value={selectedLead?.assigned_to || formatSentenceCase("Sin asignar")}
+              <InlineEditSelectField
+                label="Asignado a"
+                value={selectedLead?.assigned_to || ""}
+                options={assignableStaff.map((s) => ({
+                  value: s.id,
+                  label: formatPersonName(s.full_name, "Usuario sin nombre"),
+                }))}
+                emptyLabel="Sin asignar"
+                // displayValue muestra el nombre del comercial actual (no el UUID
+                // crudo). InlineEditSelectField sin displayValue mostraría el label
+                // de la option, pero el lookup falla si el comercial fue dado de
+                // baja o cambió de rol → fallback al UUID acortado.
+                displayValue={(() => {
+                  const id = selectedLead?.assigned_to;
+                  if (!id) return undefined;
+                  const found = assignableStaff.find((s) => s.id === id);
+                  if (found) {
+                    return (
+                      <span className="text-base font-bold text-foreground">
+                        {formatPersonName(found.full_name, "Usuario sin nombre")}
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="text-sm italic text-muted-foreground">
+                      Comercial fuera de la lista actual
+                    </span>
+                  );
+                })()}
                 onSave={(v) => handleSaveField("assigned_to", v)}
               />
               <InlineEditDateField
@@ -332,7 +412,7 @@ export default function LeadsLegacyPage() {
             </div>
           </div>
 
-          <div className="h-[1px] w-full bg-border/10" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
           <div className="grid grid-cols-2 gap-x-12 gap-y-12 bg-muted/5 p-8 border border-border/10">
             <div className="space-y-2">

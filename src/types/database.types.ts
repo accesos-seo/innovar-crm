@@ -2468,7 +2468,7 @@ export type Database = {
         | "nequi"
         | "daviplata"
         | "pse"
-      payment_type: "anticipo" | "abono" | "pago_final" | "reembolso"
+      payment_type: "advance" | "installment" | "final" | "refund"
       photo_stage: "diseno" | "produccion" | "final"
       project_status:
         | "contacto"
@@ -2650,7 +2650,7 @@ export const Constants = {
         "daviplata",
         "pse",
       ],
-      payment_type: ["anticipo", "abono", "pago_final", "reembolso"],
+      payment_type: ["advance", "installment", "final", "refund"],
       photo_stage: ["diseno", "produccion", "final"],
       project_status: [
         "contacto",
