@@ -121,6 +121,10 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   instalacion_programada_v1: bodyBuilder("instalacion_programada_v1", 2),     // {{1}}=nombre {{2}}=fecha en español
   proyecto_completado_v1: bodyBuilder("proyecto_completado_v1", 2),           // {{1}}=nombre {{2}}=nombre proyecto
   recordatorio_instalacion_v1: bodyBuilder("recordatorio_instalacion_v1", 1), // {{1}}=nombre
+
+  // — Recordatorios de reuniones (migración 051) · PENDING META APPROVAL —
+  reunion_recordatorio_24h_v1: bodyBuilder("reunion_recordatorio_24h_v1", 1), // {{1}}=nombre
+  reunion_recordatorio_2h_v1:  bodyBuilder("reunion_recordatorio_2h_v1",  2), // {{1}}=nombre {{2}}=hora
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -237,11 +241,14 @@ Deno.serve(async (req: Request) => {
     const testPhoneOverride: string | null = testPhoneSetting?.value != null ? String(testPhoneSetting.value) : null;
 
     // 1. Reclamar lote de filas pendientes (status pending, attempt_count < 3).
+    //    scheduled_for: solo procesar si ya llegó la hora (o si es null = envío inmediato).
+    const now = new Date().toISOString();
     const { data: claimed, error: claimErr } = await admin
       .from("notification_queue")
       .select("id, recipient_phone, template_name, template_language, template_parameters, attempt_count")
       .eq("status", "pending")
       .lt("attempt_count", 3)
+      .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
       .order("created_at", { ascending: true })
       .limit(limit);
 
