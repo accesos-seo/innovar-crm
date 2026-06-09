@@ -23,8 +23,8 @@ import type { WorkLog, WorkLogInput } from "@/lib/horas/types";
 /** UUID del contrato Innovar — corresponde al registro seedeado en work_contracts. */
 export const BRAND_ID = "a0000001-0000-4000-a000-000000000001";
 
-/** Roles con permiso de escritura. Todos los demás ven en solo lectura. */
-const STAFF_ROLES = new Set(["admin", "super_admin"]);
+/** Roles con permiso de escritura. Solo super_admin puede cargar/editar días. */
+const STAFF_ROLES = new Set(["super_admin"]);
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
