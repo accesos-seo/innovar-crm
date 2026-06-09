@@ -1,11 +1,12 @@
 export type AutomatizacionStatus = 'activa' | 'pausada' | 'en_desarrollo' | 'deprecada';
 export type AutomatizacionTipo = 'cron' | 'webhook' | 'manual' | 'realtime';
 export type AutomatizacionCanal = 'slack' | 'whatsapp' | 'email' | 'supabase' | 'interno';
-export type AutomatizacionVisibilidad = 'visible' | 'silente';
+export type AutomatizacionVisibilidad = 'visible' | 'silente' | 'n8n';
 
 export const visibilidadConfig: Record<AutomatizacionVisibilidad, { label: string; sublabel: string; color: string; icon: string }> = {
   visible: { label: 'Visibles',          sublabel: 'Tienen pantalla, panel o portal — las ves y las controlas',  color: '#44ddc1', icon: '🖥️' },
   silente: { label: 'Motor Silencioso',  sublabel: 'Trabajan 24/7 sin que tengas que hacer nada',                color: '#a78bfa', icon: '⚙️' },
+  n8n:     { label: 'N8n',              sublabel: 'Orquestadas en n8n — flujos externos con triggers y APIs',    color: '#f97316', icon: '⚡' },
 };
 
 export type AutomatizacionCategoria =
@@ -820,7 +821,7 @@ Actualmente el agente está activo pero en modo DRY_RUN: clasifica las cotizacio
     ],
     categoria: 'comercial',
     status: 'pausada',
-    visibilidad: 'visible',
+    visibilidad: 'n8n',
     tipo: 'cron',
     frecuencia: 'Cron diario a las 9:00am hora Bogotá (n8n workflow activo)',
     fuente_datos: 'Supabase — tabla quotations (status=enviada, sin respuesta)',
@@ -1386,7 +1387,7 @@ Además, el sistema crea una tarea interna en el CRM asignada al diseñador/inst
     ],
     categoria: 'comercial',
     status: 'activa',
-    visibilidad: 'silente',
+    visibilidad: 'n8n',
     tipo: 'cron',
     frecuencia: 'Diario a las 7:30am hora Bogotá (lunes a sábado)',
     fuente_datos: 'Supabase — tabla projects (scheduled_install_date = hoy, delivered_at IS NULL)',

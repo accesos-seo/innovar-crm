@@ -5,7 +5,7 @@ import {
   automatizaciones, categoriaLabel, AutomatizacionCategoria,
   visibilidadConfig, AutomatizacionVisibilidad,
 } from '@/data/automatizacionesContent';
-import { ArrowRight, Search, Monitor, Cog } from 'lucide-react';
+import { ArrowRight, Search, Monitor, Cog, Workflow } from 'lucide-react';
 
 const BRAND = '#44ddc1';
 
@@ -20,6 +20,7 @@ const VALID_CATS = new Set(Object.keys(categoriaLabel));
 const VIS_ICONS: Record<AutomatizacionVisibilidad, React.FC<{ size?: number; className?: string }>> = {
   visible: Monitor,
   silente: Cog,
+  n8n:     Workflow,
 };
 
 type VisFilter = 'todas' | AutomatizacionVisibilidad;
@@ -35,6 +36,7 @@ const DocsAutomatizacionesPage: React.FC = () => {
   const counts = useMemo(() => ({
     visible: automatizaciones.filter(a => a.visibilidad === 'visible').length,
     silente: automatizaciones.filter(a => a.visibilidad === 'silente').length,
+    n8n:     automatizaciones.filter(a => a.visibilidad === 'n8n').length,
   }), []);
 
   const list = useMemo(() => {
@@ -62,7 +64,7 @@ const DocsAutomatizacionesPage: React.FC = () => {
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/40 mb-3">
             Tipo de automatización
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
             {/* Todas */}
             <button
@@ -84,7 +86,7 @@ const DocsAutomatizacionesPage: React.FC = () => {
             </button>
 
             {/* Visibles */}
-            {(['visible', 'silente'] as AutomatizacionVisibilidad[]).map(v => {
+            {(['visible', 'silente', 'n8n'] as AutomatizacionVisibilidad[]).map(v => {
               const cfg = visibilidadConfig[v];
               const Icon = VIS_ICONS[v];
               const active = vis === v;
