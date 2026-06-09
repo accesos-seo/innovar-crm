@@ -77,6 +77,15 @@ BEGIN
       FROM public.profiles
      WHERE id = r.assigned_to;
 
+    -- Guard redundante: re-verifica antes del INSERT para proteger contra
+    -- doble ejecución del cron dentro del mismo minuto (race condition).
+    CONTINUE WHEN EXISTS (
+      SELECT 1 FROM public.notification_queue nq
+      WHERE nq.event_type = 'lead.reactivation'
+        AND nq.event_reference_id = r.id::text
+        AND nq.created_at > NOW() - INTERVAL '7 days'
+    );
+
     INSERT INTO public.notification_queue (
       event_type, event_reference_id,
       entity_type, entity_reference_id,

@@ -51,6 +51,15 @@ BEGIN
 
   v_first_name := split_part(COALESCE(v_client.name, 'Cliente'), ' ', 1);
 
+  -- Guard: solo una bienvenida por proyecto
+  IF EXISTS (
+    SELECT 1 FROM public.notification_queue
+    WHERE event_type = 'project.created'
+      AND event_reference_id = NEW.id::text
+  ) THEN
+    RETURN NEW;
+  END IF;
+
   INSERT INTO public.notification_queue (
     event_type, event_reference_id,
     entity_type, entity_reference_id,
@@ -75,7 +84,7 @@ BEGIN
       '3', COALESCE(v_designer_name, 'nuestro equipo de diseño')
     ),
     'pending'
-  ) ON CONFLICT DO NOTHING;
+  );
 
   RETURN NEW;
 END;
