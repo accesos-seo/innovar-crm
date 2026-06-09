@@ -80,20 +80,14 @@ const navItems: NavItem[] = [
   },
 ];
 
-const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean }> = ({ item, isActive, isChildActive, isCollapsed }) => {
-  const [isOpen, setIsOpen] = React.useState(isChildActive);
+const NavItemComponent: React.FC<{ item: NavItem; isActive: boolean; isChildActive: boolean; isCollapsed: boolean; isOpen: boolean; onToggle: () => void }> = ({ item, isActive, isChildActive, isCollapsed, isOpen, onToggle }) => {
   const location = useLocation();
-
-  // Update open state if a child becomes active externally
-  React.useEffect(() => {
-    if (isChildActive) setIsOpen(true);
-  }, [isChildActive]);
 
   if (item.children) {
     return (
       <div className="space-y-1">
         <button
-          onClick={() => !isCollapsed && setIsOpen(!isOpen)}
+          onClick={() => !isCollapsed && onToggle()}
           className={cn(
             "w-full group flex items-center px-4 py-3 rounded-md transition-all duration-200",
             isCollapsed ? "justify-center" : "justify-between",
@@ -178,6 +172,18 @@ export const Sidebar = React.memo(function Sidebar() {
   const navigate = useNavigate();
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
 
+  const initialOpen = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+  const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
+
+  React.useEffect(() => {
+    const activeParent = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+    if (activeParent) setOpenSection(activeParent);
+  }, [location.pathname, navItems]);
+
+  const handleToggle = React.useCallback((label: string) => {
+    setOpenSection(prev => prev === label ? null : label);
+  }, []);
+
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate("/");
@@ -252,6 +258,8 @@ export const Sidebar = React.memo(function Sidebar() {
               isActive={isActive}
               isChildActive={isChildActive}
               isCollapsed={isSidebarCollapsed}
+              isOpen={openSection === item.label}
+              onToggle={() => handleToggle(item.label)}
             />
           );
         })}
