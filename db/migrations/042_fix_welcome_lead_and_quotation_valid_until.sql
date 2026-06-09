@@ -97,23 +97,32 @@ BEGIN
 
   -- EMAIL vía smart-api solo para clientes EXISTENTES.
   -- Clientes nuevos ya reciben email por tr_on_new_lead_email (clients INSERT).
-  -- Detectamos cliente existente si fue creado >30 seg antes que la oportunidad.
-  -- NOTA: La anon key abajo es PÚBLICA por diseño de Supabase (ya está en el bundle
-  -- del frontend). Los triggers PG no tienen acceso a variables de entorno, por lo
-  -- que se lee de system_settings o se usa el valor hardcodeado como fallback.
-  -- NO es una credencial secreta — es la clave pública de la API.
+  -- EMAIL via smart-api para clientes EXISTENTES (> 30 seg antes).
+  -- PREREQUISITO: system_settings debe tener key='supabase_anon_key' con value={"token":"<anon>"}.
+  -- Si la key no existe el bloque se omite — previene llamadas con 'Bearer NULL'.
   IF (NEW.created_at - v_client.created_at) > INTERVAL '30 seconds' THEN
-    PERFORM net.http_post(
-      url     := COALESCE(
-        (SELECT value->>'url' FROM public.system_settings WHERE key = 'smart_api_endpoint'),
-        'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api'
-      ),
-      headers := jsonb_build_object(
-        'Content-Type',  'application/json',
-        'Authorization', 'Bearer ' || (SELECT value->>'token' FROM public.system_settings WHERE key = 'supabase_anon_key')
-      ),
-      body    := jsonb_build_object('record', row_to_json(v_client))
-    );
+    DECLARE
+      v_anon_token TEXT;
+      v_api_url    TEXT;
+    BEGIN
+      SELECT value->>'token' INTO v_anon_token
+        FROM public.system_settings WHERE key = 'supabase_anon_key';
+
+      IF v_anon_token IS NOT NULL AND length(v_anon_token) > 10 THEN
+        v_api_url := COALESCE(
+          (SELECT value->>'url' FROM public.system_settings WHERE key = 'smart_api_endpoint'),
+          'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api'
+        );
+        PERFORM net.http_post(
+          url     := v_api_url,
+          headers := jsonb_build_object(
+            'Content-Type',  'application/json',
+            'Authorization', 'Bearer ' || v_anon_token
+          ),
+          body    := jsonb_build_object('record', row_to_json(v_client))
+        );
+      END IF;
+    END;
   END IF;
 
   RETURN NEW;
@@ -161,8 +170,8 @@ BEGIN
       WHERE id = p_quotation_id;
   END IF;
 
-  -- Días de validez configurables (default 30)
-  SELECT COALESCE((value)::int, 30)
+  -- Días de validez configurables (default 30 si la key no existe en system_settings)
+  SELECT (value)::int
     INTO v_validity_days
     FROM public.system_settings
    WHERE key = 'quotation_validity_days';
