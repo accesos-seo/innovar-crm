@@ -50,8 +50,7 @@ BEGIN
     FROM public.profiles
    WHERE id = NEW.assigned_to;
 
-  -- WELCOME WA: bienvenidas_clientes como fallback (aprobada) hasta que
-  -- Heduin cree y apruebe welcome_lead_v1 en Meta BM.
+  -- WELCOME WA: welcome_lead_v1 (aprobada en Meta BM)
   INSERT INTO public.notification_queue (
     event_type, event_reference_id, recipient_name, recipient_phone,
     template_name, template_language, template_parameters, status
@@ -60,8 +59,8 @@ BEGIN
     NEW.id::text,
     v_client.name,
     v_client.whatsapp_phone,
-    'bienvenidas_clientes', 'es',
-    jsonb_build_array(split_part(COALESCE(v_client.name, 'cliente'), ' ', 1) || '.'),
+    'welcome_lead_v1', 'es',
+    jsonb_build_object('1', split_part(COALESCE(v_client.name, 'cliente'), ' ', 1)),
     'pending'
   ) ON CONFLICT DO NOTHING;
 
@@ -86,16 +85,15 @@ BEGIN
   -- EMAIL vía smart-api solo para clientes EXISTENTES.
   -- Clientes nuevos ya reciben email por tr_on_new_lead_email (clients INSERT).
   -- Detectamos cliente existente si fue creado >30 seg antes que la oportunidad.
-  -- NOTA: La anon key abajo es PÚBLICA por diseño de Supabase (ya está en el bundle
-  -- del frontend). Los triggers PG no tienen acceso a variables de entorno, por lo
-  -- que debe hardcodearse aquí. Patrón idéntico al de fn_trigger_welcome_email (migración 009).
-  -- NO es una credencial secreta — es la clave pública de la API.
   IF (NEW.created_at - v_client.created_at) > INTERVAL '30 seconds' THEN
     PERFORM net.http_post(
-      url     := 'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api',
+      url     := COALESCE(
+        (SELECT value->>'url' FROM public.system_settings WHERE key = 'smart_api_endpoint'),
+        'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api'
+      ),
       headers := jsonb_build_object(
         'Content-Type',  'application/json',
-        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkemJqcHRvemVxY2JuYXFodHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDU3MTQsImV4cCI6MjA5MTY4MTcxNH0.M4-nl-r-M3sMNGUoJoyRXar8dwdnUkAJGR9YGkV5bNk'
+        'Authorization', 'Bearer ' || (SELECT value->>'token' FROM public.system_settings WHERE key = 'supabase_anon_key')
       ),
       body    := jsonb_build_object('record', row_to_json(v_client))
     );
