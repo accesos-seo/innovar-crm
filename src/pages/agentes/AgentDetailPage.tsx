@@ -21,6 +21,7 @@ const PHASE_COLORS = [
 
 const PhaseFlowCanvas: React.FC<{ fases: AgentSpec['fases'] }> = ({ fases }) => {
   const n = fases.length;
+  if (n === 0) return null;
   const W = 880;
   const spacing = W / (n + 1);
   const nodeY = 75;
@@ -240,6 +241,10 @@ const AgentDetailPage: React.FC = () => {
 
   const togglePhase = (id: number) => setOpenPhase((prev) => (prev === id ? null : id));
 
+  const headerStatus = agent.status === 'activo'
+    ? { label: 'Activo', variant: 'primary' as const }
+    : { label: 'En diseño', variant: 'warning' as const };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -250,7 +255,7 @@ const AgentDetailPage: React.FC = () => {
           subtitle={`Capa ${agent.layerNumber} · ${agent.layer}`}
           icon={Bot}
           onBack={() => navigate('/agentes')}
-          status={{ label: 'En diseño', variant: 'warning' }}
+          status={headerStatus}
         />
 
         {/* ── ZONA 2: Config stat cards ──────────────────────────────────────── */}
@@ -258,7 +263,7 @@ const AgentDetailPage: React.FC = () => {
           <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">⚙️ Configuración del agente</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {agent.config.map((item, i) => (
-              <ConfigCard key={item.label} item={item} index={i} />
+              <ConfigCard key={`config-${i}`} item={item} index={i} />
             ))}
           </div>
         </div>
