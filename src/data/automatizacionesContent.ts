@@ -975,7 +975,69 @@ El límite de 7 días entre reactivaciones garantiza que el cliente no reciba me
     ],
   },
 
-  // ─── 15. ADMIN INVITE USER ───────────────────────────────────────────────────
+  // ─── 15. ASISTENTE DE CALIFICACIÓN IA ───────────────────────────────────────
+  {
+    slug: 'asistente-calificacion-ia',
+    nombre: 'Asistente de Calificación IA',
+    descripcion: 'Cuando el comercial no responde a un lead nuevo en las primeras 2 horas hábiles, el asistente inicia una conversación guiada por WhatsApp para precalificar automáticamente: producto, presupuesto, medidas y urgencia.',
+    descripcion_larga: `Los leads más interesados son los que acaban de llegar. Si el comercial tarda horas en responder, ese interés se enfría. El Asistente de Calificación IA actúa como primer filtro inteligente, manteniendo el contacto caliente mientras el equipo está ocupado.
+
+Cuando detecta que un lead lleva más de 2 horas hábiles sin que el comercial haya hecho ningún contacto, el asistente inicia una conversación natural por WhatsApp. A través de 4 o 5 preguntas distribuidas naturalmente en la conversación, el asistente captura la información clave: tipo de proyecto (cocina, closet, etc.), medidas aproximadas del espacio, presupuesto estimado y nivel de urgencia.
+
+Cada respuesta del cliente se procesa con un modelo de lenguaje (LLM) que extrae los datos relevantes y los guarda directamente en los campos de la oportunidad en el CRM. Al final del intercambio, el asistente propone una visita técnica y el comercial recibe una alerta con el resumen de la calificación, listo para continuar desde donde el asistente lo dejó.
+
+El asistente sabe cuándo ceder: si el cliente hace una pregunta técnica específica o solicita hablar con una persona, escala inmediatamente al comercial asignado sin intentar responder lo que no puede.`,
+    problema_que_resuelve: 'Los leads que llegan fuera de horario o cuando el equipo está ocupado quedan sin respuesta durante horas. Sin calificación automática, el comercial tiene que empezar desde cero en cada nuevo lead. El Asistente captura la información clave y mantiene el interés activo hasta que el comercial pueda retomar.',
+    beneficios: [
+      'El lead recibe atención inmediata incluso a las 10pm o un domingo',
+      'El comercial recibe la oportunidad ya calificada: producto, presupuesto, urgencia',
+      'Reduce el tiempo que el asesor invierte en llamadas de pre-calificación rutinarias',
+      'Escalada automática a persona humana cuando el cliente lo pide o la conversación se complica',
+      'Propuesta de visita técnica incluida en el mismo intercambio de WhatsApp',
+    ],
+    casos_de_uso: [
+      'Un lead llega a las 9pm. El asistente responde en segundos, captura que el cliente quiere renovar su cocina (~12m²), tiene presupuesto de $15M–$20M y quiere avanzar este mes. A las 8am el comercial tiene todo ese contexto listo.',
+      'Un lead llega el lunes a las 10am pero el comercial está en una visita. El asistente lo califica y cuando el comercial termina a la 1pm, el lead ya tiene una visita propuesta para el jueves y sus datos de calificación en el CRM.',
+    ],
+    metricas: [
+      { valor: '2h',   etiqueta: 'Ventana de activación' },
+      { valor: '4–5',  etiqueta: 'Preguntas de calificación' },
+      { valor: '0',    etiqueta: 'Datos perdidos por falta de respuesta' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Lead sin respuesta 2h', sublabel: 'Horario hábil' },
+      { tipo: 'proceso', label: 'Iniciar conversación',  sublabel: 'Saludo IA por WA' },
+      { tipo: 'ia',      label: 'Conversación guiada',   sublabel: 'OpenRouter LLM' },
+      { tipo: 'proceso', label: 'Guardar en CRM',        sublabel: 'Campos oportunidad' },
+      { tipo: 'output',  label: 'Lead calificado',       sublabel: 'Alerta al comercial' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Se activa cuando un lead lleva 2 horas hábiles sin respuesta del comercial',
+    fuente_datos: 'Supabase — tabla opportunities + interactions + profiles',
+    canal_salida: ['whatsapp', 'interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Cron o trigger detecta oportunidades en stage "new" con assigned_at < NOW() - INTERVAL \'2h\' y sin interacción del comercial',
+      'n8n workflow inicia la conversación enviando el saludo y primera pregunta via Meta API',
+      'Webhook de Meta recibe respuesta del cliente y la envía al workflow',
+      'OpenRouter LLM procesa la respuesta, extrae datos y genera la siguiente pregunta contextual',
+      'Al completar la calificación: UPDATE opportunity con campos product_type, budget_range, urgency_level',
+      'Notificación al comercial asignado con resumen de la calificación y propuesta de visita técnica',
+    ],
+    notas: 'En desarrollo. Requiere: (1) n8n workflow con nodo OpenRouter (modelo económico recomendado: gpt-4o-mini), (2) diseño de las 4-5 preguntas de calificación, (3) webhook de entrada desde Meta para recibir respuestas, (4) lógica de escalada a humano cuando el cliente lo solicita o la conversación se complica.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Arquitectura definida: n8n + OpenRouter + Meta webhook. Pendiente construcción del workflow.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [],
+  },
+
+  // ─── 16. ADMIN INVITE USER ───────────────────────────────────────────────────
   {
     slug: 'admin-invite-user',
     nombre: 'Invitación de Usuarios al Sistema',
