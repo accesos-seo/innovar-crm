@@ -88,6 +88,22 @@ export const motorComercialAgentes: MotorAgente[] = [
     ],
   },
   {
+    id: 'gestor-post-visita',
+    nombre: 'Gestor Post-Visita',
+    emoji: '📋',
+    descripcion: 'Cuando Álvaro cierra una visita como realizada, el sistema actúa en dos frentes: envía WhatsApp al cliente confirmando la recepción, y crea automáticamente la tarea de cotización en el Kanban de Álvaro.',
+    cuando_se_activa: 'Inmediatamente cuando Álvaro marca una visita como "realizada" en el CRM',
+    que_produce: 'WhatsApp al cliente confirmando la visita + tarea "Preparar cotización" en el Kanban con prioridad alta y 48h de plazo',
+    status: 'activo',
+    tecnologia: 'PostgreSQL Triggers × 2 (trg_notify_visit_summary_client + trg_create_quotation_task_after_visit)',
+    fases: [
+      { id: 1, label: 'Detección de cierre',    detalle: 'Álvaro cambia el estado de la visita a "realizada" desde /agenda/hoy.', status: 'completed' },
+      { id: 2, label: 'WA al cliente',           detalle: 'Encola mensaje con template visit_summary_client_v1: "ya tenemos tu información, cotización en 24-48h".', status: 'completed' },
+      { id: 3, label: 'Guard dedup',             detalle: 'Verifica que no exista ya una tarea con tag visit:{uuid} para esta visita.', status: 'completed' },
+      { id: 4, label: 'Tarea en Kanban',         detalle: 'Crea tarea "Preparar cotización — [cliente]" asignada a Álvaro, prioridad alta, vence en 48h.', status: 'completed' },
+    ],
+  },
+  {
     id: 'monitor-inactividad',
     nombre: 'Monitor de Inactividad',
     emoji: '💤',

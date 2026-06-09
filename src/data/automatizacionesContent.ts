@@ -1037,7 +1037,70 @@ El asistente sabe cuándo ceder: si el cliente hace una pregunta técnica espec�
     rutas_codigo: [],
   },
 
-  // ─── 16. ADMIN INVITE USER ───────────────────────────────────────────────────
+  // ─── 16. TAREA DE COTIZACIÓN POST-VISITA ────────────────────────────────────
+  {
+    slug: 'tarea-cotizacion-post-visita',
+    nombre: 'Tarea de Cotización Post-Visita',
+    descripcion: 'Cuando Álvaro completa una visita técnica, el sistema crea automáticamente una tarea asignada a él para preparar la cotización del cliente en las próximas 48 horas.',
+    descripcion_larga: `Después de que Álvaro cierra una visita como "realizada" en el CRM, hay dos cosas que deben ocurrir de inmediato: el cliente debe saber que ya tienen su información, y Álvaro debe tener en su lista de tareas pendientes preparar la cotización.
+
+La migración 028 ya se encarga del primer punto: envía un WhatsApp al cliente confirmando la visita y prometiendo la cotización en 24-48 horas. Esta automatización cubre el segundo: crea instantáneamente una tarea en el módulo de Tareas del CRM, asignada a Álvaro, con prioridad alta y vencimiento en 48 horas.
+
+La tarea incluye el nombre del cliente en el título ("Preparar cotización — [nombre]") para que sea identificable de un vistazo en el tablero Kanban. El sistema usa un guard de idempotencia: si la visita se marca y desmarca por error, solo se crea una tarea, nunca duplicados.
+
+El resultado es que Álvaro sale de la visita, cierra el formulario en el CRM, y en su bandeja ya aparece la tarea de cotización lista para procesar —sin necesidad de crearla manualmente ni de que alguien le recuerde.`,
+    problema_que_resuelve: 'Sin automatización, Álvaro tiene que recordar manualmente crear la tarea de cotización después de cada visita. En días con varias visitas, es fácil que alguna se olvide o se demore. El sistema la crea al instante, con el plazo correcto y sin esfuerzo adicional.',
+    beneficios: [
+      'La tarea de cotización aparece automáticamente en el Kanban de Álvaro al completar la visita',
+      'Prioridad alta y vencimiento en 48 horas: alineado con la promesa hecha al cliente por WhatsApp',
+      'Guard de idempotencia: imposible que se creen dos tareas para la misma visita',
+      'El título incluye el nombre del cliente: fácil de identificar entre múltiples tareas',
+      'Cero fricción: Álvaro cierra la visita y su lista de tareas ya está actualizada',
+    ],
+    casos_de_uso: [
+      'Álvaro termina una visita a las 11am y la marca como realizada en el CRM. A las 11:00:03am aparece en su Kanban la tarea "Preparar cotización — María González" con vencimiento en 2 días.',
+      'Álvaro tiene 3 visitas en un día. Al cerrar cada una, el sistema crea 3 tareas independientes con los nombres correctos. Al llegar a la oficina el día siguiente, ve exactamente qué cotizaciones debe preparar y en qué orden.',
+    ],
+    metricas: [
+      { valor: '<5s',  etiqueta: 'Creación de la tarea' },
+      { valor: '48h',  etiqueta: 'Plazo de vencimiento' },
+      { valor: '1',    etiqueta: 'Tarea por visita (idempotente)' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Visita marcada realizada', sublabel: 'Por Álvaro en el CRM' },
+      { tipo: 'proceso', label: 'Leer contexto',            sublabel: 'Cliente + oportunidad' },
+      { tipo: 'proceso', label: 'Guard dedup',              sublabel: 'tags: visit:{uuid}' },
+      { tipo: 'proceso', label: 'Crear tarea',              sublabel: 'Kanban de Álvaro' },
+      { tipo: 'output',  label: 'Tarea lista',              sublabel: 'Prioridad alta, 48h' },
+    ],
+    categoria: 'comercial',
+    status: 'activa',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se marca una visita técnica como realizada',
+    fuente_datos: 'Supabase — tablas visits + opportunities + clients',
+    canal_salida: ['supabase', 'interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Trigger trg_create_quotation_task_after_visit se activa AFTER UPDATE cuando visits.status cambia a "realizada"',
+      'Función fn_create_quotation_task_after_visit lee el cliente y la oportunidad vinculada',
+      'Guard verifica que no exista ya una tarea con tag "visit:{visit_uuid}" (idempotencia)',
+      'INSERT en tabla tasks: título "Preparar cotización — [cliente]", categoría seguimiento, prioridad alta, vence en 48h',
+      'La tarea aparece inmediatamente en el módulo de Tareas del CRM asignada a Álvaro',
+    ],
+    notas: 'Co-existe con trg_notify_visit_summary_client (migración 028) que envía el WA al cliente en el mismo evento. Ambos triggers son independientes y no se interfieren. Si visited_by es null, usa get_default_visitor() (Álvaro Ríos, uuid 09ca8b37).',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Trigger fn_create_quotation_task_after_visit implementado (migración 046)', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/046_task_cotizacion_post_visita.sql',
+    ],
+  },
+
+  // ─── 17. ADMIN INVITE USER ───────────────────────────────────────────────────
   {
     slug: 'admin-invite-user',
     nombre: 'Invitación de Usuarios al Sistema',
