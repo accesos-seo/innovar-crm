@@ -362,13 +362,14 @@ WHERE trigger_name = 'trg_notify_instalacion_programada';
 
 **Archivo:** `D:\Agents-automations\04-Innovar\db\migrations\049_cierre_automatico_proyecto.sql`  
 **Template:** `proyecto_completado_v1` (APROBADA por Meta ✅)  
-**Condición:** `delivered_at` NOT NULL **Y** `is_fully_paid = true` (ambas juntas)  
-**Acciones del trigger:**
-1. Actualiza `projects.status → 'completado'`
+**Condición:** `delivered_at` NULL→NOT NULL **Y** `is_fully_paid = true` (ambas juntas)  
+**Tipo de trigger:** BEFORE (no AFTER) — para que `NEW.status := 'completado'` sea atómico con el UPDATE original, sin un segundo UPDATE separado que puede causar "tuple concurrently updated" bajo concurrencia.  
+**Acciones:**
+1. `NEW.status := 'completado'` (atómico, parte del mismo UPDATE)
 2. Inserta WA al cliente con `proyecto_completado_v1`
 3. Crea tarea Kanban "Solicitar reseña" con due_date = NOW() + 7 días
 
-**SQL completo:**
+**SQL completo (rev 2 — BEFORE trigger):**
 ```sql
 CREATE OR REPLACE FUNCTION public.fn_cierre_automatico_proyecto()
 RETURNS TRIGGER LANGUAGE plpgsql
@@ -389,7 +390,8 @@ BEGIN
   IF NEW.is_fully_paid IS NOT TRUE THEN
     RETURN NEW;
   END IF;
-  IF NEW.status = 'completado' THEN
+  -- Guard: comparar OLD.status para evitar re-ejecución
+  IF OLD.status::text = 'completado' THEN
     RETURN NEW;
   END IF;
   SELECT c.id, c.name, c.whatsapp_phone
@@ -406,7 +408,9 @@ BEGIN
       FROM public.profiles WHERE role = 'admin' LIMIT 1;
     v_responsable := v_default_user;
   END IF;
-  UPDATE public.projects SET status = 'completado' WHERE id = NEW.id;
+  -- 1. Cambio atómico de status — sin UPDATE separado
+  NEW.status := 'completado';
+  -- 2. WA al cliente
   IF v_client_phone IS NOT NULL THEN
     INSERT INTO public.notification_queue (
       recipient_phone, recipient_name, template_name, template_params,
@@ -423,6 +427,7 @@ BEGIN
       'pending'
     );
   END IF;
+  -- 3. Tarea "Solicitar reseña"
   IF v_responsable IS NOT NULL THEN
     INSERT INTO public.tasks (
       client_id, assigned_to, created_by, title, description,
@@ -444,7 +449,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_cierre_automatico_proyecto ON public.projects;
 CREATE TRIGGER trg_cierre_automatico_proyecto
-  AFTER UPDATE OF delivered_at, is_fully_paid ON public.projects
+  BEFORE UPDATE OF delivered_at, is_fully_paid ON public.projects
   FOR EACH ROW
   EXECUTE FUNCTION public.fn_cierre_automatico_proyecto();
 ```

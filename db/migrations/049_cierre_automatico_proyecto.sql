@@ -2,13 +2,13 @@
 -- 049 — Cierre Automático de Proyecto
 -- =====================================================
 -- Proyecto: Innovar CRM (xdzbjptozeqcbnaqhtye)
--- Fecha: 2026-06-09
+-- Fecha: 2026-06-09 (rev 2 — BEFORE trigger)
 --
 -- Objetivo: cuando el equipo registra la entrega final
 -- (delivered_at pasa de NULL a NOT NULL) Y el proyecto
 -- está completamente pagado (is_fully_paid = true),
 -- el sistema:
---   1. Actualiza projects.status → 'completado'
+--   1. Cambia projects.status → 'completado' (via NEW, sin UPDATE separado)
 --   2. Envía WA de agradecimiento al cliente
 --   3. Crea tarea Kanban "Solicitar reseña" con 7 días
 --
@@ -20,8 +20,10 @@
 -- pagado), el trigger no actúa. Evita cerrar proyectos
 -- con saldo pendiente.
 --
--- NOTA: activar este trigger solo cuando la template
--- Meta esté en estado APPROVED.
+-- DISEÑO: BEFORE trigger (no AFTER) para que el cambio
+-- de status sea atómico con el UPDATE original — evita
+-- el anti-patrón de UPDATE-dentro-de-AFTER que puede
+-- causar "tuple concurrently updated" bajo concurrencia.
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION public.fn_cierre_automatico_proyecto()
@@ -37,7 +39,7 @@ DECLARE
   v_responsable   UUID;
   v_default_user  UUID;
 BEGIN
-  -- Condición 1: delivered_at pasa de NULL a NOT NULL
+  -- Condición 1: delivered_at pasa de NULL a NOT NULL en ESTE update
   IF NEW.delivered_at IS NULL OR OLD.delivered_at IS NOT NULL THEN
     RETURN NEW;
   END IF;
@@ -48,7 +50,7 @@ BEGIN
   END IF;
 
   -- Guard de idempotencia: no re-ejecutar si ya está completado
-  IF NEW.status = 'completado' THEN
+  IF OLD.status::text = 'completado' THEN
     RETURN NEW;
   END IF;
 
@@ -65,7 +67,6 @@ BEGIN
   v_project_name := COALESCE(NEW.name, 'tu proyecto');
   v_responsable  := COALESCE(NEW.designer_id, NEW.created_by);
 
-  -- Fallback: buscar cualquier admin si no hay responsable
   IF v_responsable IS NULL THEN
     SELECT id INTO v_default_user
       FROM public.profiles
@@ -74,10 +75,8 @@ BEGIN
     v_responsable := v_default_user;
   END IF;
 
-  -- 1. Cerrar el proyecto
-  UPDATE public.projects
-     SET status = 'completado'
-   WHERE id = NEW.id;
+  -- 1. Cambiar status modificando NEW directamente (BEFORE trigger — atómico con el UPDATE original)
+  NEW.status := 'completado';
 
   -- 2. Encolar WhatsApp al cliente (solo si tiene teléfono)
   IF v_client_phone IS NOT NULL THEN
@@ -142,7 +141,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_cierre_automatico_proyecto ON public.projects;
 CREATE TRIGGER trg_cierre_automatico_proyecto
-  AFTER UPDATE OF delivered_at, is_fully_paid ON public.projects
+  BEFORE UPDATE OF delivered_at, is_fully_paid ON public.projects
   FOR EACH ROW
   EXECUTE FUNCTION public.fn_cierre_automatico_proyecto();
 
@@ -156,9 +155,9 @@ CREATE TRIGGER trg_cierre_automatico_proyecto
 --       AND is_fully_paid = true
 --       AND delivered_at IS NULL;
 --
---    -- Verificar cierre:
+--    -- Verificar cierre (sin SELECT extra — atómico):
 --    SELECT status FROM public.projects WHERE id = '<project_uuid>';
---    -- Debe ser 'completado'
+--    -- Debe ser 'completado' en la misma transacción
 --
 --    -- Verificar WA:
 --    SELECT template_name, template_params FROM public.notification_queue
@@ -174,7 +173,7 @@ CREATE TRIGGER trg_cierre_automatico_proyecto
 --    -- El cierre NO debe activarse.
 --
 -- 3) Idempotencia:
---    El guard evita re-ejecutar si status ya es 'completado'.
+--    OLD.status = 'completado' → el guard bloquea re-ejecución.
 
 -- =====================================================
 -- ROLLBACK
