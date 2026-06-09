@@ -115,6 +115,12 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   project_assigned_designer_v1: bodyBuilder("project_assigned_designer_v1", 3),
   project_fully_paid_v1: bodyBuilder("project_fully_paid_v1", 2),
   admin_quotation_expired_v1: bodyBuilder("admin_quotation_expired_v1", 4),
+
+  // — Fase 9 · Producción (migraciones 047-049 + n8n CjbwjGdRKyIzWJWq) —
+  fabricacion_iniciada_v1: bodyBuilder("fabricacion_iniciada_v1", 2),         // {{1}}=nombre {{2}}=días estimados
+  instalacion_programada_v1: bodyBuilder("instalacion_programada_v1", 2),     // {{1}}=nombre {{2}}=fecha en español
+  proyecto_completado_v1: bodyBuilder("proyecto_completado_v1", 2),           // {{1}}=nombre {{2}}=nombre proyecto
+  recordatorio_instalacion_v1: bodyBuilder("recordatorio_instalacion_v1", 1), // {{1}}=nombre
 };
 
 function jsonResponse(body: unknown, status = 200) {
