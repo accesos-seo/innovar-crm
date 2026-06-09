@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckSquare, ArrowRight, Clock } from 'lucide-react';
 import { useTasks } from '@/hooks/tareas/useTasks';
+import { Task } from '@/types/database';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/utils';
 
@@ -74,9 +75,9 @@ export function WeeklyTasksSummary() {
       </div>
 
       <div className="divide-y divide-border/10">
-        {weekTasks.map(task => {
+        {weekTasks.map((task: Task) => {
           const statusCfg = STATUS_CONFIG[task.status] ?? { label: task.status, variant: 'primary' as const };
-          const assignedName = (task as any).assigned_user?.full_name ?? '—';
+          const assignedName = task.assigned_user?.full_name ?? '—';
           const dueLabel = task.due_date
             ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
             : null;
