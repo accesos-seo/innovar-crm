@@ -1231,4 +1231,244 @@ En el instante que Álvaro hace clic en "Finalizar visita" con todo completo, el
     ],
   },
 
+  // ─── 19. NOTIFICADOR DE INICIO DE FABRICACIÓN ────────────────────────────────
+  {
+    slug: 'notificador-fabricacion',
+    nombre: 'Notificador de Inicio de Fabricación',
+    descripcion: 'Cuando el equipo registra el inicio de fabricación en el CRM, el sistema envía automáticamente un WhatsApp al cliente avisándole que su cocina está siendo construida.',
+    descripcion_larga: `Una vez que la cotización fue aprobada, el pago verificado y el proyecto creado, llega el momento de fabricar la cocina. El cliente no tiene visibilidad de qué está pasando internamente — este notificador cierra ese silencio.
+
+Cuando el equipo registra la fecha de inicio de fabricación (campo fabrication_started_at en el proyecto), el sistema detecta ese cambio al instante y envía un WhatsApp al cliente con la plantilla fabricacion_iniciada_v1. El mensaje le confirma que su cocina está siendo fabricada y le da el tiempo estimado de entrega.
+
+El cliente recibe tranquilidad, se reduce la cantidad de llamadas de seguimiento al equipo, y la marca proyecta profesionalismo al mantener informado al comprador sin que nadie tenga que recordarlo.`,
+    problema_que_resuelve: 'Los clientes no saben qué pasa con su pedido después de aprobar la cotización. Esto genera llamadas de seguimiento innecesarias y ansiedad. El notificador mantiene al cliente informado en el momento exacto en que empieza la producción.',
+    beneficios: [
+      'El cliente recibe confirmación inmediata cuando empieza la fabricación de su cocina',
+      'Reduce llamadas de seguimiento al equipo sobre el estado del pedido',
+      'Proyecta profesionalismo y transparencia en el proceso post-venta',
+      'No requiere acción manual del equipo — el registro del inicio activa el mensaje',
+    ],
+    casos_de_uso: [
+      'El equipo de producción registra el inicio de fabricación un lunes. El cliente recibe ese mismo día un WhatsApp: "Hola María, hemos comenzado a fabricar tu cocina. El tiempo estimado es de 15 días hábiles." Sin llamadas, sin gestión manual.',
+    ],
+    metricas: [
+      { valor: '<5s', etiqueta: 'Envío tras registrar inicio' },
+      { valor: '1',   etiqueta: 'Mensaje por proyecto (idempotente)' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'fabrication_started_at seteado', sublabel: 'Equipo registra inicio en CRM' },
+      { tipo: 'proceso', label: 'Trigger DB detecta cambio',       sublabel: 'AFTER UPDATE OF fabrication_started_at' },
+      { tipo: 'proceso', label: 'Leer datos del cliente',          sublabel: 'nombre + teléfono WA' },
+      { tipo: 'api',     label: 'Encolar notificación WA',         sublabel: 'notification_queue' },
+      { tipo: 'output',  label: 'WhatsApp al cliente',             sublabel: 'fabricacion_iniciada_v1' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se registra el inicio de fabricación de un proyecto',
+    fuente_datos: 'Supabase — tabla projects (campo fabrication_started_at)',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'El equipo registra la fecha de inicio de fabricación en el proyecto del CRM',
+      'Trigger AFTER UPDATE OF fabrication_started_at en tabla projects se activa cuando el campo pasa de NULL a NOT NULL',
+      'Función lee el nombre y teléfono WA del cliente vinculado al proyecto',
+      'Guard de idempotencia: verifica que no se haya enviado ya la notificación para este proyecto',
+      'INSERT en notification_queue con template fabricacion_iniciada_v1: {{1}} nombre, {{2}} días estimados',
+      'Worker de WA envía el mensaje al cliente vía Meta API',
+    ],
+    notas: 'Requiere template Meta aprobada: fabricacion_iniciada_v1 (parámetros: {{1}} nombre cliente, {{2}} tiempo estimado). Pendiente: aplicar migración 047 una vez aprobada la template.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Automatización diseñada (Fase 9), pendiente de template Meta y migración 047', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/047_notificador_fabricacion.sql',
+    ],
+  },
+
+  // ─── 20. NOTIFICADOR DE INSTALACIÓN PROGRAMADA ───────────────────────────────
+  {
+    slug: 'notificador-instalacion-programada',
+    nombre: 'Notificador de Instalación Programada',
+    descripcion: 'Cuando el equipo agenda la fecha de instalación en el CRM, el sistema envía automáticamente un WhatsApp al cliente confirmándole el día exacto en que instalarán su cocina.',
+    descripcion_larga: `Una vez que la cocina está fabricada y lista, el equipo coordina la fecha de instalación. Pero ese acuerdo muchas veces queda solo en una llamada sin que el cliente tenga confirmación escrita.
+
+Cuando el equipo registra la fecha de instalación (campo scheduled_install_date), el trigger se activa al instante y envía un WhatsApp al cliente con la plantilla instalacion_programada_v1. El mensaje confirma la fecha de instalación y le recuerda que debe tener el espacio listo.
+
+El cliente tiene la confirmación guardada en su WhatsApp, el equipo no tiene que enviar el mensaje manualmente, y se eliminan los malentendidos sobre la fecha acordada.`,
+    problema_que_resuelve: 'Las fechas de instalación se comunican solo verbalmente. Esto genera confusiones, ausencias del cliente el día de la instalación y desplazamientos innecesarios del equipo.',
+    beneficios: [
+      'El cliente recibe confirmación escrita de la fecha de instalación por WhatsApp',
+      'Elimina malentendidos sobre la fecha acordada para la instalación',
+      'El equipo no tiene que enviar el mensaje manualmente',
+      'El cliente puede preparar el espacio con anticipación',
+    ],
+    casos_de_uso: [
+      'El encargado de producción agenda la instalación para el viernes 20 de junio en el CRM. Inmediatamente el cliente recibe: "Hola María, tu instalación está programada para el viernes 20 de junio de 2026." Sin llamadas adicionales, sin riesgo de olvido.',
+    ],
+    metricas: [
+      { valor: '<5s', etiqueta: 'Envío tras agendar instalación' },
+      { valor: '1',   etiqueta: 'Confirmación por proyecto' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'scheduled_install_date seteado', sublabel: 'Equipo agenda instalación en CRM' },
+      { tipo: 'proceso', label: 'Trigger DB detecta cambio',       sublabel: 'AFTER UPDATE OF scheduled_install_date' },
+      { tipo: 'proceso', label: 'Formatear fecha',                 sublabel: 'DD de mes de YYYY en español' },
+      { tipo: 'api',     label: 'Encolar notificación WA',         sublabel: 'notification_queue' },
+      { tipo: 'output',  label: 'WhatsApp al cliente',             sublabel: 'instalacion_programada_v1' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se agenda la fecha de instalación de un proyecto',
+    fuente_datos: 'Supabase — tabla projects (campo scheduled_install_date)',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Equipo registra la fecha de instalación (scheduled_install_date) en el proyecto del CRM',
+      'Trigger AFTER UPDATE OF scheduled_install_date en tabla projects se activa cuando el campo pasa de NULL a NOT NULL',
+      'Función lee nombre y teléfono WA del cliente + formatea la fecha en español',
+      'Guard de idempotencia: verifica que no se haya enviado ya la confirmación para este proyecto',
+      'INSERT en notification_queue con template instalacion_programada_v1: {{1}} nombre, {{2}} fecha formateada',
+      'Worker de WA envía el mensaje al cliente vía Meta API',
+    ],
+    notas: 'Requiere template Meta aprobada: instalacion_programada_v1 (parámetros: {{1}} nombre cliente, {{2}} fecha en español). Pendiente: aplicar migración 048 una vez aprobada la template.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Automatización diseñada (Fase 9), pendiente de template Meta y migración 048', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/048_notificador_instalacion_programada.sql',
+    ],
+  },
+
+  // ─── 21. RECORDATORIO DÍA DE INSTALACIÓN ─────────────────────────────────────
+  {
+    slug: 'recordatorio-instalacion',
+    nombre: 'Recordatorio Día de Instalación',
+    descripcion: 'Cada mañana el sistema revisa si hay instalaciones programadas para ese día y envía automáticamente un recordatorio por WhatsApp al cliente, asegurando que esté listo cuando llegue el equipo.',
+    descripcion_larga: `Por bien coordinada que esté la instalación, siempre existe el riesgo de que el cliente se olvide o no tenga el espacio preparado cuando llega el equipo. Este recordatorio elimina ese riesgo sin que nadie tenga que gestionarlo manualmente.
+
+Cada día a las 7:30am (hora Bogotá), el workflow de n8n consulta la base de datos buscando proyectos con scheduled_install_date igual a la fecha de hoy y que aún no estén entregados. Por cada uno que encuentre, envía un WhatsApp al cliente con la plantilla recordatorio_instalacion_v1 recordándole que hoy es el día de su instalación.
+
+Además, el sistema crea una tarea interna en el CRM asignada al diseñador/instalador responsable del proyecto, sirviendo como confirmación interna del trabajo del día.`,
+    problema_que_resuelve: 'Los clientes pueden olvidar la fecha de instalación o no tener el espacio listo cuando llega el equipo. Esto genera viajes en vano y reprogramaciones costosas.',
+    beneficios: [
+      'El cliente recibe recordatorio automático la mañana del día de instalación',
+      'El equipo no tiene que llamar manualmente a cada cliente antes de salir',
+      'Reduce el riesgo de desplazamientos en vano por cliente ausente o espacio no preparado',
+      'Genera una tarea interna de confirmación para el instalador responsable',
+    ],
+    casos_de_uso: [
+      'El equipo tiene 2 instalaciones programadas para hoy. A las 7:30am ambos clientes reciben el recordatorio por WhatsApp. El equipo llega y ambos clientes están esperando con el espacio listo.',
+      'Un cliente agendó la instalación hace dos semanas y lo olvidó. El recordatorio llega esa mañana y puede prepararse antes de que llegue el equipo.',
+    ],
+    metricas: [
+      { valor: '7:30am', etiqueta: 'Hora de envío' },
+      { valor: '1',      etiqueta: 'Recordatorio por instalación' },
+      { valor: '0',      etiqueta: 'Llamadas manuales del equipo' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Cron 7:30am Bogotá',           sublabel: 'n8n, lunes a sábado' },
+      { tipo: 'proceso', label: 'Consultar proyectos de hoy',    sublabel: 'scheduled_install_date = hoy' },
+      { tipo: 'decision',label: '¿Hay instalaciones?',           sublabel: 'Si 0 → finalizar' },
+      { tipo: 'proceso', label: 'Por cada proyecto',             sublabel: 'Armar mensaje + crear tarea interna' },
+      { tipo: 'output',  label: 'WhatsApp al cliente',           sublabel: 'recordatorio_instalacion_v1' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'cron',
+    frecuencia: 'Diario a las 7:30am hora Bogotá (lunes a sábado)',
+    fuente_datos: 'Supabase — tabla projects (scheduled_install_date = hoy, delivered_at IS NULL)',
+    canal_salida: ['whatsapp', 'interno'],
+    n8n_workflow_id: 'CjbwjGdRKyIzWJWq',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Cron n8n se activa cada día a las 7:30am hora Bogotá (lunes a sábado)',
+      'Nodo HTTP consulta Supabase: proyectos con scheduled_install_date = CURRENT_DATE y delivered_at IS NULL',
+      'Si no hay proyectos, el workflow finaliza sin enviar nada',
+      'Por cada proyecto encontrado: leer nombre y teléfono del cliente + designer_id asignado',
+      'Encolar WA con template recordatorio_instalacion_v1: {{1}} nombre cliente',
+      'INSERT en tabla tasks: "Instalación hoy — [cliente]" asignada al designer_id, vence hoy',
+    ],
+    notas: 'Requiere template Meta aprobada: recordatorio_instalacion_v1 (parámetro: {{1}} nombre cliente). El cron corre lunes a sábado para cubrir instalaciones en fin de semana. Pendiente: crear workflow n8n.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Automatización diseñada (Fase 9), pendiente de template Meta y creación del workflow n8n', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [],
+  },
+
+  // ─── 22. CIERRE AUTOMÁTICO DE PROYECTO ───────────────────────────────────────
+  {
+    slug: 'cierre-automatico-proyecto',
+    nombre: 'Cierre Automático de Proyecto',
+    descripcion: 'Cuando el equipo registra la entrega final y el proyecto está completamente pagado, el sistema cierra el proyecto automáticamente, envía un WhatsApp de agradecimiento al cliente y crea una tarea interna para solicitar la reseña.',
+    descripcion_larga: `El cierre de un proyecto marca el fin del trabajo, la satisfacción del cliente y el inicio de la relación post-venta. Sin embargo, este cierre muchas veces queda pendiente o se hace de forma inconsistente.
+
+Cuando el equipo registra la fecha de entrega final (campo delivered_at) y el proyecto ya tiene todos sus pagos completos (is_fully_paid = true), el trigger se activa inmediatamente. Primero actualiza el estado del proyecto a "completado". Luego envía un WhatsApp al cliente con la plantilla proyecto_completado_v1 agradeciéndole por confiar en Innovar Cocinas. Finalmente crea una tarea Kanban: "Solicitar reseña — [nombre del cliente]", asignada al responsable del proyecto, con vencimiento en 7 días.
+
+La condición doble (entregado + pagado completamente) evita cerrar proyectos que tengan saldo pendiente.`,
+    problema_que_resuelve: 'Los proyectos terminados quedan abiertos en el CRM sin cierre formal, los clientes no reciben reconocimiento por la compra, y el equipo olvida solicitar reseñas que generan nuevos leads.',
+    beneficios: [
+      'El proyecto se cierra automáticamente cuando se cumplen las condiciones reales (entregado + pagado)',
+      'El cliente recibe un mensaje de cierre que refuerza la relación con la marca',
+      'El equipo recibe una tarea automática para solicitar la reseña sin tener que recordarlo',
+      'Los reportes del CRM muestran proyectos completados reales, no proyectos abiertos olvidados',
+    ],
+    casos_de_uso: [
+      'El equipo marca la entrega de la cocina de María. El proyecto ya estaba completamente pagado. Automáticamente: el CRM cierra el proyecto, María recibe un WhatsApp de agradecimiento, y el responsable recibe la tarea "Solicitar reseña — María González" con 7 días de plazo.',
+      'Se entrega un proyecto pero queda un saldo pendiente (is_fully_paid = false). El cierre automático NO se activa — evita cerrar proyectos con deuda pendiente.',
+    ],
+    metricas: [
+      { valor: '<5s',  etiqueta: 'Cierre tras registrar entrega' },
+      { valor: '100%', etiqueta: 'Proyectos con reseña solicitada' },
+      { valor: '7d',   etiqueta: 'Plazo para solicitar reseña' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'delivered_at seteado',         sublabel: 'Equipo registra entrega final' },
+      { tipo: 'proceso', label: 'Verificar condición doble',    sublabel: 'delivered_at NOT NULL AND is_fully_paid' },
+      { tipo: 'proceso', label: 'UPDATE projects',              sublabel: 'status → completado' },
+      { tipo: 'api',     label: 'Encolar WA agradecimiento',    sublabel: 'proyecto_completado_v1' },
+      { tipo: 'output',  label: 'Tarea "Solicitar reseña"',     sublabel: 'Kanban del responsable, 7 días' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se registra la entrega final de un proyecto completamente pagado',
+    fuente_datos: 'Supabase — tabla projects (delivered_at + is_fully_paid)',
+    canal_salida: ['whatsapp', 'interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Equipo registra la fecha de entrega (delivered_at) en el proyecto del CRM',
+      'Trigger AFTER UPDATE OF delivered_at, is_fully_paid en tabla projects se activa',
+      'Función verifica condición doble: delivered_at IS NOT NULL AND is_fully_paid = true',
+      'Guard de idempotencia: si el proyecto ya tiene status = "completado", no hace nada',
+      'UPDATE projects SET status = "completado"',
+      'Lee nombre, teléfono WA del cliente y nombre del proyecto',
+      'INSERT en notification_queue: template proyecto_completado_v1 con {{1}} nombre + {{2}} nombre proyecto',
+      'INSERT en tabla tasks: "Solicitar reseña — [cliente]", prioridad normal, vence en 7 días, asignada al created_by del proyecto',
+    ],
+    notas: 'Requiere template Meta aprobada: proyecto_completado_v1 (parámetros: {{1}} nombre cliente, {{2}} nombre proyecto). Condición doble evita cerrar proyectos con pagos pendientes. Pendiente: aplicar migración 049.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Automatización diseñada (Fase 9), pendiente de template Meta y migración 049', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/049_cierre_automatico_proyecto.sql',
+    ],
+  },
+
 ];
