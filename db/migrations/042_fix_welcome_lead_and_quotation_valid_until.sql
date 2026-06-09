@@ -37,6 +37,8 @@ DECLARE
   v_assigned_name   TEXT;
   v_base_url        TEXT;
   v_public_url      TEXT;
+  v_anon_token      TEXT;
+  v_api_url         TEXT;
 BEGIN
   SELECT *
     INTO v_client
@@ -95,34 +97,27 @@ BEGIN
     ) ON CONFLICT DO NOTHING;
   END IF;
 
-  -- EMAIL vía smart-api solo para clientes EXISTENTES.
-  -- Clientes nuevos ya reciben email por tr_on_new_lead_email (clients INSERT).
-  -- EMAIL via smart-api para clientes EXISTENTES (> 30 seg antes).
+  -- EMAIL via smart-api solo para clientes EXISTENTES (> 30 seg antes).
   -- PREREQUISITO: system_settings debe tener key='supabase_anon_key' con value={"token":"<anon>"}.
   -- Si la key no existe el bloque se omite — previene llamadas con 'Bearer NULL'.
   IF (NEW.created_at - v_client.created_at) > INTERVAL '30 seconds' THEN
-    DECLARE
-      v_anon_token TEXT;
-      v_api_url    TEXT;
-    BEGIN
-      SELECT value->>'token' INTO v_anon_token
-        FROM public.system_settings WHERE key = 'supabase_anon_key';
+    SELECT value->>'token' INTO v_anon_token
+      FROM public.system_settings WHERE key = 'supabase_anon_key';
 
-      IF v_anon_token IS NOT NULL AND length(v_anon_token) > 10 THEN
-        v_api_url := COALESCE(
-          (SELECT value->>'url' FROM public.system_settings WHERE key = 'smart_api_endpoint'),
-          'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api'
-        );
-        PERFORM net.http_post(
-          url     := v_api_url,
-          headers := jsonb_build_object(
-            'Content-Type',  'application/json',
-            'Authorization', 'Bearer ' || v_anon_token
-          ),
-          body    := jsonb_build_object('record', row_to_json(v_client))
-        );
-      END IF;
-    END;
+    IF v_anon_token IS NOT NULL AND length(v_anon_token) > 10 THEN
+      v_api_url := COALESCE(
+        (SELECT value->>'url' FROM public.system_settings WHERE key = 'smart_api_endpoint'),
+        'https://xdzbjptozeqcbnaqhtye.supabase.co/functions/v1/smart-api'
+      );
+      PERFORM net.http_post(
+        url     := v_api_url,
+        headers := jsonb_build_object(
+          'Content-Type',  'application/json',
+          'Authorization', 'Bearer ' || v_anon_token
+        ),
+        body    := jsonb_build_object('record', row_to_json(v_client))
+      );
+    END IF;
   END IF;
 
   RETURN NEW;
