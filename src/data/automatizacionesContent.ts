@@ -74,22 +74,22 @@ export const automatizaciones: AutomatizacionDoc[] = [
     descripcion: 'Captura leads de cualquier canal, crea la oportunidad de venta y asigna al comercial disponible en menos de 1 segundo.',
     descripcion_larga: `Cuando un nuevo contacto llega al sistema —desde el formulario del sitio web, un WhatsApp directo, una referencia o la sala de exhibición— el Receptor de Leads actúa de inmediato sin esperar a que nadie esté en la oficina.
 
-Primero crea el registro del lead con todos sus datos en la base de datos y genera automáticamente una oportunidad de venta vinculada con estado "Nuevo". Luego consulta qué comercial le corresponde según el turno (sistema round-robin) y le asigna la oportunidad de forma justa, garantizando que ningún asesor reciba desproporcionalmente más contactos que otro.
+Primero crea el registro del lead con todos sus datos en la base de datos y genera automáticamente una oportunidad de venta vinculada con estado "Nuevo". Luego asigna la oportunidad al comercial principal configurado en el sistema (actualmente Álvaro Ríos), garantizando una asignación consistente y predecible.
 
 Al mismo tiempo calcula el próximo slot de visita disponible —preferiblemente martes o jueves— y deja ese dato listo para que el Notificador de Bienvenida se lo comunique al cliente en su primer mensaje.
 
 El resultado: en menos de un segundo el lead ya tiene registro, oportunidad, comercial asignado y fecha propuesta. Todo sin que nadie tenga que hacer nada manualmente.`,
-    problema_que_resuelve: 'Cuando los leads llegan por múltiples canales sin un sistema centralizado, es fácil que algunos se pierdan, lleguen tarde o que la asignación entre comerciales sea inequitativa. El Receptor los captura todos al instante y los distribuye de forma justa y consistente.',
+    problema_que_resuelve: 'Cuando los leads llegan por múltiples canales sin un sistema centralizado, es fácil que algunos se pierdan o lleguen tarde. El Receptor los captura todos al instante y los asigna de forma consistente al comercial responsable.',
     beneficios: [
       'Ningún lead se pierde: todos quedan registrados automáticamente al instante',
-      'Asignación round-robin justa entre todos los comerciales activos',
+      'Asignación directa al comercial principal (Álvaro Ríos) sin intervención manual',
       'Propone el primer slot de visita disponible desde el primer momento',
       'Crea la oportunidad vinculada lista para seguimiento sin trabajo manual',
       'Funciona 24/7, incluso fuera del horario de la oficina',
     ],
     casos_de_uso: [
-      'Un cliente completa el formulario del sitio a las 11pm. En menos de 1 segundo el lead está registrado, asignado al comercial de turno y tiene una fecha de visita propuesta para el próximo martes disponible.',
-      'Un visitante en la sala de exhibición entrega su número. El asesor lo registra en el CRM y en ese mismo momento el sistema crea la oportunidad, asigna el comercial correcto y calcula el slot disponible.',
+      'Un cliente completa el formulario del sitio a las 11pm. En menos de 1 segundo el lead está registrado, asignado a Álvaro Ríos y tiene una fecha de visita propuesta para el próximo martes disponible.',
+      'Un visitante en la sala de exhibición entrega su número. El asesor lo registra en el CRM y en ese mismo momento el sistema crea la oportunidad, asigna al comercial principal y calcula el slot disponible.',
     ],
     metricas: [
       { valor: '<1s',  etiqueta: 'Tiempo de respuesta' },
@@ -99,7 +99,7 @@ El resultado: en menos de un segundo el lead ya tiene registro, oportunidad, com
     flujo_visual: [
       { tipo: 'trigger', label: 'Lead llega',      sublabel: 'Cualquier canal' },
       { tipo: 'proceso', label: 'Crear registro',  sublabel: 'leads + opportunity' },
-      { tipo: 'proceso', label: 'Round-robin',     sublabel: 'Asignar comercial' },
+      { tipo: 'proceso', label: 'Asignar comercial', sublabel: 'Álvaro Ríos (principal)' },
       { tipo: 'proceso', label: 'Calcular slot',   sublabel: 'Próxima disponibilidad' },
       { tipo: 'output',  label: 'Lead asignado',   sublabel: 'Listo para bienvenida' },
     ],
@@ -117,15 +117,16 @@ El resultado: en menos de un segundo el lead ya tiene registro, oportunidad, com
     pasos: [
       'INSERT en tabla leads con datos del canal de origen',
       'Trigger PostgreSQL fn_create_opportunity_on_new_lead se activa automáticamente',
-      'Función fn_assign_commercial_round_robin consulta el turno actual y asigna',
+      'Función fn_assign_commercial_round_robin asigna al comercial principal configurado en el sistema (Álvaro Ríos)',
       'Función fn_propose_next_visit_slot calcula el próximo martes o jueves disponible',
       'Estado de la oportunidad queda en "nuevo", listo para que Notificador de Bienvenida actúe',
     ],
     notas: '',
     historial: [
       { fecha: '2026-05-01T00:00:00Z', descripcion: 'Sistema de captura multi-canal implementado', autor: 'Robert Virona' },
-      { fecha: '2026-05-15T00:00:00Z', descripcion: 'Trigger de asignación round-robin agregado (migración 010)', autor: 'Robert Virona' },
+      { fecha: '2026-05-15T00:00:00Z', descripcion: 'Trigger de asignación comercial principal agregado (migración 010)', autor: 'Robert Virona' },
       { fecha: '2026-06-01T00:00:00Z', descripcion: 'Cálculo de slot de visita integrado al flujo de recepción', autor: 'Robert Virona' },
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Asignación cambiada de round-robin a pin fijo (Álvaro Ríos, migración 022)', autor: 'Robert Virona' },
     ],
     rutas_codigo: [
       'db/migrations/008_lead_to_project_schema.sql',
@@ -847,7 +848,134 @@ Actualmente el agente está activo pero en modo DRY_RUN: clasifica las cotizacio
     ],
   },
 
-  // ─── 13. ADMIN INVITE USER ───────────────────────────────────────────────────
+  // ─── 13. BIENVENIDA AL PROYECTO ─────────────────────────────────────────────
+  {
+    slug: 'bienvenida-al-proyecto',
+    nombre: 'Bienvenida al Proyecto',
+    descripcion: 'Cuando se crea un proyecto activo, envía automáticamente un WhatsApp al cliente presentándole el proyecto y el nombre del diseñador asignado.',
+    descripcion_larga: `El momento en que el cliente paga y el proyecto arranca es uno de los más importantes de la relación. La Bienvenida al Proyecto asegura que ese instante quede marcado con una comunicación cálida y profesional, sin que nadie tenga que escribir nada.
+
+En cuanto el admin verifica el pago y el sistema crea el proyecto activo, este agente actúa de forma inmediata. Lee el nombre del cliente, el nombre del proyecto y el diseñador asignado, y construye un mensaje personalizado con la plantilla proyecto_iniciado_v1.
+
+El cliente recibe un WhatsApp indicando que su proyecto ya está en marcha, quién es el diseñador que lo atenderá y que pronto estará en contacto. Este mensaje llega antes de que el equipo haya tenido tiempo de reaccionar, proyectando una imagen de organización y velocidad de respuesta.
+
+El sistema incluye un guard de idempotencia: si por algún motivo el trigger se disparara dos veces para el mismo proyecto (por ejemplo, en un reinicio), solo se encola un mensaje, garantizando que el cliente no reciba la bienvenida duplicada.`,
+    problema_que_resuelve: 'Al convertir una venta en proyecto, el cliente a menudo queda en silencio sin saber que ya empezó. Si el equipo tarda en comunicarse, se genera incertidumbre. La Bienvenida lo comunica en segundos, sin esfuerzo del equipo.',
+    beneficios: [
+      'El cliente sabe que su proyecto comenzó en segundos, sin esperar que alguien le escriba',
+      'El diseñador asignado queda presentado desde el primer momento',
+      'Imagen profesional y organizada que refuerza la confianza del cliente',
+      'Guard de idempotencia: imposible que el cliente reciba el mensaje dos veces',
+    ],
+    casos_de_uso: [
+      'El admin verifica el pago a las 9:15am. El cliente recibe el WhatsApp de bienvenida al proyecto a las 9:15:03am — antes de que el equipo haya tenido tiempo de reaccionar.',
+      'El diseñador tiene múltiples proyectos en curso. Al llegar a la oficina ya sabe que fue asignado a un nuevo proyecto porque el cliente lo mencionó en un mensaje de respuesta a la bienvenida.',
+    ],
+    metricas: [
+      { valor: '<60s', etiqueta: 'Tiempo hasta el WA de bienvenida' },
+      { valor: '1',    etiqueta: 'Mensaje por proyecto (idempotente)' },
+      { valor: '0',    etiqueta: 'Acciones manuales necesarias' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Proyecto creado',      sublabel: 'INSERT en projects' },
+      { tipo: 'proceso', label: 'Leer contexto',        sublabel: 'Nombre, proyecto, diseñador' },
+      { tipo: 'proceso', label: 'Guard dedup',          sublabel: 'Solo 1 mensaje por proyecto' },
+      { tipo: 'api',     label: 'Encolar WA',           sublabel: 'notification_queue' },
+      { tipo: 'output',  label: 'Bienvenida enviada',   sublabel: 'Cliente informado' },
+    ],
+    categoria: 'comunicacion',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se crea un proyecto activo (pago verificado)',
+    fuente_datos: 'Supabase — tablas projects + clients + profiles (diseñador)',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Trigger trg_wa_project_welcome se activa AFTER INSERT en tabla projects',
+      'Función fn_wa_project_welcome busca el cliente y su whatsapp_phone',
+      'Si el teléfono es válido (>= 10 caracteres), lee el nombre del diseñador asignado',
+      'Guard: verifica que no exista ya un mensaje project.created para este proyecto en notification_queue',
+      'INSERT en notification_queue con template proyecto_iniciado_v1 (nombre, proyecto, diseñador)',
+      'Worker WhatsApp procesa la cola y envía el mensaje a Meta API',
+    ],
+    notas: 'El template proyecto_iniciado_v1 debe crearse en Meta Business Manager (Robert). Parámetros: {{1}} = primer nombre del cliente, {{2}} = nombre del proyecto, {{3}} = nombre del diseñador. Mientras el template no esté aprobado, los mensajes quedan en "pending" en la cola y pueden reenviarse cuando se aprueben.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Trigger fn_wa_project_welcome implementado (migración 044)', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/044_wa_project_welcome.sql',
+    ],
+  },
+
+  // ─── 14. REACTIVACIÓN DE LEADS ───────────────────────────────────────────────
+  {
+    slug: 'reactivacion-de-leads',
+    nombre: 'Reactivación de Leads',
+    descripcion: 'Detecta leads con más de 3 días en el sistema sin visita agendada y les reenvía automáticamente el link de agendamiento por WhatsApp. Recupera leads que se enfriaron antes de confirmar.',
+    descripcion_larga: `Muchos leads llegan al sistema, reciben la bienvenida y el link de agendamiento, pero nunca confirman la visita. La Reactivación de Leads es el agente que los recupera de forma automática, sin que el equipo comercial tenga que rastrearlos manualmente.
+
+Todos los días a las 9:00am hora Colombia, el sistema escanea todos los leads en estado "Nuevo" o "Contactado" que llevan más de 3 días en el sistema sin haber agendado ninguna visita futura. Para cada uno de estos leads, el sistema verifica que no haya recibido ya una reactivación en los últimos 7 días (para no saturar al cliente) y encola un nuevo mensaje con el link de agendamiento.
+
+El mensaje usa la misma plantilla aprobada por Meta (booking_link_v1) que la bienvenida inicial, pero llegando en un contexto diferente —días después, cuando el interés puede haberse enfriado— funciona como un recordatorio sutil y personalizado.
+
+El límite de 7 días entre reactivaciones garantiza que el cliente no reciba mensajes en exceso, manteniendo el equilibrio entre persistencia y respeto.`,
+    problema_que_resuelve: 'Un porcentaje significativo de leads que reciben el primer mensaje no agenda visita de inmediato. Sin seguimiento automático, esos leads simplemente se enfrían y se pierden. La Reactivación los recupera con un contacto oportuno sin carga para el equipo.',
+    beneficios: [
+      'Recupera leads que recibieron la bienvenida pero no confirmaron visita',
+      'Límite de 7 días entre mensajes: persistente pero sin saturar al cliente',
+      'Guard anti-duplicados: verificación doble (filtro SQL + guard en loop) para robustez',
+      'Usa template ya aprobado por Meta: no necesita aprobación adicional',
+      'Completamente automático: el equipo comercial no tiene que hacer ningún seguimiento manual',
+    ],
+    casos_de_uso: [
+      'Un lead llegó hace 5 días. Recibió la bienvenida y el link pero no agendó. A las 9am del día 5, el agente le reenvía el link. Esa tarde el cliente agenda su visita.',
+      'El equipo tiene 20 leads activos sin visita. El agente detecta 8 que califican para reactivación, encola 8 mensajes y los envía antes de las 9:05am, sin que ningún comercial haya revisado la lista.',
+    ],
+    metricas: [
+      { valor: '3d',   etiqueta: 'Umbral para reactivar' },
+      { valor: '7d',   etiqueta: 'Pausa entre mensajes' },
+      { valor: '9am',  etiqueta: 'Hora de ejecución (COT)' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Cron diario 9am',       sublabel: 'wa-lead-reactivation-daily' },
+      { tipo: 'proceso', label: 'Escanear leads',         sublabel: 'new/contacted sin visita >3d' },
+      { tipo: 'decision', label: 'Sin WA en últimos 7d?', sublabel: 'Filtro anti-spam' },
+      { tipo: 'api',     label: 'Encolar WA',             sublabel: 'booking_link_v1' },
+      { tipo: 'output',  label: 'Link reenviado',         sublabel: 'Lead reactivado' },
+    ],
+    categoria: 'comercial',
+    status: 'activa',
+    visibilidad: 'silente',
+    tipo: 'cron',
+    frecuencia: 'Cron diario a las 9:00am COT (14:00 UTC)',
+    fuente_datos: 'Supabase — tablas opportunities + clients + notification_queue',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'pg_cron job "wa-lead-reactivation-daily" ejecuta fn_wa_lead_reactivation_scan() a las 14:00 UTC',
+      'Función busca oportunidades en stage new/contacted, creadas hace >3 días, sin visita futura y sin reactivación en últimos 7 días',
+      'Para cada lead calificado: guard inner CONTINUE WHEN protege contra race conditions',
+      'INSERT en notification_queue con template booking_link_v1 (nombre, link /v/{short_code}, nombre del comercial)',
+      'Retorna el número de leads reactivados como INTEGER para logging',
+      'Worker WhatsApp procesa la cola y envía los mensajes a Meta API',
+    ],
+    notas: 'Usa el template booking_link_v1 que ya está aprobado en Meta (4 envíos históricos). El event_type es "lead.reactivation" para distinguirlo de la bienvenida inicial y aplicar la regla de 7 días correctamente.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Cron de reactivación de leads implementado (migración 045)', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/045_wa_lead_reactivation.sql',
+    ],
+  },
+
+  // ─── 15. ADMIN INVITE USER ───────────────────────────────────────────────────
   {
     slug: 'admin-invite-user',
     nombre: 'Invitación de Usuarios al Sistema',
