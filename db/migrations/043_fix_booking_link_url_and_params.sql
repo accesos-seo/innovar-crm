@@ -49,6 +49,11 @@ BEGIN
   ) ON CONFLICT DO NOTHING;
 
   -- BOOKING LINK WA: booking_link_v1 con URL personalizada /v/{short_code}
+  -- Guard: si short_code es NULL el link sería inválido — omitir la notificación.
+  IF NEW.short_code IS NULL THEN
+    RETURN NEW;
+  END IF;
+
   v_base_url := COALESCE(
     (SELECT value->>'url' FROM public.system_settings WHERE key = 'public_app_base_url'),
     'https://crm-innovar-app-2026.vercel.app'
