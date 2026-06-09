@@ -106,20 +106,21 @@ const MODULE_NAV = [
 ];
 
 const PIPELINE_PHASES = [
-  { step: 1, label: 'Captura',    fill: '#44ddc1', stroke: '#44ddc1' },
-  { step: 2, label: 'Contacto',   fill: '#818cf8', stroke: '#818cf8' },
-  { step: 3, label: 'Visita',     fill: '#818cf8', stroke: '#818cf8' },
-  { step: 4, label: 'Medidas',    fill: '#34d399', stroke: '#34d399' },
-  { step: 5, label: 'Cotización', fill: '#60a5fa', stroke: '#60a5fa' },
-  { step: 6, label: 'Aprobación', fill: '#fbbf24', stroke: '#fbbf24' },
-  { step: 7, label: 'Pago',       fill: '#fbbf24', stroke: '#fbbf24' },
-  { step: 8, label: 'Proyecto',   fill: '#34d399', stroke: '#34d399' },
-  { step: 9, label: 'Producción', fill: '#4ade80', stroke: '#4ade80' },
+  { step: 1,  label: 'Captura',    fill: '#44ddc1', stroke: '#44ddc1' },
+  { step: 2,  label: 'Contacto',   fill: '#818cf8', stroke: '#818cf8' },
+  { step: 3,  label: 'Visita',     fill: '#818cf8', stroke: '#818cf8' },
+  { step: 4,  label: 'Medidas',    fill: '#34d399', stroke: '#34d399' },
+  { step: 5,  label: 'Cotización', fill: '#60a5fa', stroke: '#60a5fa' },
+  { step: 6,  label: 'Aprobación', fill: '#fbbf24', stroke: '#fbbf24' },
+  { step: 7,  label: 'Pago',       fill: '#fbbf24', stroke: '#fbbf24' },
+  { step: 8,  label: 'Proyecto',   fill: '#34d399', stroke: '#34d399' },
+  { step: 9,  label: 'Entrega',    fill: '#4ade80', stroke: '#4ade80' },
+  { step: 10, label: 'Cierre',     fill: '#44ddc1', stroke: '#44ddc1' },
 ];
 
 const PipelineCanvas: React.FC = () => {
-  // Row 1 (top, left→right): phases 1-5 at y=75
-  // Row 2 (bottom, right→left): phases 6-9 at y=175
+  // Row 1 (top, left→right): phases 1-5
+  // Row 2 (bottom, right→left): phases 6-10 (symmetric 5+5)
   const r1 = PIPELINE_PHASES.slice(0, 5).map((p, i) => ({ ...p, x: 90 + i * 175, y: 80 }));
   const r2 = PIPELINE_PHASES.slice(5).map((p, i) => ({ ...p, x: 790 - i * 175, y: 190 }));
   const all = [...r1, ...r2];
@@ -130,7 +131,7 @@ const PipelineCanvas: React.FC = () => {
         <p className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-wider">
           Pipeline del Motor Comercial
         </p>
-        <p className="text-[11px] text-muted-foreground/40 mt-0.5">9 fases — del lead a la entrega</p>
+        <p className="text-[11px] text-muted-foreground/40 mt-0.5">10 fases — del lead al cierre</p>
       </div>
 
       <svg viewBox="0 0 900 270" className="w-full h-auto" style={{ maxHeight: 200 }}>
@@ -415,7 +416,7 @@ const MotorComercial: React.FC = () => {
         {/* ── ZONA 1: Header ─────────────────────────────────────────────────── */}
         <CategoryHeader
           title="Motor Comercial"
-          subtitle="Pipeline de ventas Innovar: 9 fases automáticas desde el lead hasta la producción"
+          subtitle="Pipeline de ventas Innovar: 10 fases automáticas desde el lead hasta el cierre"
           icon={Zap}
           onBack={() => navigate('/agentes')}
           status={{ label: `${agentesActivos} automatizaciones activas`, variant: 'primary' }}
