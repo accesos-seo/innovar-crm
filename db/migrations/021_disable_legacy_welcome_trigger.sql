@@ -1,7 +1,8 @@
 -- =====================================================
 -- 021 — Desactivar trigger legacy de bienvenida en `clients`
 -- =====================================================
--- ⏸ NO APLICAR HASTA QUE:
+-- ✅ APLICADO 2026-06-09 — condiciones cumplidas (welcome_lead_v1: 1 sent, booking_link_v1: 2 sent)
+-- ⏸ (original) NO APLICAR HASTA QUE:
 --   1. Meta apruebe `welcome_lead_v1` Y `booking_link_v1`, Y
 --   2. El worker process-whatsapp-notifications haya enviado al menos
 --      un par de welcomes nuevos con status='sent' en producción.
