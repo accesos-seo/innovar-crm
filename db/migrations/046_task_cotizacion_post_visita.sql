@@ -15,7 +15,7 @@
 --   - Título: "Preparar cotización — [nombre cliente]"
 --   - Categoría: seguimiento
 --   - Prioridad: 1 (alta)
---   - Vence: 2 días hábiles desde la visita
+--   - Vence: 2 días calendario desde hoy (NOW()::DATE + INTERVAL '2 days')
 --   - Asignada a: visited_by (o fallback a get_default_visitor())
 --   - Tags: ['visit:{visit_uuid}'] — clave de dedup
 --
@@ -86,10 +86,10 @@ BEGIN
     'Preparar cotización — ' || COALESCE(v_client_name, 'Cliente'),
     'Visita técnica completada. Preparar cotización personalizada en las próximas 48 horas.',
     'pendiente'::task_status,
-    1,                                          -- alta prioridad
-    (NOW() + INTERVAL '2 days')::DATE,          -- vence en 48h
+    1,                                           -- alta prioridad
+    NOW()::DATE + INTERVAL '2 days',             -- 2 días calendario desde hoy
     'seguimiento'::task_category,
-    ARRAY[v_tag],                               -- dedup clave
+    ARRAY[v_tag],                                -- dedup clave
     0
   );
 

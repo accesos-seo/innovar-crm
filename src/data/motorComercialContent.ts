@@ -195,7 +195,7 @@ export const motorComercialAgentes: MotorAgente[] = [
       { id: 1, label: 'Detección de proyecto nuevo', detalle: 'Trigger trg_wa_project_welcome se activa en el INSERT de la tabla projects.', status: 'completed' },
       { id: 2, label: 'Lectura de contexto',          detalle: 'Lee nombre del cliente, nombre del proyecto y diseñador asignado.', status: 'completed' },
       { id: 3, label: 'Guard dedup',                  detalle: 'Verifica que no exista ya un mensaje project.created para este proyecto.', status: 'completed' },
-      { id: 4, label: 'Encolar WhatsApp',             detalle: 'INSERT en notification_queue con template proyecto_iniciado_v1 (pendiente aprobación Meta).', status: 'pending' },
+      { id: 4, label: 'Encolar WhatsApp',             detalle: 'INSERT en notification_queue funcional. Template proyecto_iniciado_v1 pendiente de crear en Meta BM (acción pendiente de Robert).', status: 'completed' },
     ],
   },
   {
