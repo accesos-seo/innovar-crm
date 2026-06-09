@@ -254,7 +254,7 @@ const AgentCard: React.FC<{
         <div className="flex items-center gap-4 relative z-10">
           <div
             className={cn(
-              'flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-300 text-2xl leading-none',
+              'flex items-center justify-center w-9 h-9 rounded-xl border transition-all duration-300 text-lg leading-none',
               isOpen
                 ? 'bg-primary border-primary/60 shadow-[0_0_14px_rgba(68,221,193,0.35)]'
                 : 'bg-muted border-border',
