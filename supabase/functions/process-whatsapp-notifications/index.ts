@@ -234,7 +234,7 @@ Deno.serve(async (req: Request) => {
       .select("value")
       .eq("key", "wa_test_phone_override")
       .maybeSingle();
-    const testPhoneOverride: string | null = testPhoneSetting?.value ?? null;
+    const testPhoneOverride: string | null = testPhoneSetting?.value != null ? String(testPhoneSetting.value) : null;
 
     // 1. Reclamar lote de filas pendientes (status pending, attempt_count < 3).
     const { data: claimed, error: claimErr } = await admin
