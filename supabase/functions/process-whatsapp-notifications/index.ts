@@ -125,6 +125,33 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   // — Recordatorios de reuniones (migración 051) · PENDING META APPROVAL —
   reunion_recordatorio_24h_v1: bodyBuilder("reunion_recordatorio_24h_v1", 1), // {{1}}=nombre
   reunion_recordatorio_2h_v1:  bodyBuilder("reunion_recordatorio_2h_v1",  2), // {{1}}=nombre {{2}}=hora
+
+  // — Agentes Autónomos Capa 01 · Vigía de Pagos —
+  payment_followup_d7_v1:      bodyBuilder("payment_followup_d7_v1",      4), // {{1}}=cliente {{2}}=nro {{3}}=días {{4}}=banco
+  payment_escalation_d14_v1:   bodyBuilder("payment_escalation_d14_v1",   4), // {{1}}=admin {{2}}=cliente {{3}}=nro {{4}}=días
+
+  // — Agentes Autónomos Capa 03 · Notificador de Proyecto —
+  proyecto_en_diseno_v1:       bodyBuilder("proyecto_en_diseno_v1",       2), // {{1}}=cliente {{2}}=proyecto
+
+  // — Agentes Autónomos Capa 03 · Coordinador de Producción —
+  ficha_taller_v1:             bodyBuilder("ficha_taller_v1",             4), // {{1}}=proyecto {{2}}=cliente {{3}}=entrega {{4}}=items
+
+  // — Agentes Autónomos Capa 04 · Asistente de Postventa —
+  nps_solicitud_v1:            bodyBuilder("nps_solicitud_v1",            1), // {{1}}=cliente
+  garantia_info_v1:            bodyBuilder("garantia_info_v1",            2), // {{1}}=cliente {{2}}=términos
+  referido_solicitud_v1:       bodyBuilder("referido_solicitud_v1",       1), // {{1}}=cliente
+
+  // — Agentes Autónomos Capa 04 · Reactivador de Clientes —
+  reactivacion_remodelacion_v1: bodyBuilder("reactivacion_remodelacion_v1", 2), // {{1}}=cliente {{2}}=meses
+  reactivacion_referido_v1:    bodyBuilder("reactivacion_referido_v1",    1), // {{1}}=cliente
+
+  // — Agentes Autónomos Capa 05 · Analista de Conversión —
+  reporte_semanal_kpi_v1:      bodyBuilder("reporte_semanal_kpi_v1",      6), // {{1}}=leads {{2}}=opps {{3}}=cotiz {{4}}=aprobadas {{5}}=tasa {{6}}=semana
+  reporte_semanal_alertas_v1:  bodyBuilder("reporte_semanal_alertas_v1",  4), // {{1}}=admin {{2-4}}=alertas
+
+  // — Agentes Autónomos Capa 05 · Monitor de Capacidad —
+  alerta_capacidad_amarilla_v1: bodyBuilder("alerta_capacidad_amarilla_v1", 4), // {{1}}=admin {{2}}=count {{3}}=umbral {{4}}=listado
+  alerta_capacidad_roja_v1:    bodyBuilder("alerta_capacidad_roja_v1",    4), // {{1}}=admin {{2}}=count {{3}}=umbral {{4}}=listado
 };
 
 function jsonResponse(body: unknown, status = 200) {
