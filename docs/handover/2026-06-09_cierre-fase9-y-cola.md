@@ -410,17 +410,11 @@ BEGIN
   END IF;
   -- 1. Cambio atómico de status — sin UPDATE separado
   NEW.status := 'completado';
-  -- 2. WA al cliente (dedup: solo si no existe notificación previa para este proyecto)
-  IF v_client_phone IS NOT NULL
-     AND NOT EXISTS (
-       SELECT 1 FROM public.notification_queue
-        WHERE payload->>'project_id' = NEW.id::text
-          AND event_type = 'project.completed'
-     )
-  THEN
+  -- 2. WA al cliente — atómico via ON CONFLICT (dedup_key tiene unique constraint)
+  IF v_client_phone IS NOT NULL THEN
     INSERT INTO public.notification_queue (
       recipient_phone, recipient_name, template_name, template_params,
-      event_type, payload, status
+      event_type, payload, dedup_key, status
     ) VALUES (
       v_client_phone, v_client_name,
       'proyecto_completado_v1',
@@ -430,14 +424,19 @@ BEGIN
       ),
       'project.completed',
       jsonb_build_object('project_id', NEW.id, 'client_id', v_client_id, 'project_name', v_project_name),
+      'project.completed:' || NEW.id::text,
       'pending'
-    );
+    )
+    ON CONFLICT (dedup_key) DO NOTHING;
   END IF;
-  -- 3. Tarea "Solicitar reseña" (dedup: solo si no existe tarea previa para este proyecto)
+  -- 3. Tarea "Solicitar reseña"
+  -- Row-level lock del UPDATE serializa transacciones concurrentes sobre la misma fila.
+  -- La segunda verá OLD.delivered_at IS NOT NULL y saldrá antes de aquí.
+  -- NOT EXISTS es defensa en profundidad adicional.
   IF v_responsable IS NOT NULL
      AND NOT EXISTS (
        SELECT 1 FROM public.tasks
-        WHERE 'project:' || NEW.id::text = ANY(tags)
+        WHERE tags @> ARRAY['project:' || NEW.id::text]
           AND title LIKE 'Solicitar reseña%'
      )
   THEN

@@ -78,14 +78,10 @@ BEGIN
   -- 1. Cambiar status modificando NEW directamente (BEFORE trigger — atómico con el UPDATE original)
   NEW.status := 'completado';
 
-  -- 2. Encolar WhatsApp al cliente (solo si tiene teléfono y no hay notificación previa)
-  IF v_client_phone IS NOT NULL
-     AND NOT EXISTS (
-       SELECT 1 FROM public.notification_queue
-        WHERE payload->>'project_id' = NEW.id::text
-          AND event_type = 'project.completed'
-     )
-  THEN
+  -- 2. Encolar WhatsApp al cliente
+  -- Atomicidad garantizada por el unique constraint 'notification_queue_dedup_key_uniq'
+  -- en la columna dedup_key. ON CONFLICT DO NOTHING es atómico — no hay TOCTOU.
+  IF v_client_phone IS NOT NULL THEN
     INSERT INTO public.notification_queue (
       recipient_phone,
       recipient_name,
@@ -93,6 +89,7 @@ BEGIN
       template_params,
       event_type,
       payload,
+      dedup_key,
       status
     ) VALUES (
       v_client_phone,
@@ -108,15 +105,21 @@ BEGIN
         'client_id',    v_client_id,
         'project_name', v_project_name
       ),
+      'project.completed:' || NEW.id::text,
       'pending'
-    );
+    )
+    ON CONFLICT (dedup_key) DO NOTHING;
   END IF;
 
-  -- 3. Crear tarea "Solicitar reseña" solo si no existe ya para este proyecto
+  -- 3. Crear tarea "Solicitar reseña"
+  -- Protección de concurrencia: el UPDATE de projects obtiene un row-level lock
+  -- exclusivo sobre la fila. Dos transacciones concurrentes sobre el mismo proyecto
+  -- se serializan — la segunda verá OLD.delivered_at IS NOT NULL y saldrá antes
+  -- de llegar aquí. El NOT EXISTS es defensa adicional en profundidad.
   IF v_responsable IS NOT NULL
      AND NOT EXISTS (
        SELECT 1 FROM public.tasks
-        WHERE 'project:' || NEW.id::text = ANY(tags)
+        WHERE tags @> ARRAY['project:' || NEW.id::text]
           AND title LIKE 'Solicitar reseña%'
      )
   THEN
