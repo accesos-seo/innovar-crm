@@ -9,7 +9,7 @@
 
 ## 1. Visión General del Pipeline
 
-El Motor Comercial cubre el ciclo completo **Lead → Proyecto Cerrado** en 9 etapas, con 15 agentes automatizados, 10+ templates de WhatsApp, 2 workflows n8n y rutas públicas para el cliente.
+El Motor Comercial cubre el ciclo completo **Lead → Proyecto Cerrado** en 10 etapas, con 15 agentes automatizados, 10+ templates de WhatsApp, 2 workflows n8n y rutas públicas para el cliente.
 
 ```
 [Lead entra]
