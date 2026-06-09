@@ -401,17 +401,21 @@ const MotorComercial: React.FC = () => {
       .select('id, status, created_at, clients(full_name)')
       .order('created_at', { ascending: false })
       .limit(10)
-      .then((res: { data: unknown; error: unknown }) => {
-        if (!res.error) setActividad((res.data as ActivityRow[]) ?? []);
+      .then((res) => {
+        if (!res.error && Array.isArray(res.data)) {
+          setActividad(res.data as ActivityRow[]);
+        }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Error fetching actividad:', err);
+      });
   }, []);
 
   const agentesActivos = motorComercialAgentes.filter((a) => a.status === 'activo').length;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-8">
 
         {/* ── ZONA 1: Header ─────────────────────────────────────────────────── */}
         <CategoryHeader
@@ -422,8 +426,10 @@ const MotorComercial: React.FC = () => {
           status={{ label: `${agentesActivos} automatizaciones activas`, variant: 'primary' }}
         />
 
-        {/* ── ZONA 2: Stat Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* ── ZONA 2: Stat Cards & Metrics ──────────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">📊 Métricas en vivo</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
           <Card className="bg-card border-border hover:border-primary/30 hover:shadow-[0_0_14px_rgba(68,221,193,0.07)] transition-all duration-300">
             <CardContent className="p-4 flex items-center justify-between">
@@ -472,9 +478,15 @@ const MotorComercial: React.FC = () => {
           </Card>
 
         </div>
+        </div>
 
-        {/* ── Navegación rápida a módulos ────────────────────────────────────── */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* ── Divisor visual ────────────────────────────────────────────────────── */}
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+        {/* ── ZONA 3: Navegación & Stepper ──────────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">🔗 Acceso rápido</p>
+          <div className="flex items-center gap-2 flex-wrap">
           {MODULE_NAV.map((mod) => (
             <button
               key={mod.path}
@@ -486,31 +498,41 @@ const MotorComercial: React.FC = () => {
             </button>
           ))}
         </div>
-
-        {/* ── ZONA 3: Stepper ────────────────────────────────────────────────── */}
-        <ModuleStepBar />
-
-        {/* ── ZONA 4: Pipeline Canvas ────────────────────────────────────────── */}
-        <PipelineCanvas />
-
-        {/* ── Divider ────────────────────────────────────────────────────────── */}
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
-        {/* ── ZONA 5: Leyenda ────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground/60">
-          {(Object.entries(phaseStatusConfig) as [PhaseStatus, typeof phaseStatusConfig[PhaseStatus]][]).map(
-            ([key, cfg]) => (
-              <span key={key} className="flex items-center gap-1.5">
-                {cfg.icon}
-                <span className={cfg.textColor}>
-                  {key === 'completed' ? 'Completada' : key === 'current' ? 'En curso' : key === 'pending' ? 'Planificada' : 'Error'}
-                </span>
-              </span>
-            ),
-          )}
         </div>
 
-        {/* ── ZONA 6: Agent Cards (2 por fila, expand a full-width) ─────────── */}
+        {/* ── ZONA 3: Stepper ────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">📋 Pipeline de fases</p>
+          <ModuleStepBar />
+        </div>
+
+        {/* ── Divisor visual ────────────────────────────────────────────────────── */}
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+        {/* ── ZONA 4: Pipeline Canvas & Legend ──────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest">🎯 Flujo del motor comercial</p>
+          <PipelineCanvas />
+
+          {/* ── Legend ────────────────────────────────────────────────────────── */}
+          <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground/60">
+            {(Object.entries(phaseStatusConfig) as [PhaseStatus, typeof phaseStatusConfig[PhaseStatus]][]).map(
+              ([key, cfg]) => (
+                <span key={key} className="flex items-center gap-1.5">
+                  {cfg.icon}
+                  <span className={cfg.textColor}>
+                    {key === 'completed' ? 'Completada' : key === 'current' ? 'En curso' : key === 'pending' ? 'Planificada' : 'Error'}
+                  </span>
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+
+        {/* ── Divisor visual ────────────────────────────────────────────────────── */}
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+        {/* ── ZONA 5: Agent Cards (2 por fila, expand a full-width) ─────────── */}
         <div className="space-y-4">
           <h2 className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-wider">
             Automatizaciones del motor
