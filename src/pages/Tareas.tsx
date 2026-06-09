@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckSquare, Plus, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TaskMetrics } from '@/components/tareas/TaskMetrics';
@@ -26,10 +26,16 @@ import { PrimaryButton } from '@/components/shared/PrimaryButton';
 
 export default function TareasPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuthStore();
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
-  
+
   const [filters, setFilters] = useState({ category: 'all', assigned_to: 'all', priority: -1, status: 'all', searchTerm: '' });
+
+  // ── PATRÓN DEEP-LINK: id recibido por navigate(..., { state: { taskId } }) ──
+  const pendingTaskIdRef = useRef<string | null>(
+    (location.state as { taskId?: string } | null)?.taskId ?? null
+  );
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
@@ -40,6 +46,7 @@ export default function TareasPage() {
 
   const { data: staff = [] } = useActiveStaff();
   const { data: tasks = [] } = useTasks(filters);
+
   const reorderKanban = useReorderKanban();
   const { bulkUpdateStatus, bulkDelete } = useTaskBulkActions();
 
@@ -50,6 +57,16 @@ export default function TareasPage() {
     setSelectedTask(task);
     setIsDetailOpen(true);
   };
+
+  // ── PATRÓN DEEP-LINK: disparar modal cuando lleguen los datos ────────────────
+  // pendingTaskIdRef se carga una sola vez desde location.state.taskId (useRef, no useState)
+  useEffect(() => {
+    if (!pendingTaskIdRef.current || tasks.length === 0) return;
+    const target = tasks.find(t => t.id === pendingTaskIdRef.current);
+    if (!target) return;
+    pendingTaskIdRef.current = null; // one-shot: descarta antes de setState
+    handleTaskClick(target);
+  }, [tasks]); // handleTaskClick es estable (no depende de props/estado externo)
 
   const handleAddTask = (status: string = 'pendiente') => {
     setNewTaskStatus(status);

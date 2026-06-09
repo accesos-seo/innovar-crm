@@ -19,6 +19,7 @@ import { notify } from "@/components/ui/PremiumToast";
 import { PremiumLoader, PremiumLoadingOverlay } from "@/components/shared/PremiumLoader";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { DashboardQuickAccess } from "@/components/dashboard/DashboardQuickAccess";
+import { WeeklyTasksSummary } from "@/components/dashboard/WeeklyTasksSummary";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/shared/PrimaryButton";
@@ -462,6 +463,11 @@ export default function Dashboard() {
         {/* Quick Access Grid */}
         <motion.div variants={itemVariants}>
           <DashboardQuickAccess />
+        </motion.div>
+
+        {/* Weekly Tasks Summary */}
+        <motion.div variants={itemVariants}>
+          <WeeklyTasksSummary />
         </motion.div>
 
         {/* ── Middle Row ── */}
