@@ -1161,4 +1161,74 @@ El flujo es completamente interno: el admin gestiona quién tiene acceso al sist
     ],
   },
 
+  // ─── 18. GENERADOR DE BORRADOR DE COTIZACIÓN ────────────────────────────────
+  {
+    slug: 'generador-borrador-cotizacion',
+    nombre: 'Generador de Borrador de Cotización',
+    descripcion: 'Cuando la visita técnica se cierra con medidas válidas y ≥3 fotos, el sistema crea automáticamente el borrador de cotización y avanza la oportunidad al stage Cotización.',
+    descripcion_larga: `Fase 4 del Motor Comercial: la captura de medidas es el punto de no retorno del proceso. Mientras Álvaro está en el espacio físico del cliente —midiendo dimensiones, registrando conexiones de gas, agua y voltaje, y fotografiando el lugar— el sistema espera con un formulario específico: el VisitMeasurementsForm.
+
+El formulario tiene 6 secciones: Espacio (largo, ancho, alto en cm + forma de cocina), Conexiones (agua, gas, voltaje, desagüe), Estado actual (paredes, piso, si hay que remover mueble existente), Servicios a cotizar (cocina integral, mesones, closets, tv center, puertas, acabados), Notas generales y Fotos.
+
+La validación es automática y sin excepción: el trigger validate_visit_completion bloquea el cierre de la visita si las medidas están vacías o si hay menos de 3 fotos. Es un gate técnico que garantiza calidad del dato antes de avanzar el pipeline.
+
+En el instante que Álvaro hace clic en "Finalizar visita" con todo completo, el trigger trg_visit_auto_quotation ejecuta auto_generate_quotation: crea un registro en la tabla quotations (tipo initial, versión 1, estado draft, vence en 30 días) y avanza la oportunidad de visit_completed a quoted. Álvaro puede abrir el borrador inmediatamente desde el CRM y empezar a completarlo con los precios.`,
+    problema_que_resuelve: 'Sin automatización, Álvaro tendría que crear la cotización manualmente desde cero después de cada visita, recordar los datos relevantes y buscar la oportunidad en el sistema. El generador elimina ese paso: cuando sale del apartamento del cliente ya tiene el borrador esperándolo en el CRM.',
+    beneficios: [
+      'El borrador aparece en el CRM en el instante que se cierra la visita',
+      'Imposible olvidar crear la cotización: el sistema lo hace solo',
+      'Las medidas y servicios capturados quedan asociados a la cotización',
+      'Álvaro solo tiene que revisar y completar precios, no crear desde cero',
+      'La oportunidad avanza automáticamente al stage correcto sin intervención manual',
+    ],
+    casos_de_uso: [
+      'Álvaro termina la visita a las 2pm, llena las medidas y sube las fotos. Al regresar a la oficina a las 4pm, el borrador de cotización ya está en el CRM con la oportunidad en stage Cotización, listo para completar con los precios del catálogo.',
+      'En una visita larga donde se midieron 4 espacios diferentes (cocina, closets, TV center, puerta), el sistema registra todos los servicios seleccionados en el formulario y los vincula al borrador. Nada se pierde aunque pasen varios días entre la visita y la cotización formal.',
+    ],
+    metricas: [
+      { valor: '<1s',  etiqueta: 'Tiempo de creación del borrador' },
+      { valor: '100%', etiqueta: 'Visitas con borrador automático' },
+      { valor: '0',    etiqueta: 'Cotizaciones creadas manualmente' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Álvaro completa el form',  sublabel: 'Medidas + ≥3 fotos' },
+      { tipo: 'proceso', label: 'Gate de validación',       sublabel: 'validate_visit_completion' },
+      { tipo: 'proceso', label: 'Crear borrador',           sublabel: 'quotations: draft v1' },
+      { tipo: 'proceso', label: 'Avanzar pipeline',         sublabel: 'visit_completed → quoted' },
+      { tipo: 'output',  label: 'Borrador listo',           sublabel: 'Álvaro completa precios' },
+    ],
+    categoria: 'comercial',
+    status: 'activa',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se cierra una visita técnica como "realizada"',
+    fuente_datos: 'Supabase — tablas visits + opportunities + quotations',
+    canal_salida: ['supabase', 'interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Álvaro llena el formulario de 6 secciones en /agenda/hoy: dimensiones, conexiones, estado, servicios, notas y ≥3 fotos',
+      'Trigger BEFORE validate_visit_completion bloquea si faltan medidas o fotos — el botón "Finalizar visita" queda deshabilitado',
+      'Al pasar la validación, useFinishVisit actualiza visits.status = realizada con measurements + photos JSONB',
+      'Trigger AFTER trg_visit_auto_quotation ejecuta auto_generate_quotation()',
+      'INSERT en quotations: client_id, opportunity_id, status=draft, version=1, type=initial, valid_until=NOW()+30d',
+      'UPDATE en opportunities: status = quoted (transición legal: visit_completed → quoted)',
+      'Álvaro ve el borrador en el CRM con todos los datos de la visita vinculados',
+    ],
+    notas: 'El trigger validate_visit_completion también propagó el estado de la oportunidad a visit_completed en el BEFORE. El AFTER trigger trg_visit_auto_quotation la avanza a quoted. Son dos triggers distintos en el mismo evento.',
+    historial: [
+      { fecha: '2026-05-09T00:00:00Z', descripcion: 'auto_generate_quotation implementado (migración 009/010)', autor: 'Robert Virona' },
+      { fecha: '2026-05-23T00:00:00Z', descripcion: 'Fix bug columna created_by inexistente en quotations (migración 017)', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/009_lead_to_project_functions.sql',
+      'db/migrations/010_lead_to_project_triggers.sql',
+      'db/migrations/017_fix_auto_generate_quotation.sql',
+      'src/components/agenda/VisitMeasurementsForm.tsx',
+      'src/hooks/agenda/useFinishVisit.ts',
+    ],
+  },
+
 ];

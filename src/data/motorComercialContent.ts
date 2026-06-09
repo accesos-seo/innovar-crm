@@ -104,6 +104,22 @@ export const motorComercialAgentes: MotorAgente[] = [
     ],
   },
   {
+    id: 'creador-borrador',
+    nombre: 'Creador de Borrador',
+    emoji: '📐',
+    descripcion: 'En el momento que Álvaro cierra la visita con medidas y ≥3 fotos, el sistema genera automáticamente el borrador de cotización en el CRM y avanza la oportunidad al stage Cotización. Álvaro ya tiene el borrador esperándolo cuando vuelve a la oficina.',
+    cuando_se_activa: 'Inmediatamente cuando Álvaro marca la visita como "realizada" con medidas completas y ≥3 fotos',
+    que_produce: 'Cotización borrador versión 1 (status draft) en el CRM + oportunidad avanzada al stage "quoted"',
+    status: 'activo',
+    tecnologia: 'PostgreSQL BEFORE Trigger (validate_visit_completion) + AFTER Trigger (trg_visit_auto_quotation)',
+    fases: [
+      { id: 1, label: 'Captura de medidas',    detalle: 'Álvaro completa el formulario de 6 secciones: dimensiones, conexiones, estado de paredes, servicios a cotizar y ≥3 fotos del espacio.', status: 'completed' },
+      { id: 2, label: 'Gate de validación',    detalle: 'Trigger BEFORE bloquea el cierre si las medidas están vacías o hay menos de 3 fotos. Garantía de calidad del dato.', status: 'completed' },
+      { id: 3, label: 'Creación del borrador', detalle: 'INSERT automático en quotations: tipo initial, versión 1, status draft, vence en 30 días desde hoy.', status: 'completed' },
+      { id: 4, label: 'Avance del pipeline',   detalle: 'Oportunidad pasa de visit_completed → quoted. El borrador aparece en la lista de cotizaciones de Álvaro.', status: 'completed' },
+    ],
+  },
+  {
     id: 'monitor-inactividad',
     nombre: 'Monitor de Inactividad',
     emoji: '💤',
