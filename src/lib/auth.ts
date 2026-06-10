@@ -102,6 +102,7 @@ export async function handleGoogleCallback(): Promise<AuthUser> {
     const { data: newUser, error: createErr } = await supabase
       .from("users")
       .insert({
+        id: supabaseUser.id,
         email: supabaseUser.email,
         password_hash: "",
         full_name: supabaseUser.user_metadata?.full_name || supabaseUser.email,

@@ -12,10 +12,12 @@ import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
 import { supabase } from "@/lib/supabaseClient";
 
-// â”€â”€ Static imports (critical path â€” always needed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Static imports (critical path -- always needed)
 import LoginPage from "./pages/Login";
+import ResetPasswordPage from "./pages/ResetPassword";
+import AuthCallback from "./pages/AuthCallback";
 
-// â”€â”€ Lazy imports (loaded only when the route is visited) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Lazy imports (loaded only when the route is visited)
 const Dashboard             = lazy(() => import("./pages/Dashboard"));
 const ProjectsPage          = lazy(() => import("./pages/Projects"));
 const ProjectCreatePage     = lazy(() => import("./pages/ProjectCreate"));
@@ -70,7 +72,7 @@ const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutom
 const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabilidadesPage"));
 const HorasPage                      = lazy(() => import("./pages/Horas"));
 
-// â”€â”€ Route-level loading fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Route-level loading fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -83,7 +85,7 @@ const queryErrorCache = new QueryCache({
   onError: (error, query) => {
     const msg = (error as Error)?.message ?? String(error);
     const tableHint = JSON.stringify(query.queryKey).slice(0, 80);
-    console.error(`[query-error] ${tableHint} â†’ ${msg}`);
+    console.error(`[query-error] ${tableHint} â†' ${msg}`);
     if (/network|fetch/i.test(msg)) {
       notify.error(
         'Error de conexiÃ³n',
@@ -135,20 +137,22 @@ export default function App() {
             <ScrollToTop />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* â”€â”€ Public routes â”€â”€ */}
+                {/* â"€â"€ Public routes â"€â"€ */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 {/* Link pÃºblico que el cliente recibe por WhatsApp para
                     agendar su visita tÃ©cnica. Sin ProtectedRoute, sin Layout. */}
                 <Route path="/agendar/:token" element={<PublicBookingPage />} />
-                {/* URL corta /v/:code â†’ resuelve el short_code y reusa el flujo. */}
+                {/* URL corta /v/:code â†' resuelve el short_code y reusa el flujo. */}
                 <Route path="/v/:code" element={<PublicBookingByCodePage />} />
                 {/* CotizaciÃ³n pÃºblica (Fase 4 Slice 2). Standalone, sin auth, sin Layout.
                     Si VITE_FF_PHASE_4_QUOTATION_PUBLIC=false la pÃ¡gina devuelve 404. */}
                 <Route path="/cotizacion/:token" element={<PublicQuotationPage />} />
-                {/* URL corta /c/:code â†’ resuelve short_code y redirige al token largo. */}
+                {/* URL corta /c/:code â†' resuelve short_code y redirige al token largo. */}
                 <Route path="/c/:code" element={<PublicQuotationByCodePage />} />
 
-                {/* â”€â”€ Dev/admin tooling â”€â”€ */}
+                {/* â"€â"€ Dev/admin tooling â"€â"€ */}
                 <Route
                   path="/debugger"
                   element={
@@ -158,7 +162,7 @@ export default function App() {
                   }
                 />
 
-                {/* â”€â”€ Core app â”€â”€ */}
+                {/* â"€â"€ Core app â"€â"€ */}
                 <Route path="/" element={<Protected><Dashboard /></Protected>} />
 
                 {/* Agentes hub */}

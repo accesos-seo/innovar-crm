@@ -47,10 +47,19 @@ export default function LoginPage() {
 
   const handleForgotPassword = async (email: string) => {
     try {
-      const { error } = await supabase.functions.invoke('request-password-reset', {
+      const { data, error } = await supabase.functions.invoke('request-password-reset', {
         body: { email },
       });
-      if (error) throw error;
+      // No confiar solo en `error`: invoke() no siempre propaga un 500 con cuerpo JSON.
+      // La EF responde { sent: true } en éxito; cualquier otra cosa = fallo de envío.
+      if (error || !data?.sent) {
+        let detail = 'No se pudo enviar el email. Intenta de nuevo en unos minutos.';
+        try {
+          const body = await (error as any)?.context?.json?.();
+          if (body?.error) detail = body.error;
+        } catch { /* cuerpo no legible */ }
+        throw new Error(detail);
+      }
       notify.success('Email enviado', 'Revisa tu bandeja de entrada para restablecer tu contraseña.');
     } catch (err: any) {
       throw new Error(err.message || 'No se pudo enviar el email');
