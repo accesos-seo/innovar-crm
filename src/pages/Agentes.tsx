@@ -53,7 +53,7 @@ const LAYERS: LayerDef[] = [
         emoji: '🎯',
         title: 'Detector de Abandono',
         description: 'Identifica leads sin actividad por +5 días y dispara automáticamente una secuencia de rescate al comercial responsable.',
-        status: 'en_disenyo',
+        status: 'activo',
         metrics: ['Inactividad 5d', 'Secuencia rescate', 'Alerta CRM'],
         path: '/agentes/detector-abandono',
       },

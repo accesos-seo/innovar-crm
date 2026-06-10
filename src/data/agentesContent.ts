@@ -72,16 +72,16 @@ export const AGENTES_SPECS: AgentSpec[] = [
     nombre: 'Detector de Abandono',
     layer: 'Adquisición',
     layerNumber: '01',
-    status: 'en_disenyo',
+    status: 'activo',
     tecnologia: 'Supabase pg_cron + Meta WhatsApp API',
     descripcion: 'Identifica leads sin actividad por más de 5 días y dispara automáticamente una secuencia de rescate al comercial responsable, evitando que oportunidades mueran en silencio.',
     cuando_se_activa: 'Lead activo sin ninguna actividad registrada en los últimos 5 días',
     que_produce: 'Alerta al comercial responsable + tarea de seguimiento creada en CRM',
     fases: [
-      { id: 1, label: 'Escaneo de inactividad', detalle: 'Cron diario detecta leads sin actividad en 5+ días.', status: 'pending' },
-      { id: 2, label: 'Alerta al comercial', detalle: 'Notificación WhatsApp/in-app al comercial con datos del lead.', status: 'pending' },
-      { id: 3, label: 'Creación de tarea', detalle: 'Genera tarea de seguimiento urgente en el CRM.', status: 'pending' },
-      { id: 4, label: 'Registro de alerta', detalle: 'Guarda log de la alerta para métricas de abandono.', status: 'pending' },
+      { id: 1, label: 'Escaneo de inactividad', detalle: 'Cron diario (L-V 9am Bogotá) detecta leads sin actividad en 5+ días.', status: 'completed' },
+      { id: 2, label: 'Alerta al comercial', detalle: 'Notificación in-app al comercial responsable con datos del lead.', status: 'completed' },
+      { id: 3, label: 'Creación de tarea', detalle: 'Genera tarea de seguimiento urgente en el CRM.', status: 'completed' },
+      { id: 4, label: 'Registro de alerta', detalle: 'Guarda log de la alerta para métricas de abandono.', status: 'completed' },
     ],
     modulos_relacionados: [
       { label: 'Motor Comercial', path: '/motor-comercial' },
@@ -91,8 +91,8 @@ export const AGENTES_SPECS: AgentSpec[] = [
     config: [
       { label: 'Umbral de inactividad', value: '5 días', description: 'Sin actividad registrada' },
       { label: 'Secuencia de rescate', value: 'D+5 / D+10', description: 'Dos alertas escalonadas' },
-      { label: 'Canal de alerta', value: 'WhatsApp + CRM', description: 'Comercial responsable' },
-      { label: 'Estado', value: 'En diseño', description: 'Pendiente de construcción' },
+      { label: 'Canal de alerta', value: 'In-app CRM', description: 'Comercial responsable' },
+      { label: 'Estado', value: 'Activo', description: 'En producción — alerta interna al comercial' },
     ],
   },
   {
