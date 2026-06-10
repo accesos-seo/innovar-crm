@@ -1031,11 +1031,16 @@ El asistente sabe cuándo ceder: si el cliente hace una pregunta técnica espec�
       'Al completar la calificación: UPDATE opportunity con campos product_type, budget_range, urgency_level',
       'Notificación al comercial asignado con resumen de la calificación y propuesta de visita técnica',
     ],
-    notas: 'En desarrollo. Requiere: (1) n8n workflow con nodo OpenRouter (modelo económico recomendado: gpt-4o-mini), (2) diseño de las 4-5 preguntas de calificación, (3) webhook de entrada desde Meta para recibir respuestas, (4) lógica de escalada a humano cuando el cliente lo solicita o la conversación se complica.',
+    notas: '3 Edge Functions desplegadas: lead-qualification-detector (detecta leads sin respuesta 2h hábiles), lead-qualification-finalizer (cierra la conversación y actualiza el CRM), lead-qualification-webhook (recibe respuestas de Meta). Bloqueante actual: template Meta lead_qualification_start_v1 pendiente de creación. Requiere también: diseño de las 4-5 preguntas de calificación y lógica de escalada a humano.',
     historial: [
       { fecha: '2026-06-09T00:00:00Z', descripcion: 'Arquitectura definida: n8n + OpenRouter + Meta webhook. Pendiente construcción del workflow.', autor: 'Robert Virona' },
+      { fecha: '2026-06-09T00:00:00Z', descripcion: '3 EFs desplegadas (detector, finalizer, webhook). Bloqueante: template lead_qualification_start_v1 pendiente Meta.', autor: 'Robert Virona' },
     ],
-    rutas_codigo: [],
+    rutas_codigo: [
+      'supabase/functions/lead-qualification-detector/index.ts',
+      'supabase/functions/lead-qualification-finalizer/index.ts',
+      'supabase/functions/lead-qualification-webhook/index.ts',
+    ],
   },
 
   // ─── 16. TAREA DE COTIZACIÓN POST-VISITA ────────────────────────────────────
@@ -1473,6 +1478,308 @@ La condición doble (entregado + pagado completamente) evita cerrar proyectos qu
     ],
     rutas_codigo: [
       'db/migrations/049_cierre_automatico_proyecto.sql',
+    ],
+  },
+
+  // ─── 23. VIGÍA DE PAGOS ──────────────────────────────────────────────────────
+  {
+    slug: 'vigia-pagos',
+    nombre: 'Vigía de Pagos',
+    descripcion: 'Detecta cotizaciones aprobadas sin pago verificado y envía recordatorios automáticos al cliente a los 7 días, y una escalada al administrador a los 14 días. A los 21 días, la cotización vence automáticamente.',
+    descripcion_larga: `Cuando un cliente aprueba una cotización pero no envía el comprobante de pago, el tiempo corre. Sin seguimiento automático, muchas cotizaciones aprobadas se enfrían y se pierden.
+
+El Vigía de Pagos opera de fondo todos los días hábiles. Revisa las cotizaciones que están en estado "aprobado" pero sin pago verificado, y actúa según la antigüedad:
+
+A los 7 días, el cliente recibe un WhatsApp amigable recordándole los datos bancarios y el monto del anticipo. A los 14 días, el administrador recibe una alerta de escalada para que intervenga directamente. A los 21 días, la cotización vence automáticamente y el lead queda marcado para reactivación.
+
+Cada acción es idempotente: si el cliente paga antes del recordatorio, el siguiente ciclo no lo encuentra y no envía nada.`,
+    problema_que_resuelve: 'Las cotizaciones aprobadas sin pago quedaban en el aire indefinidamente. El equipo no tenía visibilidad de cuáles necesitaban seguimiento urgente, y muchos clientes interesados se perdían por falta de recordatorio.',
+    beneficios: [
+      'Seguimiento automático sin que el equipo tenga que recordar hacerlo',
+      'Escalada a administrador cuando el cliente no responde al primer recordatorio',
+      'Vencimiento automático que limpia el pipeline de cotizaciones obsoletas',
+      'Cada acción es idempotente — si el cliente paga, los recordatorios se detienen solos',
+    ],
+    casos_de_uso: [
+      'Cliente aprueba cotización el lunes pero no envía comprobante. El jueves siguiente (D+7) recibe un WhatsApp con los datos de pago. Si no paga en otros 7 días, el administrador recibe la alerta de escalada.',
+      'Cotización aprobada hace 3 semanas sin pago. El vigía la marca como vencida automáticamente, libera el espacio en el pipeline y la mueve a reactivación.',
+    ],
+    metricas: [
+      { valor: 'D+7',  etiqueta: 'Recordatorio al cliente' },
+      { valor: 'D+14', etiqueta: 'Escalada al admin' },
+      { valor: 'D+21', etiqueta: 'Vencimiento automático' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Cron L-V 9am Colombia',        sublabel: 'pg_cron 14:00 UTC' },
+      { tipo: 'proceso', label: 'Buscar cotizaciones sin pago',  sublabel: 'status=approved, sin verified payment' },
+      { tipo: 'decision', label: 'Antigüedad',                  sublabel: 'D+7 / D+14 / D+21' },
+      { tipo: 'api',     label: 'WhatsApp al cliente (D+7)',     sublabel: 'payment_followup_d7_v1' },
+      { tipo: 'api',     label: 'Alerta admin (D+14)',           sublabel: 'payment_escalation_d14_v1' },
+      { tipo: 'output',  label: 'Vencimiento (D+21)',            sublabel: 'admin_quotation_expired_v1' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'cron',
+    frecuencia: 'Lunes a viernes a las 9:00 AM (hora Colombia)',
+    fuente_datos: 'Supabase — tablas quotations + payments',
+    canal_salida: ['whatsapp', 'interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Cron pg_cron dispara la Edge Function vigia-pagos a las 14:00 UTC (L-V)',
+      'Consulta cotizaciones con status "aprobado" y sin payment con verification_status="verified"',
+      'Clasifica por antigüedad: D+7, D+14, D+21',
+      'D+7: INSERT en notification_queue con template payment_followup_d7_v1 al cliente',
+      'D+14: INSERT en notification_queue con template payment_escalation_d14_v1 al admin',
+      'D+21: UPDATE quotation status → "expired" + INSERT alerta admin con admin_quotation_expired_v1',
+    ],
+    notas: 'En desarrollo — DRY_RUN activo en Supabase Vault hasta validación con datos reales. Templates Meta en TEMPLATE_REGISTRY: payment_followup_d7_v1 (D+7 cliente), payment_escalation_d14_v1 (D+14 admin), admin_quotation_expired_v1 (D+21 vencimiento).',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'EF desplegada como parte de Agentes Autónomos Capa 01. DRY_RUN=true pendiente validación.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'supabase/functions/vigia-pagos/index.ts',
+    ],
+  },
+
+  // ─── 24. COORDINADOR DE PRODUCCIÓN ──────────────────────────────────────────
+  {
+    slug: 'coordinador-produccion',
+    nombre: 'Coordinador de Producción',
+    descripcion: 'Cuando un proyecto entra en producción, envía automáticamente la ficha técnica al taller vía WhatsApp con todos los detalles: nombre del proyecto, cliente, fecha de entrega y listado de ítems.',
+    descripcion_larga: `El inicio de la fabricación requiere que el taller tenga exactamente la información correcta en el momento correcto. Un error o un dato faltante en la ficha técnica puede costar horas de trabajo y retrasos en la entrega.
+
+Cuando el equipo cambia el estado de un proyecto a "en producción" en el CRM, el Coordinador de Producción actúa inmediatamente. Lee los datos del proyecto —nombre, cliente, fecha estimada de entrega e ítems de la cotización— y envía una ficha técnica estructurada al número de WhatsApp del taller.
+
+El taller recibe toda la información que necesita para iniciar la fabricación sin tener que buscarla en otro lugar ni esperar que alguien se la envíe manualmente.`,
+    problema_que_resuelve: 'El inicio de producción dependía de que alguien enviara manualmente la información al taller, lo que generaba retrasos, errores por datos incompletos y falta de trazabilidad de cuándo empezó cada trabajo.',
+    beneficios: [
+      'El taller recibe la ficha técnica al instante cuando el proyecto entra a producción',
+      'Información completa y estructurada — sin riesgo de datos incompletos o errores de copiado',
+      'Trazabilidad automática del momento exacto en que el taller fue notificado',
+      'El equipo no necesita recordar enviar la información manualmente',
+    ],
+    casos_de_uso: [
+      'El administrador marca el proyecto "Cocina González" como "en producción". En segundos, el encargado del taller recibe un WhatsApp con el nombre del proyecto, el cliente, la fecha de entrega estimada y el listado de ítems a fabricar.',
+    ],
+    metricas: [
+      { valor: '<5s',   etiqueta: 'Notificación al taller' },
+      { valor: '100%',  etiqueta: 'Proyectos con ficha técnica' },
+      { valor: '0',     etiqueta: 'Envíos manuales necesarios' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Proyecto → en_produccion',  sublabel: 'UPDATE projects.status' },
+      { tipo: 'proceso', label: 'Leer datos del proyecto',   sublabel: 'nombre, cliente, entrega, ítems' },
+      { tipo: 'api',     label: 'WhatsApp al taller',        sublabel: 'ficha_taller_v1' },
+      { tipo: 'output',  label: 'Taller notificado',         sublabel: 'Ficha técnica estructurada' },
+    ],
+    categoria: 'operacional',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que un proyecto cambia su estado a "en producción"',
+    fuente_datos: 'Supabase — tabla projects + quotation_items',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'Trigger en projects detecta cambio de status a "en_produccion"',
+      'Edge Function coordinador-produccion lee nombre del proyecto, cliente, fecha de entrega e ítems',
+      'Lee workshop_whatsapp desde system_settings (número del taller)',
+      'INSERT en notification_queue con template ficha_taller_v1: {{1}}=proyecto {{2}}=cliente {{3}}=entrega {{4}}=items',
+    ],
+    notas: 'En desarrollo — DRY_RUN activo en Supabase Vault. Requiere configurar workshop_whatsapp en system_settings con el número del taller. Template ficha_taller_v1 en TEMPLATE_REGISTRY (4 parámetros).',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'EF desplegada como parte de Agentes Autónomos Capa 03. DRY_RUN=true pendiente validación.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'supabase/functions/coordinador-produccion/index.ts',
+    ],
+  },
+
+  // ─── 25. ANALISTA DE CONVERSIÓN ─────────────────────────────────────────────
+  {
+    slug: 'analista-conversion',
+    nombre: 'Analista de Conversión',
+    descripcion: 'Cada lunes envía al administrador un reporte semanal de KPIs comerciales: leads recibidos, oportunidades abiertas, cotizaciones enviadas, tasa de aprobación y alertas cuando algún indicador está por debajo del umbral.',
+    descripcion_larga: `Sin un reporte regular, es fácil perder de vista la salud del embudo de ventas hasta que ya hay un problema grave. El Analista de Conversión actúa como el contador semanal de la operación comercial.
+
+Cada lunes a las 9am, consulta las tablas del CRM de la semana anterior y genera dos mensajes. El primero es el resumen ejecutivo: cuántos leads llegaron, cuántas oportunidades se abrieron, cuántas cotizaciones se enviaron, cuántas se aprobaron y cuál fue la tasa de conversión de la semana.
+
+El segundo mensaje son las alertas: si algún KPI está por debajo del umbral configurado (por ejemplo: menos de 5 leads en la semana, o tasa de aprobación bajo el 30%), el administrador recibe una notificación de alerta con los indicadores en rojo para que pueda actuar a tiempo.`,
+    problema_que_resuelve: 'El equipo no tenía visibilidad semanal del desempeño comercial sin revisar manualmente el CRM tabla por tabla. Los problemas del embudo de ventas se detectaban tarde y sin datos concretos.',
+    beneficios: [
+      'Reporte semanal automático sin trabajo manual de extracción de datos',
+      'Alertas proactivas cuando un KPI cae por debajo del umbral',
+      'Visibilidad de la tendencia de conversión semana a semana',
+      'El administrador llega al lunes con los números listos',
+    ],
+    casos_de_uso: [
+      'El lunes a las 9am el administrador recibe: "Semana del 02/06: 8 leads, 6 oportunidades, 4 cotizaciones, 2 aprobadas (50% conversión)." Seguido de: "Alerta: cotizaciones enviadas por debajo del objetivo (4 vs 6 esperadas)."',
+    ],
+    metricas: [
+      { valor: 'Lunes 9am', etiqueta: 'Entrega del reporte' },
+      { valor: '6 KPIs',    etiqueta: 'Indicadores monitoreados' },
+      { valor: 'Semanal',   etiqueta: 'Frecuencia' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Lunes 9am',                sublabel: 'n8n cron semanal' },
+      { tipo: 'proceso', label: 'Consultar KPIs semana',    sublabel: 'leads, opps, cotiz, pagos' },
+      { tipo: 'decision', label: 'Comparar vs umbrales',   sublabel: 'alertas si < threshold' },
+      { tipo: 'api',     label: 'WA reporte KPIs',          sublabel: 'reporte_semanal_kpi_v1' },
+      { tipo: 'api',     label: 'WA alertas (si aplica)',   sublabel: 'reporte_semanal_alertas_v1' },
+    ],
+    categoria: 'comercial',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'cron',
+    frecuencia: 'Lunes a las 9:00 AM (hora Colombia)',
+    fuente_datos: 'Supabase — tablas opportunities, quotations, payments',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'n8n llama la Edge Function analista-conversion cada lunes a las 9am',
+      'Consulta oportunidades, cotizaciones y pagos de los últimos 7 días',
+      'Calcula: leads recibidos, oportunidades abiertas, cotizaciones enviadas, aprobadas, tasa de conversión',
+      'Compara cada KPI contra los umbrales configurados en system_settings',
+      'Envía WhatsApp con template reporte_semanal_kpi_v1 (6 parámetros) al admin',
+      'Si hay alertas: envía segundo WhatsApp con template reporte_semanal_alertas_v1',
+    ],
+    notas: 'En desarrollo — DRY_RUN activo en Supabase Vault. Requiere configurar analista_admin_phone en system_settings. Templates: reporte_semanal_kpi_v1 ({{1-6}}=leads/opps/cotiz/aprobadas/tasa/semana) y reporte_semanal_alertas_v1 ({{1}}=admin, {{2-4}}=alertas).',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'EF desplegada como parte de Agentes Autónomos Capa 05. DRY_RUN=true pendiente validación.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'supabase/functions/analista-conversion/index.ts',
+    ],
+  },
+
+  // ─── 26. MONITOR DE CAPACIDAD ────────────────────────────────────────────────
+  {
+    slug: 'monitor-capacidad',
+    nombre: 'Monitor de Capacidad',
+    descripcion: 'Revisa diariamente cuántos proyectos activos hay en producción. Si el número alcanza el umbral amarillo envía una alerta de advertencia; si llega al umbral rojo, envía una alerta de capacidad crítica para que el equipo frene la captación de nuevos proyectos.',
+    descripcion_larga: `El taller tiene una capacidad real de producción. Si se aceptan más proyectos de los que puede manejar, la calidad baja, los plazos se incumplen y los clientes se frustran.
+
+El Monitor de Capacidad opera cada mañana antes del inicio de la jornada. Cuenta los proyectos que están actualmente en producción o en entrega (estados "en_produccion" y "entregado") y los compara contra dos umbrales configurados por el negocio.
+
+Si el conteo alcanza el umbral amarillo (advertencia), el administrador recibe una alerta suave para que esté atento. Si alcanza el umbral rojo (crítico), la alerta es de máxima prioridad: el taller está al límite y se debe evaluar si se siguen aceptando nuevos proyectos.
+
+Ambos umbrales son configurables desde system_settings sin necesidad de cambiar código.`,
+    problema_que_resuelve: 'Sin visibilidad del volumen de producción activo, el equipo comercial seguía cerrando proyectos aunque el taller estuviera saturado, generando retrasos y problemas de calidad.',
+    beneficios: [
+      'Alerta temprana (amarilla) antes de llegar a la saturación',
+      'Alerta crítica (roja) cuando el taller está al límite de su capacidad',
+      'Umbrales configurables desde el sistema sin necesidad de código',
+      'Visibilidad diaria del nivel de producción activo',
+    ],
+    casos_de_uso: [
+      'El taller tiene configurado umbral amarillo=6 y umbral rojo=8. El lunes hay 7 proyectos activos: el administrador recibe alerta amarilla. Si cierra 2 proyectos más y llega a 9, recibe alerta roja.',
+    ],
+    metricas: [
+      { valor: 'Diario',    etiqueta: 'Frecuencia de revisión' },
+      { valor: '2 niveles', etiqueta: 'Alertas (amarilla / roja)' },
+      { valor: 'Config.',   etiqueta: 'Umbrales ajustables' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Cron 8am Colombia',           sublabel: 'pg_cron 13:00 UTC' },
+      { tipo: 'proceso', label: 'Contar proyectos activos',    sublabel: 'en_produccion + entregado' },
+      { tipo: 'decision', label: 'Comparar vs umbrales',      sublabel: 'amarillo / rojo' },
+      { tipo: 'api',     label: 'WA alerta amarilla',          sublabel: 'alerta_capacidad_amarilla_v1' },
+      { tipo: 'api',     label: 'WA alerta roja',              sublabel: 'alerta_capacidad_roja_v1' },
+    ],
+    categoria: 'operacional',
+    status: 'en_desarrollo',
+    visibilidad: 'silente',
+    tipo: 'cron',
+    frecuencia: 'Diariamente a las 8:00 AM (hora Colombia)',
+    fuente_datos: 'Supabase — tabla projects (status)',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'pg_cron dispara la Edge Function monitor-capacidad a las 13:00 UTC diariamente',
+      'Cuenta proyectos con status IN ("en_produccion", "entregado")',
+      'Lee umbrales capacity_yellow_threshold y capacity_red_threshold de system_settings',
+      'Si conteo >= umbral amarillo: INSERT notification_queue con alerta_capacidad_amarilla_v1',
+      'Si conteo >= umbral rojo: INSERT notification_queue con alerta_capacidad_roja_v1',
+    ],
+    notas: 'En desarrollo — DRY_RUN activo en Supabase Vault. Requiere configurar capacity_monitor_admin_phone, capacity_yellow_threshold y capacity_red_threshold en system_settings. Templates: alerta_capacidad_amarilla_v1 y alerta_capacidad_roja_v1 ({{1}}=admin {{2}}=count {{3}}=umbral {{4}}=listado).',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'EF desplegada como parte de Agentes Autónomos Capa 05. DRY_RUN=true pendiente validación.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'supabase/functions/monitor-capacidad/index.ts',
+    ],
+  },
+
+  // ─── 27. RECORDATORIOS DE REUNIONES ─────────────────────────────────────────
+  {
+    slug: 'recordatorios-de-reuniones',
+    nombre: 'Recordatorios de Reuniones',
+    descripcion: 'Envía automáticamente dos avisos por WhatsApp antes de cada reunión quincenal: uno el día anterior y otro 2 horas antes. Cubre las 11 reuniones del calendario junio–noviembre 2026.',
+    descripcion_larga: `Las reuniones quincenales son el eje del seguimiento comercial y operativo. Olvidar una reunión o entrar sin estar preparado tiene un costo real.
+
+La automatización de recordatorios opera en segundo plano para las 11 reuniones del calendario junio–noviembre 2026. Para cada una, programa dos avisos por WhatsApp: el día anterior a las 6 PM Colombia y el mismo día de la reunión a las 4 PM (2 horas antes del inicio a las 6 PM).
+
+Los 22 mensajes están programados en la base de datos como tareas diferidas. La Edge Function de WhatsApp los despacha automáticamente cuando llega su momento, sin que nadie tenga que hacer nada. Si el calendario cambia, se puede actualizar la función y re-encolar.`,
+    problema_que_resuelve: 'Los participantes de las reuniones quincenales no tenían aviso automático, lo que generaba olvidos y falta de preparación. Sin un recordatorio close-in, era fácil que la reunión pasara desapercibida.',
+    beneficios: [
+      'Dos recordatorios por reunión sin gestión manual (24h + 2h antes)',
+      'Los 22 mensajes del semestre están pre-programados — no hay que recordar hacer nada',
+      'Se actualiza fácilmente si cambia el calendario: una función SQL re-encola todo',
+      'Funciona sobre la misma infraestructura de WhatsApp ya operativa',
+    ],
+    casos_de_uso: [
+      'El 24 de junio a las 6 PM Colombia: Álvaro Ríos recibe "¡Mañana a las 6 PM tienes reunión quincenal!". El 25 de junio a las 4 PM: "Tu reunión de hoy es a las 6 PM — en 2 horas."',
+    ],
+    metricas: [
+      { valor: '11',   etiqueta: 'Reuniones cubiertas (jun–nov)' },
+      { valor: '22',   etiqueta: 'Mensajes pre-programados' },
+      { valor: '2',    etiqueta: 'Avisos por reunión (24h + 2h)' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'n8n — lunes 8am',             sublabel: 'Safety net semanal' },
+      { tipo: 'proceso', label: 'fn_schedule_meeting_reminders', sublabel: 'Encola reuniones futuras' },
+      { tipo: 'proceso', label: 'notification_queue',           sublabel: 'scheduled_for: 24h/2h antes' },
+      { tipo: 'api',     label: 'WA 24h antes',                 sublabel: 'reunion_recordatorio_24h_v1' },
+      { tipo: 'api',     label: 'WA 2h antes',                  sublabel: 'reunion_recordatorio_2h_v1' },
+    ],
+    categoria: 'notificaciones',
+    status: 'activa',
+    visibilidad: 'n8n',
+    tipo: 'cron',
+    frecuencia: 'Lunes a las 8:00 AM Colombia (safety net semanal). Los mensajes individuales se despachan automáticamente en su hora exacta.',
+    fuente_datos: 'Supabase — system_settings (teléfono y nombre del receptor)',
+    canal_salida: ['whatsapp'],
+    n8n_workflow_id: '96BHeN1ZJ3D3zQlN',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-09T00:00:00Z',
+    pasos: [
+      'n8n workflow 96BHeN1ZJ3D3zQlN llama fn_schedule_meeting_reminders() cada lunes (safety net)',
+      'La función encola las reuniones futuras con dedup_key — si ya están encoladas, ON CONFLICT DO NOTHING',
+      'La EF process-whatsapp-notifications procesa la cola cada minuto',
+      'scheduled_for filtra: solo despacha mensajes cuya hora ya llegó',
+      'D-1 (6 PM Colombia): envía reunion_recordatorio_24h_v1 ({{1}}=nombre)',
+      'Día de la reunión (4 PM Colombia): envía reunion_recordatorio_2h_v1 ({{1}}=nombre {{2}}=hora)',
+    ],
+    notas: 'Activa — 22 filas encoladas en notification_queue (commit 44f1655, 2026-06-09). Receptor configurado en system_settings.meeting_reminder_recipient_phone. Calendario: 11 reuniones a las 23:00 UTC (6 PM Colombia) cada 2 semanas jun–nov 2026. Migración 051 aplicada.',
+    historial: [
+      { fecha: '2026-06-09T00:00:00Z', descripcion: 'Migración 051 aplicada. Templates Meta aprobadas. fn_schedule_meeting_reminders(false) ejecutada: 22 filas encoladas.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'db/migrations/051_meeting_reminders.sql',
     ],
   },
 
