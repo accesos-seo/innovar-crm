@@ -25,6 +25,7 @@ import {
   BookOpen,
   LogOut,
   Factory,
+  ShieldCheck,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -186,15 +187,26 @@ export const Sidebar = React.memo(function Sidebar() {
         { icon: UserCircle, label: "Mi perfil", path: "/profile" },
       ];
     }
+    const items = [...navItems];
     if (
       FEATURES.productionModuleEnabled &&
       ["admin", "super_admin", "diseno"].includes(profile?.role ?? "")
     ) {
-      const items = [...navItems];
       items.splice(2, 0, { icon: Factory, label: "Producción", path: "/produccion" });
-      return items;
     }
-    return navItems;
+    // Postventa y Garantías (migración 055) — después de Clientes & Ventas
+    if (
+      FEATURES.postventaEnabled &&
+      ["admin", "super_admin", "comercial"].includes(profile?.role ?? "")
+    ) {
+      const anchor = items.findIndex((i) => i.label === "Clientes & Ventas");
+      items.splice(anchor >= 0 ? anchor + 1 : items.length, 0, {
+        icon: ShieldCheck,
+        label: "Postventa",
+        path: "/postventa",
+      });
+    }
+    return items;
   }, [isProduccionRole, profile?.role]);
 
   const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;

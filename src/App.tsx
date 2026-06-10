@@ -75,6 +75,8 @@ const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabil
 const HorasPage                      = lazy(() => import("./pages/Horas"));
 const ProduccionPage                 = lazy(() => import("./pages/Produccion"));
 const ProduccionFichaPage            = lazy(() => import("./pages/ProduccionFicha"));
+const PostventaPage                  = lazy(() => import("./pages/Postventa"));
+const PublicSurveyPage               = lazy(() => import("./pages/PublicSurvey"));
 
 // â"€â"€ Route-level loading fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function PageLoader() {
@@ -168,6 +170,9 @@ export default function App() {
                 {/* Portal del Cliente "Mi Proyecto" (migraciÃ³n 053). Standalone, sin auth.
                     Si VITE_FF_CLIENT_PORTAL=false la pÃ¡gina devuelve 404. */}
                 <Route path="/proyecto/:token" element={<PublicProjectTrackingPage />} />
+                {/* Encuesta de satisfacciÃ³n (migraciÃ³n 055). Standalone, sin auth.
+                    Si VITE_FF_POSTVENTA=false la pÃ¡gina devuelve 404. */}
+                <Route path="/encuesta/:token" element={<PublicSurveyPage />} />
 
                 {/* â"€â"€ Dev/admin tooling â"€â"€ */}
                 <Route
@@ -195,6 +200,15 @@ export default function App() {
                       element={<Protected roles={["admin", "super_admin", "produccion", "diseno"]}><ProduccionFichaPage /></Protected>}
                     />
                   </>
+                )}
+
+                {/* Postventa y GarantÃ­as (migraciÃ³n 055). Si VITE_FF_POSTVENTA=false
+                    la ruta no se registra y cae en el 404. */}
+                {FEATURES.postventaEnabled && (
+                  <Route
+                    path="/postventa"
+                    element={<Protected roles={["admin", "super_admin", "comercial"]}><PostventaPage /></Protected>}
+                  />
                 )}
 
                 {/* Agentes hub */}
