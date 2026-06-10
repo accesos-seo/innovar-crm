@@ -122,7 +122,7 @@ const TEMPLATE_REGISTRY: Record<string, TemplateBuilder> = {
   proyecto_completado_v1: bodyBuilder("proyecto_completado_v1", 2),           // {{1}}=nombre {{2}}=nombre proyecto
   recordatorio_instalacion_v1: bodyBuilder("recordatorio_instalacion_v1", 1), // {{1}}=nombre
 
-  // — Recordatorios de reuniones (migración 051) · PENDING META APPROVAL —
+  // — Recordatorios de reuniones (migración 051) —
   reunion_recordatorio_24h_v1: bodyBuilder("reunion_recordatorio_24h_v1", 1), // {{1}}=nombre
   reunion_recordatorio_2h_v1:  bodyBuilder("reunion_recordatorio_2h_v1",  2), // {{1}}=nombre {{2}}=hora
 
