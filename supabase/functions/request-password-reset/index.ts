@@ -115,7 +115,8 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (!/^[a-z0-9._%+-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(normalizedEmail)) {
+    // Strict email regex: local part prohibits consecutive dots/hyphens/underscores
+    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'email inválido' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...CORS },
@@ -169,7 +170,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (parsed.protocol !== 'https:' || !parsed.hostname) {
+    const LOCAL_HOSTS = /^(localhost|127\.|0\.0\.0\.0|::1|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/;
+    if (parsed.protocol !== 'https:' || !parsed.hostname || LOCAL_HOSTS.test(parsed.hostname)) {
       return new Response(JSON.stringify({ error: 'Internal error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...CORS },
