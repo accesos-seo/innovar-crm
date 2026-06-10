@@ -13,6 +13,9 @@ export const FEATURES = {
   // Cuando OFF: la ruta /cotizacion/:token devuelve 404, los botones de envío/lock
   // no aparecen en el CRM, y el flujo legacy (WhatsApp manual) sigue funcionando igual.
   phase4QuotationPublicEnabled: import.meta.env.VITE_FF_PHASE_4_QUOTATION_PUBLIC === 'true',
+  // Portal del Cliente "Mi Proyecto" (migración 053 + EF public-project-tracking).
+  // Cuando OFF: /proyecto/:token devuelve el 404 amable y el card interno no aparece.
+  clientPortalEnabled: import.meta.env.VITE_FF_CLIENT_PORTAL === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURES;

@@ -23,6 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PremiumLoader } from "@/components/shared/PremiumLoader";
+import { ClientPortalCard } from "@/components/projects/ClientPortalCard";
+import { FEATURES } from "@/lib/features";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -335,6 +337,13 @@ export default function ProjectDetailPage() {
 
         {/* Columna Derecha: Fechas y Logística */}
         <div className="space-y-8">
+          {FEATURES.clientPortalEnabled && (
+            <ClientPortalCard
+              projectId={project.id}
+              trackingToken={(project as any).tracking_token}
+            />
+          )}
+
           <div className="bg-card border border-border/10 rounded-sm overflow-hidden">
             <div className="p-6 border-b border-border/10 bg-muted/20">
               <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">

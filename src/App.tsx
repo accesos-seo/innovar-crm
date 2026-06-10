@@ -66,6 +66,7 @@ const PublicBookingPage     = lazy(() => import("./pages/PublicBooking"));
 const PublicBookingByCodePage = lazy(() => import("./pages/PublicBookingByCode"));
 const PublicQuotationPage   = lazy(() => import("./pages/PublicQuotation"));
 const PublicQuotationByCodePage = lazy(() => import("./pages/PublicQuotationByCode"));
+const PublicProjectTrackingPage = lazy(() => import("./pages/PublicProjectTracking"));
 const DocsHomePage                   = lazy(() => import("./pages/docs/DocsHomePage"));
 const DocsAutomatizacionesPage       = lazy(() => import("./pages/docs/DocsAutomatizacionesPage"));
 const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutomatizacionDetailPage"));
@@ -151,6 +152,9 @@ export default function App() {
                 <Route path="/cotizacion/:token" element={<PublicQuotationPage />} />
                 {/* URL corta /c/:code â†' resuelve short_code y redirige al token largo. */}
                 <Route path="/c/:code" element={<PublicQuotationByCodePage />} />
+                {/* Portal del Cliente "Mi Proyecto" (migraciÃ³n 053). Standalone, sin auth.
+                    Si VITE_FF_CLIENT_PORTAL=false la pÃ¡gina devuelve 404. */}
+                <Route path="/proyecto/:token" element={<PublicProjectTrackingPage />} />
 
                 {/* â"€â"€ Dev/admin tooling â"€â"€ */}
                 <Route
