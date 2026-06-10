@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Strict email regex: local part prohibits consecutive dots/hyphens/underscores
-    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(normalizedEmail)) {
+    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*@(?:[a-z0-9](?:[-a-z0-9]*[a-z0-9])?\.)+[a-z]{2,}$/.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'email inválido' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...CORS },
@@ -87,8 +87,12 @@ Deno.serve(async (req) => {
 
     if (resetErr) {
       console.error('[request-password-reset] resetPasswordForEmail error:', resetErr.message);
-      return new Response(JSON.stringify({ error: 'No se pudo enviar el enlace' }), {
-        status: 500,
+      const isRateLimit = resetErr.message?.toLowerCase().includes('rate limit');
+      const userMsg = isRateLimit
+        ? 'Demasiadas solicitudes. Espera unos minutos antes de intentar nuevamente.'
+        : 'No se pudo enviar el enlace';
+      return new Response(JSON.stringify({ error: userMsg }), {
+        status: isRateLimit ? 429 : 500,
         headers: { 'Content-Type': 'application/json', ...CORS },
       });
     }
