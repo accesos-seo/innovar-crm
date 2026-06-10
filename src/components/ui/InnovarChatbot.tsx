@@ -36,11 +36,11 @@ const QuickAction = ({
     className={cn(
       'flex items-center gap-3 p-3',
       'bg-zinc-900/50 border border-zinc-800',
-      'hover:border-amber-500/50 hover:bg-zinc-800',
+      'hover:border-[var(--primary)]/50 hover:bg-zinc-800',
       'transition-all duration-300 group text-left rounded-sm',
     )}
   >
-    <div className="p-2 bg-zinc-950 border border-zinc-800 rounded-sm text-zinc-500 group-hover:text-amber-500 transition-colors">
+    <div className="p-2 bg-zinc-950 border border-zinc-800 rounded-sm text-zinc-500 group-hover:text-[var(--primary)] transition-colors">
       <Icon className="w-4 h-4" />
     </div>
     <span className="text-xs font-bold text-zinc-300 group-hover:text-white tracking-wider">
@@ -170,10 +170,10 @@ export const InnovarChatbot: React.FC = () => {
           className="fixed bottom-20 right-6 z-50 group animate-in zoom-in duration-300"
           aria-label="Abrir asistente NOVA"
         >
-          <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse group-hover:bg-amber-500/30 transition-all" />
-          <div className="relative w-14 h-14 bg-zinc-950 border border-amber-500/50 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-            <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(245,158,11,0.08)_50%)] bg-[size:100%_4px] pointer-events-none" />
-            <Bot className="w-6 h-6 text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)]" />
+          <div className="absolute inset-0 bg-[var(--primary)]/20 rounded-full blur-xl animate-pulse group-hover:bg-[var(--primary)]/30 transition-all" />
+          <div className="relative w-14 h-14 bg-zinc-950 border border-[var(--primary)]/50 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(68,221,193,0.08)_50%)] bg-[size:100%_4px] pointer-events-none" />
+            <Bot className="w-6 h-6 text-[var(--primary)] drop-shadow-[0_0_5px_rgba(68,221,193,0.8)]" />
             <span className="absolute top-3 right-3 w-2 h-2 bg-emerald-500 rounded-full border border-zinc-900 animate-pulse" />
           </div>
         </button>
@@ -194,17 +194,17 @@ export const InnovarChatbot: React.FC = () => {
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--primary)]/30 to-transparent" />
             <div className="flex items-center gap-3 relative z-10">
               <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-sm flex items-center justify-center relative">
-                <Bot className="w-5 h-5 text-amber-500" />
+                <Bot className="w-5 h-5 text-[var(--primary)]" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-zinc-950 rounded-full flex items-center justify-center border border-zinc-800">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_#10B981]" />
                 </div>
               </div>
               <div>
                 <h3 className="text-sm font-black italic text-white tracking-wide">NOVA</h3>
-                <p className="text-[10px] text-amber-500 font-mono tracking-wider flex items-center gap-1">
+                <p className="text-[10px] text-[var(--primary)] font-mono tracking-wider flex items-center gap-1">
                   <Sparkles className="w-2 h-2" /> Cocinas Innovar · Panel Director
                 </p>
               </div>
@@ -248,7 +248,7 @@ export const InnovarChatbot: React.FC = () => {
                     'px-4 py-3 text-sm leading-relaxed border rounded-sm whitespace-pre-wrap break-words',
                     msg.type === 'user'
                       ? 'bg-zinc-800 text-white border-zinc-700 rounded-tr-none'
-                      : 'bg-zinc-950 text-zinc-300 border-zinc-800 rounded-tl-none border-l-2 border-l-amber-500',
+                      : 'bg-zinc-950 text-zinc-300 border-zinc-800 rounded-tl-none border-l-2 border-l-[var(--primary)]',
                   )}
                 >
                   {msg.text}
@@ -262,9 +262,9 @@ export const InnovarChatbot: React.FC = () => {
             {/* Indicador de escritura */}
             {isTyping && (
               <div className="flex items-center gap-1 ml-2 animate-in fade-in duration-300">
-                <span className="w-1.5 h-1.5 bg-amber-500/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-1.5 h-1.5 bg-amber-500/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-1.5 h-1.5 bg-amber-500/50 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-[var(--primary)]/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 bg-[var(--primary)]/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 bg-[var(--primary)]/50 rounded-full animate-bounce" />
               </div>
             )}
 
@@ -272,7 +272,7 @@ export const InnovarChatbot: React.FC = () => {
             {!isTyping && messages.at(-1)?.type === 'bot' && (
               <div className="grid grid-cols-1 gap-2 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 relative z-10">
                 <p className="text-[10px] text-zinc-500 font-black tracking-[0.2em] mb-1 flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-amber-500" /> Accesos Rápidos
+                  <Zap className="w-3 h-3 text-[var(--primary)]" /> Accesos Rápidos
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <QuickAction
@@ -311,12 +311,12 @@ export const InnovarChatbot: React.FC = () => {
                 onChange={e => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Escribe tu consulta aquí..."
-                className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-sm py-3 pl-4 pr-12 focus:outline-none focus:border-amber-500/50 focus:bg-zinc-900/80 transition-all font-mono placeholder:text-zinc-600"
+                className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-sm py-3 pl-4 pr-12 focus:outline-none focus:border-[var(--primary)]/50 focus:bg-zinc-900/80 transition-all font-mono placeholder:text-zinc-600"
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputValue.trim() || isTyping}
-                className="absolute right-2 top-2 p-1.5 bg-amber-500 hover:bg-amber-600 text-black rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="absolute right-2 top-2 p-1.5 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-black rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Enviar"
               >
                 <Send className="w-4 h-4" />
