@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "./components/shared/ScrollToTop";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
+import { FEATURES } from "@/lib/features";
 import { ConnectionBanner } from "./components/shared/ConnectionBanner";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -72,6 +73,8 @@ const DocsAutomatizacionesPage       = lazy(() => import("./pages/docs/DocsAutom
 const DocsAutomatizacionDetailPage   = lazy(() => import("./pages/docs/DocsAutomatizacionDetailPage"));
 const DocsHabilidadesPage            = lazy(() => import("./pages/docs/DocsHabilidadesPage"));
 const HorasPage                      = lazy(() => import("./pages/Horas"));
+const ProduccionPage                 = lazy(() => import("./pages/Produccion"));
+const ProduccionFichaPage            = lazy(() => import("./pages/ProduccionFicha"));
 
 // â"€â"€ Route-level loading fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function PageLoader() {
@@ -114,6 +117,16 @@ function Protected({ children, roles }: { children: React.ReactNode; roles?: any
       <Layout>{children}</Layout>
     </ProtectedRoute>
   );
+}
+
+// El rol produccion no usa el Dashboard: su home es el tablero de planta.
+// Cubre todos los caminos de entrada (login email, Google, deep-link a "/").
+function HomeForRole({ children }: { children: React.ReactNode }) {
+  const profile = useAuthStore((s) => s.profile);
+  if (FEATURES.productionModuleEnabled && profile?.role === "produccion") {
+    return <Navigate to="/produccion" replace />;
+  }
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -167,7 +180,22 @@ export default function App() {
                 />
 
                 {/* â"€â"€ Core app â"€â"€ */}
-                <Route path="/" element={<Protected><Dashboard /></Protected>} />
+                <Route path="/" element={<Protected><HomeForRole><Dashboard /></HomeForRole></Protected>} />
+
+                {/* ProducciÃ³n / Taller (migraciÃ³n 054). Si VITE_FF_PRODUCTION_MODULE=false
+                    las rutas no se registran y caen en el 404. */}
+                {FEATURES.productionModuleEnabled && (
+                  <>
+                    <Route
+                      path="/produccion"
+                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno"]}><ProduccionPage /></Protected>}
+                    />
+                    <Route
+                      path="/produccion/ficha/:id"
+                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno"]}><ProduccionFichaPage /></Protected>}
+                    />
+                  </>
+                )}
 
                 {/* Agentes hub */}
                 <Route path="/agentes" element={<Protected><AgentesPage /></Protected>} />

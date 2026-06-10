@@ -24,7 +24,9 @@ import {
   Bot,
   BookOpen,
   LogOut,
+  Factory,
 } from "lucide-react";
+import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -171,14 +173,37 @@ export const Sidebar = React.memo(function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
+  const profile = useAuthStore((s) => s.profile);
 
-  const initialOpen = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+  // Módulo Producción (migración 054): el rol produccion ve un sidebar
+  // reducido; admin/super_admin/diseno ven el ítem junto a Proyectos.
+  const isProduccionRole = FEATURES.productionModuleEnabled && profile?.role === "produccion";
+  const visibleNavItems = React.useMemo<NavItem[]>(() => {
+    if (isProduccionRole) {
+      return [
+        { icon: Factory, label: "Producción", path: "/produccion" },
+        { icon: CheckSquare, label: "Tareas", path: "/tasks" },
+        { icon: UserCircle, label: "Mi perfil", path: "/profile" },
+      ];
+    }
+    if (
+      FEATURES.productionModuleEnabled &&
+      ["admin", "super_admin", "diseno"].includes(profile?.role ?? "")
+    ) {
+      const items = [...navItems];
+      items.splice(2, 0, { icon: Factory, label: "Producción", path: "/produccion" });
+      return items;
+    }
+    return navItems;
+  }, [isProduccionRole, profile?.role]);
+
+  const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
   const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
 
   React.useEffect(() => {
-    const activeParent = navItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
+    const activeParent = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
     if (activeParent) setOpenSection(activeParent);
-  }, [location.pathname, navItems]);
+  }, [location.pathname, visibleNavItems]);
 
   const handleToggle = React.useCallback((label: string) => {
     setOpenSection(prev => prev === label ? null : label);
@@ -227,18 +252,20 @@ export const Sidebar = React.memo(function Sidebar() {
         </Button>
       </div>
 
-      {/* Primary Action Section */}
-      <div className="p-4">
-        <PrimaryButton 
-          onClick={() => navigate("/leads/new")}
-          label={isSidebarCollapsed ? "" : "Nuevo prospecto"}
-          icon={Plus}
-          className={cn(
-            "w-full h-12 rounded-md",
-            isSidebarCollapsed ? "px-0 justify-center" : "px-4"
-          )}
-        />
-      </div>
+      {/* Primary Action Section (sin sentido para el rol produccion) */}
+      {!isProduccionRole && (
+        <div className="p-4">
+          <PrimaryButton
+            onClick={() => navigate("/leads/new")}
+            label={isSidebarCollapsed ? "" : "Nuevo prospecto"}
+            icon={Plus}
+            className={cn(
+              "w-full h-12 rounded-md",
+              isSidebarCollapsed ? "px-0 justify-center" : "px-4"
+            )}
+          />
+        </div>
+      )}
       
       {/* Navigation Section */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-4 custom-scrollbar">
@@ -247,7 +274,7 @@ export const Sidebar = React.memo(function Sidebar() {
             <span className="text-[10px] font-black text-muted-foreground/40">{formatSentenceCase("Operaciones")}</span>
           </div>
         )}
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           const isChildActive = item.children?.some(child => location.pathname === child.path) || false;
 
@@ -264,7 +291,8 @@ export const Sidebar = React.memo(function Sidebar() {
           );
         })}
 
-        {/* ── Agentes section ── */}
+        {/* ── Agentes section (oculta para el rol produccion) ── */}
+        {!isProduccionRole && (<>
         <div className="pt-4 pb-1">
           <div className="w-full h-px bg-gradient-to-r from-primary/30 via-border/40 to-transparent mb-3" />
           {!isSidebarCollapsed && (
@@ -299,6 +327,7 @@ export const Sidebar = React.memo(function Sidebar() {
             <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
           )}
         </Link>
+        </>)}
       </nav>
 
       {/* Footer Sidebar - Documentation + Logout */}

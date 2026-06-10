@@ -16,6 +16,13 @@ export const FEATURES = {
   // Portal del Cliente "Mi Proyecto" (migración 053 + EF public-project-tracking).
   // Cuando OFF: /proyecto/:token devuelve el 404 amable y el card interno no aparece.
   clientPortalEnabled: import.meta.env.VITE_FF_CLIENT_PORTAL === 'true',
+  // Módulo de Producción / Taller (migración 054). Cuando OFF: la ruta
+  // /produccion no existe, el ítem del sidebar no aparece y el rol produccion
+  // no es redirigido al tablero.
+  productionModuleEnabled: import.meta.env.VITE_FF_PRODUCTION_MODULE === 'true',
+  // Postventa y Garantías (migración 055 + EF postventa-engine). Cuando OFF:
+  // /postventa no se registra y /encuesta/:token devuelve el 404 amable.
+  postventaEnabled: import.meta.env.VITE_FF_POSTVENTA === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURES;
