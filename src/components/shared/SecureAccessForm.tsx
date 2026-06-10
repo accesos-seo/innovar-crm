@@ -232,7 +232,6 @@ export const SecureAccessForm = ({ onSubmit, onGoogleLogin, onForgotPassword, is
                   placeholder="nombre@ejemplo.com"
                   value={forgotEmail}
                   onChange={(e) => { setForgotEmail(e.target.value); if (localError) setLocalError(null); }}
-                  error={localError || undefined}
                   className="bg-background/50 border-border/50 rounded-none py-3.5 text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300 font-medium"
                 />
 
