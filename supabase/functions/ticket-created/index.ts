@@ -2,7 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM = "Cocinas INNOVAR <soporte@cocinasintegralespereira.co>";
 const APP_URL = "https://crm-innovar-app-2026.vercel.app";
 
@@ -36,6 +36,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: CORS });
 
   try {
+    if (!RESEND_API_KEY) {
+      console.error("[ticket-created] RESEND_API_KEY missing from Vault");
+      return new Response(JSON.stringify({ error: "Email service not configured" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json", ...CORS },
+      });
+    }
+
     const { ticket_id, ticket_ref } = (await req.json()) as {
       ticket_id: number;
       ticket_ref: string;
