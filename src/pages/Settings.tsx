@@ -177,6 +177,16 @@ const soporteItems: QuickAccessItem[] = [
     neonShadow: "hover:shadow-[0_0_40px_rgba(244,114,182,0.15)]",
     neonBg: "bg-pink-500/10",
   },
+  {
+    title: "Reuniones",
+    description: "Agenda de visitas técnicas y próximas reuniones programadas con clientes.",
+    icon: Calendar,
+    path: "/reuniones",
+    category: "SOPORTE",
+    neonColor: "text-rose-400",
+    neonShadow: "hover:shadow-[0_0_40px_rgba(251,113,133,0.15)]",
+    neonBg: "bg-rose-500/10",
+  },
 ];
 
 export default function SettingsPage() {
@@ -209,7 +219,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
-              <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">3 módulos activos</p>
+              <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">4 módulos activos</p>
               <div className="flex items-center justify-end gap-2 text-[10px] text-purple-400 font-bold uppercase">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
                 Canal Operativo
