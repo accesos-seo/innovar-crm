@@ -25,7 +25,6 @@ import {
   BookOpen,
   LogOut,
   Factory,
-  ShieldCheck,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -176,8 +175,8 @@ export const Sidebar = React.memo(function Sidebar() {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const profile = useAuthStore((s) => s.profile);
 
-  // Módulo Producción (migración 054): el rol produccion ve un sidebar
-  // reducido; admin/super_admin/diseno ven el ítem junto a Proyectos.
+  // El rol produccion ve un sidebar reducido centrado en su tablero.
+  // Todos los demás roles acceden a Producción y Postventa desde /settings.
   const isProduccionRole = FEATURES.productionModuleEnabled && profile?.role === "produccion";
   const visibleNavItems = React.useMemo<NavItem[]>(() => {
     if (isProduccionRole) {
@@ -187,27 +186,8 @@ export const Sidebar = React.memo(function Sidebar() {
         { icon: UserCircle, label: "Mi perfil", path: "/profile" },
       ];
     }
-    const items = [...navItems];
-    if (
-      FEATURES.productionModuleEnabled &&
-      ["admin", "super_admin", "diseno"].includes(profile?.role ?? "")
-    ) {
-      items.splice(2, 0, { icon: Factory, label: "Producción", path: "/produccion" });
-    }
-    // Postventa y Garantías (migración 055) — después de Clientes & Ventas
-    if (
-      FEATURES.postventaEnabled &&
-      ["admin", "super_admin", "comercial"].includes(profile?.role ?? "")
-    ) {
-      const anchor = items.findIndex((i) => i.label === "Clientes & Ventas");
-      items.splice(anchor >= 0 ? anchor + 1 : items.length, 0, {
-        icon: ShieldCheck,
-        label: "Postventa",
-        path: "/postventa",
-      });
-    }
-    return items;
-  }, [isProduccionRole, profile?.role]);
+    return [...navItems];
+  }, [isProduccionRole]);
 
   const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
   const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
