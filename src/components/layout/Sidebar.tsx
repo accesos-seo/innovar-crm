@@ -25,7 +25,6 @@ import {
   BookOpen,
   LogOut,
   Factory,
-  ClipboardCheck,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -187,12 +186,7 @@ export const Sidebar = React.memo(function Sidebar() {
         { icon: UserCircle, label: "Mi perfil", path: "/profile" },
       ];
     }
-    const items = [...navItems];
-    // Centro de Decisiones: cuestionarios de gerencia (solo admin/super_admin).
-    if (profile?.role === "admin" || profile?.role === "super_admin") {
-      items.push({ icon: ClipboardCheck, label: "Decisiones", path: "/decisiones" });
-    }
-    return items;
+    return [...navItems];
   }, [isProduccionRole, profile?.role]);
 
   const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;

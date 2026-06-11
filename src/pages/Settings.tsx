@@ -158,10 +158,10 @@ const soporteItems: QuickAccessItem[] = [
     neonBg: "bg-purple-500/10",
   },
   {
-    title: "Grill Me",
-    description: "Cuestionarios enviados al cliente para obtener información clave del proyecto.",
+    title: "Decisiones",
+    description: "Cuestionarios enviados al cliente para obtener respuestas e información clave del proyecto.",
     icon: HelpCircle,
-    path: "/soporte/grill-me",
+    path: "/decisiones",
     category: "SOPORTE",
     neonColor: "text-fuchsia-400",
     neonShadow: "hover:shadow-[0_0_40px_rgba(232,121,249,0.15)]",
