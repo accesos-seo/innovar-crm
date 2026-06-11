@@ -25,6 +25,8 @@ import {
   BookOpen,
   LogOut,
   Factory,
+  ClipboardCheck,
+  Eye,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -175,9 +177,12 @@ export const Sidebar = React.memo(function Sidebar() {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const profile = useAuthStore((s) => s.profile);
 
-  // El rol produccion ve un sidebar reducido centrado en su tablero.
-  // Todos los demás roles acceden a Producción y Postventa desde /settings.
   const isProduccionRole = FEATURES.productionModuleEnabled && profile?.role === "produccion";
+  const isAdministradora = profile?.role === "administradora";
+  const isGerente = profile?.role === "gerente";
+  // isAdminLevel: rutas de Decisiones visibles (seguridad real en ProtectedRoute + RLS)
+  const isAdminLevel = profile?.role === 'admin' || profile?.role === 'super_admin' || isGerente;
+
   const visibleNavItems = React.useMemo<NavItem[]>(() => {
     if (isProduccionRole) {
       return [
@@ -186,8 +191,20 @@ export const Sidebar = React.memo(function Sidebar() {
         { icon: UserCircle, label: "Mi perfil", path: "/profile" },
       ];
     }
+    // Administradora: nav completo pero Finanzas solo muestra Pagos recibidos.
+    if (isAdministradora) {
+      return [
+        navItems[0],
+        navItems[1],
+        navItems[2],
+        navItems[3],
+        { icon: CreditCard, label: "Finanzas", children: [
+          { label: "Pagos", path: "/finanzas/pagos", icon: Wallet },
+        ]},
+      ];
+    }
     return [...navItems];
-  }, [isProduccionRole, profile?.role]);
+  }, [isProduccionRole, isAdministradora, profile?.role]);
 
   const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
   const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
@@ -244,8 +261,8 @@ export const Sidebar = React.memo(function Sidebar() {
         </Button>
       </div>
 
-      {/* Primary Action Section (sin sentido para el rol produccion) */}
-      {!isProduccionRole && (
+      {/* Primary Action Section (oculto para produccion y gerente/observador) */}
+      {!isProduccionRole && !isGerente && (
         <div className="p-4">
           <PrimaryButton
             onClick={() => navigate("/leads/new")}
@@ -283,7 +300,7 @@ export const Sidebar = React.memo(function Sidebar() {
           );
         })}
 
-        {/* ── Agentes section (oculta para el rol produccion) ── */}
+        {/* ── Agentes + Decisiones section (oculta para el rol produccion) ── */}
         {!isProduccionRole && (<>
         <div className="pt-4 pb-1">
           <div className="w-full h-px bg-gradient-to-r from-primary/30 via-border/40 to-transparent mb-3" />
@@ -319,6 +336,42 @@ export const Sidebar = React.memo(function Sidebar() {
             <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
           )}
         </Link>
+
+        {/* Decisiones — solo admin, super_admin y gerente */}
+        {isAdminLevel && (
+          <Link
+            to="/decisiones"
+            className={cn(
+              "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+              isSidebarCollapsed ? "justify-center" : "justify-between",
+              location.pathname.startsWith("/decisiones")
+                ? "text-primary bg-primary/5 font-bold"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardCheck className={cn(
+                "w-5 h-5 transition-colors",
+                location.pathname.startsWith("/decisiones") ? "text-primary" : "group-hover:text-primary"
+              )} />
+              {!isSidebarCollapsed && <span className="text-sm tracking-tight">Decisiones</span>}
+            </div>
+            {!isSidebarCollapsed && location.pathname.startsWith("/decisiones") && (
+              <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+            )}
+            {!isSidebarCollapsed && !location.pathname.startsWith("/decisiones") && (
+              <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+            )}
+          </Link>
+        )}
+
+        {/* Badge visual para gerente (rol de solo observación) */}
+        {isGerente && !isSidebarCollapsed && (
+          <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-md bg-muted/30 border border-border/10">
+            <Eye className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+            <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Solo lectura</span>
+          </div>
+        )}
         </>)}
 
       </nav>

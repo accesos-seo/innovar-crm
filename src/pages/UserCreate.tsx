@@ -23,6 +23,8 @@ import * as z from "zod";
 const ROLES = [
   { value: "super_admin", label: "Super Admin" },
   { value: "admin", label: "Administrador" },
+  { value: "gerente", label: "Gerente / Socio" },
+  { value: "administradora", label: "Administradora" },
   { value: "comercial", label: "Comercial" },
   { value: "diseno", label: "Diseño" },
   { value: "produccion", label: "Producción" }
@@ -40,7 +42,7 @@ import {
 const userSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   email: z.string().email("Correo electrónico inválido"),
-  role: z.enum(["super_admin", "admin", "comercial", "diseno", "produccion"], {
+  role: z.enum(["super_admin", "admin", "gerente", "administradora", "comercial", "diseno", "produccion"], {
     errorMap: () => ({ message: "Rol inválido" })
   }),
   // Opcional. Si se pasa, debe ser formato internacional completo: +<código país><10 dígitos>.

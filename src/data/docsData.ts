@@ -187,4 +187,18 @@ export const habilidadesData: DocsItem[] = [
     ],
     sort_order: 126, last_updated_at: '2026-06-11T00:00:00Z', route: '/decisiones',
   },
+  {
+    id: 'portal-publico-cotizacion', category: 'habilidades', title: 'Portal Público de Cotización', status: 'activo',
+    description: 'Cuando se envía una cotización al cliente, se genera automáticamente un enlace único con token. El cliente puede ver la cotización completa y aprobarla desde cualquier dispositivo, sin necesitar cuenta ni contraseña.',
+    features: [
+      'Enlace único por cotización con token UUID — no requiere login',
+      'El comercial hace clic en "Enviar al cliente" desde el detalle de la cotización (solo en estado BORRADOR)',
+      'WhatsApp automático al cliente con nombre, número de cotización y enlace directo',
+      'Validez configurable (default 30 días) desde system_settings → quotation_validity_days',
+      'Modo test: wa_test_phone_override redirige todos los mensajes WA a un número de prueba',
+      'Template Meta aprobada: quotation_sent_v1 (3 variables: nombre, número, enlace)',
+      'Ruta pública: /c/<short_code> — accesible desde cualquier navegador sin autenticación',
+    ],
+    sort_order: 127, last_updated_at: '2026-06-11T00:00:00Z', route: '/cotizaciones',
+  },
 ];

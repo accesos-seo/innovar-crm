@@ -14,8 +14,32 @@ export function usePermissions() {
       canDeleteRecords: true,
       canViewAudit: true,
     },
-    produccion: {
+    super_admin: {
       canViewFinances: true,
+      canEditCatalog: true,
+      canManageUsers: true,
+      canCreateProjects: true,
+      canDeleteRecords: true,
+      canViewAudit: true,
+    },
+    gerente: {
+      canViewFinances: true,
+      canEditCatalog: false,
+      canManageUsers: false,
+      canCreateProjects: false,
+      canDeleteRecords: false,
+      canViewAudit: true,
+    },
+    administradora: {
+      canViewFinances: false,
+      canEditCatalog: false,
+      canManageUsers: false,
+      canCreateProjects: false,
+      canDeleteRecords: false,
+      canViewAudit: false,
+    },
+    comercial: {
+      canViewFinances: false,
       canEditCatalog: false,
       canManageUsers: false,
       canCreateProjects: true,
@@ -30,11 +54,11 @@ export function usePermissions() {
       canDeleteRecords: false,
       canViewAudit: false,
     },
-    comercial: {
+    produccion: {
       canViewFinances: false,
       canEditCatalog: false,
       canManageUsers: false,
-      canCreateProjects: true,
+      canCreateProjects: false,
       canDeleteRecords: false,
       canViewAudit: false,
     },
@@ -43,6 +67,6 @@ export function usePermissions() {
   return {
     role,
     ...permissions[role as UserRole],
-    isAdmin: role === 'admin',
+    isAdmin: role === 'admin' || role === 'super_admin',
   };
 }

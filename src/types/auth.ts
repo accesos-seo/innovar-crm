@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'super_admin' | 'comercial' | 'diseno' | 'produccion';
+export type UserRole = 'admin' | 'super_admin' | 'comercial' | 'diseno' | 'produccion' | 'administradora' | 'gerente';
 
 export interface UserPermissions {
   canViewFinances: boolean;

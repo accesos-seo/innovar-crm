@@ -198,11 +198,11 @@ export default function App() {
                   <>
                     <Route
                       path="/produccion"
-                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno"]}><ProduccionPage /></Protected>}
+                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno", "administradora"]}><ProduccionPage /></Protected>}
                     />
                     <Route
                       path="/produccion/ficha/:id"
-                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno"]}><ProduccionFichaPage /></Protected>}
+                      element={<Protected roles={["admin", "super_admin", "produccion", "diseno", "administradora"]}><ProduccionFichaPage /></Protected>}
                     />
                   </>
                 )}
@@ -212,7 +212,7 @@ export default function App() {
                 {FEATURES.postventaEnabled && (
                   <Route
                     path="/postventa"
-                    element={<Protected roles={["admin", "super_admin", "comercial"]}><PostventaPage /></Protected>}
+                    element={<Protected roles={["admin", "super_admin", "comercial", "administradora"]}><PostventaPage /></Protected>}
                   />
                 )}
 
@@ -220,11 +220,11 @@ export default function App() {
                     gerencia responde en el CRM; el equipo técnico lee de la DB. */}
                 <Route
                   path="/decisiones"
-                  element={<Protected roles={["admin", "super_admin"]}><DecisionesPage /></Protected>}
+                  element={<Protected roles={["admin", "super_admin", "gerente"]}><DecisionesPage /></Protected>}
                 />
                 <Route
                   path="/decisiones/:slug"
-                  element={<Protected roles={["admin", "super_admin"]}><DecisionDetailPage /></Protected>}
+                  element={<Protected roles={["admin", "super_admin", "gerente"]}><DecisionDetailPage /></Protected>}
                 />
 
                 {/* Agentes hub */}
