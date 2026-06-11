@@ -82,6 +82,7 @@ const DecisionDetailPage             = lazy(() => import("./pages/DecisionDetail
 const SoportePage                    = lazy(() => import("./pages/Soporte"));
 const NuevoTicketPage                = lazy(() => import("./pages/soporte/NuevoTicket"));
 const TicketDetallePage              = lazy(() => import("./pages/soporte/TicketDetalle"));
+const MisSolicitudesPage             = lazy(() => import("./pages/soporte/MisSolicitudes"));
 
 // â"€â"€ Route-level loading fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function PageLoader() {
@@ -319,9 +320,10 @@ export default function App() {
                 />
 
                 {/* Soporte — sistema de tickets */}
-                <Route path="/soporte"       element={<Protected><SoportePage /></Protected>} />
-                <Route path="/soporte/nuevo" element={<Protected><NuevoTicketPage /></Protected>} />
-                <Route path="/soporte/:id"   element={<Protected><TicketDetallePage /></Protected>} />
+                <Route path="/soporte"                  element={<Protected><SoportePage /></Protected>} />
+                <Route path="/soporte/nuevo"           element={<Protected><NuevoTicketPage /></Protected>} />
+                <Route path="/soporte/mis-solicitudes" element={<Protected><MisSolicitudesPage /></Protected>} />
+                <Route path="/soporte/:id"             element={<Protected><TicketDetallePage /></Protected>} />
 
                 {/* Horas laborales */}
                 <Route path="/horas" element={<Protected><HorasPage /></Protected>} />
