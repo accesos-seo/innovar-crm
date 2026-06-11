@@ -1,9 +1,5 @@
 import * as React from "react";
 import {
-  Zap,
-  Cpu,
-  CheckCircle2,
-  Box,
   Download,
   LayoutDashboard,
   TrendingUp,
@@ -14,7 +10,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
-import { formatSentenceCase, formatDate } from "@/lib/format-utils";
+import { formatDate } from "@/lib/format-utils";
 import { notify } from "@/components/ui/PremiumToast";
 import { PremiumLoader, PremiumLoadingOverlay } from "@/components/shared/PremiumLoader";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
@@ -33,7 +29,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { usePayments } from "@/hooks/finanzas/usePayments";
 import { useExpenses } from "@/hooks/finanzas/useExpenses";
 import { useClosures } from "@/hooks/finanzas/useClosures";
 import { useProjects } from "@/hooks/useProjects";
@@ -115,15 +110,8 @@ export default function Dashboard() {
 
   // ── Real data hooks ─────────────────────────────────────────────────────────
   const { data: projectsData = [] } = useProjects();
-  const { data: paymentsData = [] } = usePayments({
-    project_id: "all",
-    payment_method: "all",
-    payment_type: "all",
-    date_from: "",
-    date_to: "",
-  });
 
-  // Background prefetch (no data needed from these)
+  // Background prefetch
   useExpenses({ project_id: "all", category: "all", approval_status: "all", date_from: "", date_to: "" });
   useClosures({ status: "all", date_from: "", date_to: "" });
   useClients();
@@ -132,56 +120,6 @@ export default function Dashboard() {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-
-  const activeProjectsCount = React.useMemo(
-    () => projectsData.filter((p) => !["entregado", "garantia"].includes(p.status) && !p.is_archived).length,
-    [projectsData]
-  );
-
-  const completedThisMonth = React.useMemo(
-    () =>
-      projectsData.filter((p) => {
-        if (p.status !== "entregado" || !p.delivered_at) return false;
-        const d = new Date(p.delivered_at);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      }).length,
-    [projectsData, currentMonth, currentYear]
-  );
-
-  const inProductionCount = React.useMemo(
-    () =>
-      projectsData.filter((p) =>
-        ["en_produccion", "instalando", "instalacion_programada"].includes(p.status)
-      ).length,
-    [projectsData]
-  );
-
-  // Income: this month vs last month
-  const { thisMonthIncome, lastMonthIncome } = React.useMemo(() => {
-    const thisStart = new Date(currentYear, currentMonth, 1);
-    const lastStart = new Date(currentYear, currentMonth - 1, 1);
-    const lastEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
-    const thisMonthIncome = paymentsData
-      .filter((p) => new Date(p.received_at) >= thisStart)
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const lastMonthIncome = paymentsData
-      .filter((p) => {
-        const d = new Date(p.received_at);
-        return d >= lastStart && d <= lastEnd;
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    return { thisMonthIncome, lastMonthIncome };
-  }, [paymentsData, currentMonth, currentYear]);
-
-  const incomePercent =
-    lastMonthIncome > 0
-      ? Math.min(100, Math.round((thisMonthIncome / lastMonthIncome) * 100))
-      : thisMonthIncome > 0
-      ? 100
-      : 0;
 
   // ── Chart data: projects created vs delivered per month (last 6 months) ─────
   const productionData = React.useMemo(() => {
@@ -400,74 +338,14 @@ export default function Dashboard() {
       >
         <WelcomeBanner userName={friendlyName} />
 
-        {/* ── Metric Cards ── */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <MetricCard
-            icon={<Cpu className="w-5 h-5 text-primary" />}
-            label={formatSentenceCase("Proyectos activos")}
-            value={String(activeProjectsCount)}
-            trend={activeProjectsCount > 0 ? `+${activeProjectsCount}` : "Sin datos"}
-            color="blue"
-          />
-          <MetricCard
-            icon={<CheckCircle2 className="w-5 h-5 text-primary" />}
-            label={formatSentenceCase("Completados este mes")}
-            value={String(completedThisMonth)}
-            trend={completedThisMonth > 0 ? formatSentenceCase("Récord") : "En progreso"}
-            color="green"
-          />
-
-          {/* Income vs last month */}
-          <div className="bg-card p-6 rounded-sm border-l-4 border-primary/20 hover:border-primary hover:-translate-y-1 hover:shadow-2xl hover:shadow-yellow-500/20 transition-all duration-300 ease-in-out flex items-center justify-between group">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                {formatSentenceCase("Ingresos este mes")}
-              </h3>
-              <p className="text-2xl font-bold text-foreground">
-                {incomePercent > 0 ? `${incomePercent}%` : "—"}
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                {thisMonthIncome > 0
-                  ? `${formatCOP(thisMonthIncome)} recibido`
-                  : "Sin pagos registrados"}
-              </p>
-            </div>
-            <div className="relative h-16 w-16" aria-hidden="true">
-              <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted stroke-[3]" />
-                <motion.circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  className="stroke-primary stroke-[3]"
-                  strokeDasharray={`${incomePercent}, 100`}
-                  strokeLinecap="butt"
-                  initial={{ strokeDasharray: "0, 100" }}
-                  animate={{ strokeDasharray: `${incomePercent}, 100` }}
-                  transition={{ duration: 1.5, ease: "easeOut" }}
-                />
-              </svg>
-            </div>
-          </div>
-
-          <MetricCard
-            icon={<Box className="w-5 h-5 text-primary" />}
-            label="En Producción"
-            value={String(inProductionCount).padStart(2, "0")}
-            trend={inProductionCount > 0 ? "Activo" : "Sin cambios"}
-            color={inProductionCount > 0 ? "primary" : "blue"}
-          />
+        {/* ── Weekly Tasks Summary — above the fold ── */}
+        <motion.div variants={itemVariants}>
+          <WeeklyTasksSummary />
         </motion.div>
 
         {/* Quick Access Grid */}
         <motion.div variants={itemVariants}>
           <DashboardQuickAccess />
-        </motion.div>
-
-        {/* Weekly Tasks Summary */}
-        <motion.div variants={itemVariants}>
-          <WeeklyTasksSummary />
         </motion.div>
 
         {/* ── Middle Row ── */}
@@ -748,50 +626,3 @@ export default function Dashboard() {
   );
 }
 
-// ─── MetricCard sub-component ─────────────────────────────────────────────────
-
-function MetricCard({
-  icon,
-  label,
-  value,
-  trend,
-  trendColor = "text-primary bg-primary/10",
-  color = "primary",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  trend: string;
-  trendColor?: string;
-  color?: string;
-}) {
-  const colorShadowMap: Record<string, string> = {
-    blue: "hover:shadow-blue-500/20",
-    purple: "hover:shadow-purple-500/20",
-    yellow: "hover:shadow-yellow-500/20",
-    green: "hover:shadow-green-500/20",
-    primary: "hover:shadow-primary/20",
-    destructive: "hover:shadow-destructive/20",
-  };
-
-  return (
-    <div
-      className={cn(
-        "bg-card p-6 rounded-sm border-l-4 border-primary/20 hover:border-primary hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ease-in-out group",
-        colorShadowMap[color] || "hover:shadow-primary/20"
-      )}
-    >
-      <div className="flex justify-between items-start mb-4">
-        <div aria-hidden="true">{icon}</div>
-        <StatusBadge
-          variant={color === "destructive" ? "error" : "primary"}
-          animate={trend === "Urgente" ? "pulse" : "none"}
-        >
-          {trend}
-        </StatusBadge>
-      </div>
-      <h3 className="text-sm font-medium text-muted-foreground mb-1">{label}</h3>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-    </div>
-  );
-}
