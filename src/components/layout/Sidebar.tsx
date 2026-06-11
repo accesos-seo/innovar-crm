@@ -25,6 +25,8 @@ import {
   BookOpen,
   LogOut,
   Factory,
+  ClipboardCheck,
+  LifeBuoy,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -186,8 +188,13 @@ export const Sidebar = React.memo(function Sidebar() {
         { icon: UserCircle, label: "Mi perfil", path: "/profile" },
       ];
     }
-    return [...navItems];
-  }, [isProduccionRole]);
+    const items = [...navItems];
+    // Centro de Decisiones: cuestionarios de gerencia (solo admin/super_admin).
+    if (profile?.role === "admin" || profile?.role === "super_admin") {
+      items.push({ icon: ClipboardCheck, label: "Decisiones", path: "/decisiones" });
+    }
+    return items;
+  }, [isProduccionRole, profile?.role]);
 
   const initialOpen = visibleNavItems.find(item => item.children?.some(child => location.pathname === child.path))?.label ?? null;
   const [openSection, setOpenSection] = React.useState<string | null>(initialOpen);
@@ -320,6 +327,40 @@ export const Sidebar = React.memo(function Sidebar() {
           )}
         </Link>
         </>)}
+
+        {/* ── Soporte (oculta para el rol produccion) ── */}
+        {!isProduccionRole && (
+          <Link
+            to="/soporte"
+            className={cn(
+              "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
+              isSidebarCollapsed ? "justify-center" : "justify-between",
+              location.pathname.startsWith("/soporte")
+                ? "text-primary bg-primary/5 font-bold"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <LifeBuoy
+                className={cn(
+                  "w-5 h-5 transition-colors",
+                  location.pathname.startsWith("/soporte")
+                    ? "text-primary"
+                    : "group-hover:text-primary"
+                )}
+              />
+              {!isSidebarCollapsed && (
+                <span className="text-sm tracking-tight">Soporte</span>
+              )}
+            </div>
+            {!isSidebarCollapsed &&
+              (location.pathname.startsWith("/soporte") ? (
+                <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+              ))}
+          </Link>
+        )}
       </nav>
 
       {/* Footer Sidebar - Documentation + Logout */}

@@ -14,6 +14,9 @@ import {
   Settings2,
   Bell,
   Clock,
+  Factory,
+  ShieldCheck,
+  LifeBuoy,
 } from "lucide-react";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { QuickAccessGrid, type QuickAccessItem } from "@/components/ui/QuickAccessGrid";
@@ -119,6 +122,36 @@ const allItems: QuickAccessItem[] = [
     neonColor: "text-indigo-400",
     neonShadow: "hover:shadow-[0_0_40px_rgba(99,102,241,0.15)]",
     neonBg: "bg-indigo-500/10",
+  },
+  {
+    title: "Producción",
+    description: "Tablero de taller: órdenes activas, etapas y avance por proyecto.",
+    icon: Factory,
+    path: "/produccion",
+    category: "MÓDULOS OPERATIVOS",
+    neonColor: "text-rose-400",
+    neonShadow: "hover:shadow-[0_0_40px_rgba(251,113,133,0.15)]",
+    neonBg: "bg-rose-500/10",
+  },
+  {
+    title: "Postventa",
+    description: "Garantías, encuestas de satisfacción y seguimiento de incidencias.",
+    icon: ShieldCheck,
+    path: "/postventa",
+    category: "MÓDULOS OPERATIVOS",
+    neonColor: "text-teal-400",
+    neonShadow: "hover:shadow-[0_0_40px_rgba(45,212,191,0.15)]",
+    neonBg: "bg-teal-500/10",
+  },
+  {
+    title: "Soporte",
+    description: "Sistema de tickets para solicitudes, reportes y consultas del equipo.",
+    icon: LifeBuoy,
+    path: "/soporte",
+    category: "SOPORTE",
+    neonColor: "text-purple-400",
+    neonShadow: "hover:shadow-[0_0_40px_rgba(192,132,252,0.15)]",
+    neonBg: "bg-purple-500/10",
   },
 ];
 

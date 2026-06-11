@@ -77,6 +77,11 @@ const ProduccionPage                 = lazy(() => import("./pages/Produccion"));
 const ProduccionFichaPage            = lazy(() => import("./pages/ProduccionFicha"));
 const PostventaPage                  = lazy(() => import("./pages/Postventa"));
 const PublicSurveyPage               = lazy(() => import("./pages/PublicSurvey"));
+const DecisionesPage                 = lazy(() => import("./pages/Decisiones"));
+const DecisionDetailPage             = lazy(() => import("./pages/DecisionDetail"));
+const SoportePage                    = lazy(() => import("./pages/Soporte"));
+const NuevoTicketPage                = lazy(() => import("./pages/soporte/NuevoTicket"));
+const TicketDetallePage              = lazy(() => import("./pages/soporte/TicketDetalle"));
 
 // â"€â"€ Route-level loading fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function PageLoader() {
@@ -211,6 +216,17 @@ export default function App() {
                   />
                 )}
 
+                {/* Centro de Decisiones (migración 057): cuestionarios que la
+                    gerencia responde en el CRM; el equipo técnico lee de la DB. */}
+                <Route
+                  path="/decisiones"
+                  element={<Protected roles={["admin", "super_admin"]}><DecisionesPage /></Protected>}
+                />
+                <Route
+                  path="/decisiones/:slug"
+                  element={<Protected roles={["admin", "super_admin"]}><DecisionDetailPage /></Protected>}
+                />
+
                 {/* Agentes hub */}
                 <Route path="/agentes" element={<Protected><AgentesPage /></Protected>} />
                 <Route path="/agentes/seguimiento-cotizaciones" element={<Protected><SeguimientoCotizacionesPage /></Protected>} />
@@ -301,6 +317,11 @@ export default function App() {
                   path="/admin/dictionary"
                   element={<Protected roles={["admin", "super_admin"]}><DictionaryPage /></Protected>}
                 />
+
+                {/* Soporte — sistema de tickets */}
+                <Route path="/soporte"       element={<Protected><SoportePage /></Protected>} />
+                <Route path="/soporte/nuevo" element={<Protected><NuevoTicketPage /></Protected>} />
+                <Route path="/soporte/:id"   element={<Protected><TicketDetallePage /></Protected>} />
 
                 {/* Horas laborales */}
                 <Route path="/horas" element={<Protected><HorasPage /></Protected>} />
