@@ -3,6 +3,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const META_TOKEN = Deno.env.get("META_WABA_ACCESS_TOKEN");
+const META_PHONE_ID = Deno.env.get("META_PHONE_NUMBER_ID");
+const ADMIN_WA_PHONE = Deno.env.get("ADMIN_WA_PHONE");
 const FROM = "Cocinas INNOVAR <soporte@cocinasintegralespereira.co>";
 const APP_URL = "https://crm-innovar-app-2026.vercel.app";
 
@@ -151,6 +154,43 @@ Deno.serve(async (req) => {
           );
         }
       }
+    }
+
+    // 3. WhatsApp alert to admin
+    if (META_TOKEN && META_PHONE_ID && ADMIN_WA_PHONE) {
+      const ref = ticket.ticket_ref ?? ticket_ref;
+      const waText =
+        `🎫 *Nuevo ticket recibido*\n\n` +
+        `*Ref:* ${ref}\n` +
+        `*De:* ${creatorName}\n` +
+        `*Asunto:* ${ticket.subject}\n` +
+        `*Categoría:* ${ticket.category}  ·  *Prioridad:* ${ticket.priority}` +
+        (ticket.description ? `\n\n${ticket.description.slice(0, 200)}` : "") +
+        `\n\n🔗 ${APP_URL}/soporte/${ticket_id}`;
+
+      await fetch(
+        `https://graph.facebook.com/v21.0/${META_PHONE_ID}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${META_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: ADMIN_WA_PHONE,
+            type: "text",
+            text: { body: waText, preview_url: false },
+          }),
+        }
+      ).then(async (res) => {
+        if (!res.ok) {
+          const body = await res.text();
+          console.warn(`[ticket-created] WA alert error ${res.status}: ${body}`);
+        }
+      }).catch((e) => console.warn("[ticket-created] WA alert network error:", e));
+    } else {
+      console.warn("[ticket-created] WA skipped — missing META_TOKEN, META_PHONE_ID or ADMIN_WA_PHONE in Vault");
     }
 
     return new Response(JSON.stringify({ ok: true }), {
