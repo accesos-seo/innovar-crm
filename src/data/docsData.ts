@@ -201,4 +201,16 @@ export const habilidadesData: DocsItem[] = [
     ],
     sort_order: 127, last_updated_at: '2026-06-11T00:00:00Z', route: '/cotizaciones',
   },
+  {
+    id: 'resumen-semanal-tareas', category: 'habilidades', title: 'Resumen Semanal de Tareas', status: 'activo',
+    description: 'Panel en el dashboard que muestra las tareas de la semana actual agrupadas por proyecto y guarda un snapshot historico de la semana anterior. Acordeones colapsables con deep-link directo al detalle de cada tarea.',
+    features: [
+      'Seccion Esta semana: tareas con due_date en la semana actual, agrupadas por proyecto',
+      'Seccion Semana pasada: snapshot historico leido de user_weekly_summaries',
+      'Boton Ver tarea que abre el modal de detalle directamente (deep-link via location.state)',
+      'Indicador de no leidos: punto azul si el resumen de la semana pasada no fue revisado',
+      'Acordeones cerrados por defecto — se expanden al hacer clic',
+    ],
+    sort_order: 128, last_updated_at: '2026-06-11T00:00:00Z', route: '/',
+  },
 ];

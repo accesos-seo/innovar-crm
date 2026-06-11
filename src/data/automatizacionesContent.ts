@@ -1914,4 +1914,71 @@ La Edge Function lee todos los secretos (RESEND_API_KEY, META_WABA_ACCESS_TOKEN,
     ],
   },
 
+  // ─── 31. RESUMEN SEMANAL DE TAREAS ──────────────────────────────────────────
+  {
+    slug: 'resumen-semanal-tareas',
+    nombre: 'Resumen Semanal de Tareas',
+    descripcion: 'Panel en el dashboard que consolida las tareas de la semana actual y guarda un snapshot histórico de la semana anterior, para que el equipo empiece el lunes con contexto claro de prioridades.',
+    descripcion_larga: `El Resumen Semanal de Tareas vive en el dashboard principal como el primer elemento visible después del saludo. Sin tener que navegar a ningún lado, el usuario ve en un solo lugar todo lo que tiene pendiente esta semana y lo que quedó de la semana anterior.
+
+La sección "Esta semana" muestra en tiempo real todas las tareas cuya fecha de vencimiento cae dentro de la semana actual (lunes a domingo), agrupadas por proyecto. Cada tarea muestra su estado (Pendiente, En progreso, En revisión, Bloqueado, Completado, Cancelado), fecha de vencimiento y un botón "Ver tarea →" que abre directamente el detalle en el módulo de Tareas.
+
+La sección "Semana pasada" lee el snapshot histórico guardado en la tabla user_weekly_summaries. Este snapshot captura el estado de las tareas al cierre de cada semana, permitiendo comparar qué avanzó y qué se quedó atrás. Si hay un resumen no leído, aparece un punto azul indicador.
+
+Ambas secciones son acordeones colapsables — cerrados por defecto para no saturar la pantalla, y se expanden con un clic.`,
+    problema_que_resuelve: 'Sin un panel de contexto semanal, el equipo llega el lunes sin saber qué tiene urgente, qué quedó pendiente de la semana anterior, ni cómo están distribuidas las tareas por proyecto. El Resumen centraliza esa visibilidad sin que nadie tenga que buscarla.',
+    beneficios: [
+      'Vista semanal en tiempo real: todas las tareas con due_date en la semana actual, agrupadas por proyecto',
+      'Historial persistente: la semana anterior siempre está disponible aunque las tareas se cierren o muevan',
+      'Deep-link directo: "Ver tarea →" navega al módulo Tareas y abre el detalle automáticamente',
+      'Indicador de no leídos: punto azul en semana pasada si el resumen aún no fue revisado',
+      'Acordeones cerrados por defecto: no ocupa espacio hasta que el usuario lo necesita',
+    ],
+    casos_de_uso: [
+      'Robert abre el dashboard el lunes en la mañana. Expande "Esta semana" y ve al instante cuántas tareas activas tiene por proyecto y cuáles están vencidas.',
+      'A mitad de semana quiere comparar el avance. Abre "Semana pasada" y revisa qué estaba pendiente hace 7 días versus lo que completó.',
+      'Un miembro del equipo hace clic en "Ver tarea →" desde el resumen y el sistema lo lleva directamente al modal del detalle en el módulo de Tareas, sin tener que buscar manualmente.',
+    ],
+    metricas: [
+      { valor: '0s',   etiqueta: 'Tiempo de carga adicional' },
+      { valor: '30',   etiqueta: 'Tareas máx. visibles esta semana' },
+      { valor: '1',    etiqueta: 'Snapshot histórico disponible' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'Usuario abre dashboard', sublabel: 'Carga automática' },
+      { tipo: 'proceso', label: 'Filtrar tareas',         sublabel: 'due_date en semana actual' },
+      { tipo: 'proceso', label: 'Agrupar por proyecto',   sublabel: 'task.project.name' },
+      { tipo: 'proceso', label: 'Leer snapshot',          sublabel: 'user_weekly_summaries' },
+      { tipo: 'output',  label: 'Panel visible',          sublabel: 'Dashboard above the fold' },
+    ],
+    categoria: 'operacional',
+    status: 'activa',
+    visibilidad: 'visible',
+    tipo: 'realtime',
+    frecuencia: 'Carga al abrir el dashboard. Refresca cada 5 minutos (snapshot histórico).',
+    fuente_datos: 'Supabase — tablas tasks (con relación project), user_weekly_summaries',
+    canal_salida: ['interno'],
+    n8n_workflow_id: '—',
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-11T00:00:00Z',
+    pasos: [
+      'useTasks() carga todas las tareas; se filtran por due_date en la semana actual (lunes–domingo)',
+      'Se agrupan por task.project.name y se ordenan por fecha de vencimiento',
+      'useWeeklyTaskSummaries() lee la tabla user_weekly_summaries para el snapshot de la semana anterior',
+      'Si la semana pasada tiene is_read=false, aparece un punto azul indicador en el acordeón',
+      'Al abrir "Semana pasada" y leer el resumen, se marca is_read=true automáticamente',
+      'El botón "Ver tarea →" llama navigate("/tasks", { state: { taskId } }) para abrir el modal de detalle',
+    ],
+    notas: 'La tabla user_weekly_summaries requiere un proceso externo (n8n o Edge Function) que genere los snapshots cada domingo al cierre. Los datos de prueba se insertaron manualmente vía Management API el 2026-06-11. El deep-link funciona con location.state.taskId en el componente Tareas.tsx.',
+    historial: [
+      { fecha: '2026-06-11T00:00:00Z', descripcion: 'Panel implementado en dashboard Innovar. Tabla user_weekly_summaries creada, hook useWeeklyTaskSummaries, componente WeeklyTasksSummary con acordeones cerrados por defecto y deep-link "Ver tarea →". Datos de prueba insertados.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'src/components/dashboard/WeeklyTasksSummary.tsx',
+      'src/hooks/tareas/useWeeklyTaskSummaries.ts',
+      'src/pages/Dashboard.tsx',
+    ],
+  },
+
 ];
