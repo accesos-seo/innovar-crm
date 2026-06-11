@@ -1783,4 +1783,67 @@ Los 22 mensajes están programados en la base de datos como tareas diferidas. La
     ],
   },
 
+  {
+    slug: 'notificador-ticket-nuevo',
+    nombre: 'Notificador de Ticket Nuevo',
+    descripcion: 'Cada vez que el cliente crea un ticket de soporte, se dispara una Edge Function que confirma la recepción al cliente por correo y alerta al equipo admin por email y WhatsApp en tiempo real.',
+    descripcion_larga: `El módulo de soporte necesita dos flujos de comunicación simultáneos: el cliente debe saber que su solicitud llegó, y el equipo debe poder actuar de inmediato.
+
+Cuando el cliente envía un ticket, la Edge Function ticket-created se ejecuta en menos de un segundo. Primero envía un correo de confirmación al cliente con el número de referencia (TKT-00001), la categoría, la prioridad y un enlace para ver el estado del ticket. Al mismo tiempo, notifica por correo a todos los usuarios con rol admin o super_admin, y envía un mensaje de WhatsApp a Robert con el resumen completo del ticket.
+
+La Edge Function lee todos los secretos (RESEND_API_KEY, META_WABA_ACCESS_TOKEN, META_PHONE_NUMBER_ID, ADMIN_WA_PHONE) desde el Vault de Supabase — ninguna credencial está en el código fuente.`,
+    problema_que_resuelve: 'Sin confirmación automática, el cliente no sabía si su ticket fue recibido, y el equipo se enteraba del nuevo ticket solo al revisar manualmente la bandeja de Supabase. Eso generaba demoras en la atención.',
+    beneficios: [
+      'El cliente recibe confirmación inmediata con número de referencia y enlace al ticket',
+      'Robert recibe WhatsApp con asunto, categoría, prioridad y link directo al panel',
+      'Todos los admins reciben email de alerta con el detalle completo del ticket',
+      'Cero credenciales en código — todo desde Vault (RESEND, META, ADMIN_WA_PHONE)',
+    ],
+    casos_de_uso: [
+      'El cliente envía "No puedo acceder al módulo de pagos" → 1 segundo después recibe email con TKT-00042 y Robert recibe WhatsApp con asunto + categoría + prioridad.',
+      'El ticket incluye descripción → el WhatsApp a Robert muestra los primeros 200 caracteres del texto.',
+    ],
+    metricas: [
+      { valor: '<1s',   etiqueta: 'Tiempo de disparo tras crear ticket' },
+      { valor: '3',     etiqueta: 'Canales de notificación (email cliente, email admins, WA)' },
+    ],
+    flujo_visual: [
+      { tipo: 'trigger', label: 'INSERT support_tickets',    sublabel: 'Cliente crea ticket desde /soporte/nuevo' },
+      { tipo: 'proceso', label: 'EF ticket-created',         sublabel: 'Deno · Supabase Edge Function' },
+      { tipo: 'api',     label: 'Resend — email cliente',    sublabel: 'Confirmación + ref + enlace' },
+      { tipo: 'api',     label: 'Resend — email admins',     sublabel: 'Alerta a todos los admin/super_admin activos' },
+      { tipo: 'api',     label: 'Meta WA Graph API',         sublabel: 'Mensaje texto a ADMIN_WA_PHONE' },
+    ],
+    categoria: 'notificaciones',
+    status: 'activa',
+    visibilidad: 'silente',
+    tipo: 'webhook',
+    frecuencia: 'Cada vez que se crea un ticket de soporte (event-driven, no cron).',
+    fuente_datos: 'Supabase — support_tickets, profiles (role=admin|super_admin)',
+    canal_salida: ['email', 'whatsapp'],
+    supabase_proyecto: 'xdzbjptozeqcbnaqhtye',
+    responsable: 'Robert Virona',
+    ultima_revision: '2026-06-11T00:00:00Z',
+    pasos: [
+      'Cliente completa formulario en /soporte/nuevo y hace submit',
+      'Frontend inserta fila en support_tickets (status=Abierto, file_urls=[...]) + invoca EF ticket-created',
+      'EF lee ticket + creator de support_tickets JOIN profiles',
+      'Si RESEND_API_KEY no está en Vault → retorna 503 con log (guard explícito)',
+      'Envía email de confirmación al creador del ticket (asunto, categoría, prioridad, enlace)',
+      'Consulta profiles WHERE role IN (admin, super_admin) AND is_active=true',
+      'Envía email de alerta a cada admin activo con detalle completo del ticket',
+      'Si META_WABA_ACCESS_TOKEN + META_PHONE_NUMBER_ID + ADMIN_WA_PHONE están en Vault: envía WA texto a ADMIN_WA_PHONE',
+      'Cada sección falla silenciosamente con console.warn — el ticket ya está guardado antes de invocar la EF',
+    ],
+    notas: 'EF deployada 2026-06-11. ADMIN_WA_PHONE en Vault (no en código). WA usa mensaje texto libre (funciona en ventana 24h); fuera de ventana se requeriría template Meta aprobada. Los adjuntos (archivos y URLs) se guardan en file_urls[] del ticket — la EF no los lista en el email.',
+    historial: [
+      { fecha: '2026-06-11T00:00:00Z', descripcion: 'EF ticket-created creada y deployada. Email confirmación cliente + email admins + WA a admin. ADMIN_WA_PHONE movido a Vault.', autor: 'Robert Virona' },
+    ],
+    rutas_codigo: [
+      'supabase/functions/ticket-created/index.ts',
+      'src/pages/soporte/NuevoTicket.tsx',
+      'db/migrations/20260611_support_tickets.sql',
+    ],
+  },
+
 ];

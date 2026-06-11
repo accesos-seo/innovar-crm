@@ -157,4 +157,34 @@ export const habilidadesData: DocsItem[] = [
     features: ['Identifica los puntos de entrada al codigo', 'Mapea los modulos que interactuan con esta area', 'Muestra el flujo de datos: como llega, transforma y sale', 'Genera diagrama ASCII o Mermaid si ayuda'],
     sort_order: 123, last_updated_at: '2026-06-05T00:00:00Z', route: null,
   },
+  {
+    id: 'task-roles-y-tableros', category: 'habilidades', title: 'Roles y Tableros de Usuario', status: 'en_desarrollo',
+    description: 'Disenio y construccion de nuevos roles de usuario para el CRM: administradora (coordinadora operativa con visibilidad amplia pero sin gestion contable) y socio/gerente (observador de alto nivel con lectura total del negocio). Incluye mapeo de permisos por modulo, guards de ruta, RLS en Supabase y tableros diferenciados por perfil.',
+    features: ['2 roles identificados: administradora + socio/gerente', 'Mapeo completo de permisos sobre 40+ rutas', 'Guards de ruta + RLS por rol nuevo', 'Tableros diferenciados pendientes de construccion'],
+    sort_order: 124, last_updated_at: '2026-06-11T00:00:00Z', route: null,
+  },
+  {
+    id: 'canal-soporte-ticket-hub', category: 'habilidades', title: 'Canal de Soporte — Ticket Hub', status: 'activo',
+    description: 'Sistema completo de gestion de tickets de soporte: el equipo crea solicitudes con categoria, prioridad y archivos adjuntos. Incluye flujo Abierto → En Progreso → Cerrado, hilo de mensajes por ticket, notificacion email al creador y alerta WhatsApp instantanea al admin. Accesible desde Settings → Canal de Soporte.',
+    features: [
+      'Formulario con asunto, descripcion, categoria y prioridad',
+      'Adjuntos: subida de archivos al bucket ticket-attachments (10 MB) o URL libre',
+      'Flujo de estados: Abierto → En Progreso → Cerrado gestionado por admin',
+      'Hilo de mensajes por ticket con distincion equipo / usuario',
+      'IDs auto-generados: TKT-00001, TKT-00002…',
+    ],
+    sort_order: 125, last_updated_at: '2026-06-11T00:00:00Z', route: '/soporte',
+  },
+  {
+    id: 'canal-soporte-decisiones', category: 'habilidades', title: 'Canal de Soporte — Decisiones', status: 'activo',
+    description: 'Centro de cuestionarios donde Robert envia preguntas especificas al cliente para obtener informacion clave del proyecto. El cliente responde directamente en la app; las respuestas alimentan el PRD de la siguiente fase. Accesible desde Settings → Canal de Soporte.',
+    features: [
+      'Cuestionarios estructurados con preguntas libres y de opcion multiple',
+      'El cliente responde en /decisiones sin necesitar acceso admin',
+      'Respuestas persistidas en decision_questionnaires + decision_questions',
+      'Estado por cuestionario: pendiente → en_progreso → completado',
+      'Cuestionarios iniciales sembrados: ciclo-diseno-aprobaciones y cierres-gastos-empresa',
+    ],
+    sort_order: 126, last_updated_at: '2026-06-11T00:00:00Z', route: '/decisiones',
+  },
 ];
