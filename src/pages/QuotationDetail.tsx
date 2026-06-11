@@ -75,6 +75,7 @@ export default function QuotationDetailPage() {
   const slice3 = useFeatureFlag('slice_3_enabled');
   const createRevision = useCreateQuotationRevision();
   const reactivate = useReactivateExpiredQuotation();
+  const profile = useAuthStore((s) => s.profile);
 
   if (isLoading) {
     return (
@@ -117,7 +118,6 @@ export default function QuotationDetailPage() {
   };
 
   const statusConfig = statusMap[quotation.status as string] ?? FALLBACK_STATUS;
-  const profile = useAuthStore((s) => s.profile);
   const phase4On = FEATURES.phase4QuotationPublicEnabled;
   const isHistorical = (quotation as any).is_historical_copy === true;
   const clientHasWa = !!(quotation as any).client?.whatsapp_phone;
