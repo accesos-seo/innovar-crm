@@ -6,6 +6,7 @@ import { format, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   LifeBuoy,
+  ClipboardList,
   Send,
   Clock,
   CheckCircle2,
@@ -169,7 +170,8 @@ export default function TicketDetallePage() {
     onSuccess: (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ["support_ticket", id] });
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
-      notify.success(`Ticket marcado como ${newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["mis_solicitudes"] });
+      notify.success(`Estado actualizado: ${newStatus}`);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : "Error desconocido";
@@ -210,6 +212,15 @@ export default function TicketDetallePage() {
   const StatusIcon = statusConfig.icon;
   const canReply = ticket.status !== "Cerrado" || isAdmin;
 
+  // Una "solicitud" la envía el equipo al cliente: solo su creador (el técnico)
+  // gestiona el estado; el cliente únicamente responde en la conversación.
+  const isSolicitud = ticket.ticket_type === "solicitud";
+  const noun = isSolicitud ? "Solicitud" : "Ticket";
+  const canManageStatus = isSolicitud
+    ? profile?.id === ticket.created_by
+    : isAdmin;
+  const backPath = isSolicitud ? "/soporte/mis-solicitudes" : "/soporte";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -217,10 +228,10 @@ export default function TicketDetallePage() {
       className="max-w-4xl mx-auto w-full space-y-6 pb-20"
     >
       <CategoryHeader
-        title={`TICKET ${ticket.ticket_id}`}
+        title={`${noun.toUpperCase()} ${ticket.ticket_id}`}
         subtitle={ticket.subject}
-        icon={LifeBuoy}
-        onBack={() => navigate("/soporte")}
+        icon={isSolicitud ? ClipboardList : LifeBuoy}
+        onBack={() => navigate(backPath)}
       />
 
       {/* Ticket metadata */}
@@ -258,13 +269,13 @@ export default function TicketDetallePage() {
         </div>
 
         {ticket.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/5 pt-4">
+          <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/5 pt-4 whitespace-pre-line">
             {ticket.description}
           </p>
         )}
 
-        {/* Admin: change status */}
-        {isAdmin && ticket.status !== "Cerrado" && (
+        {/* Gestión de estado: tickets → admins; solicitudes → solo su creador */}
+        {canManageStatus && ticket.status !== "Cerrado" && (
           <div className="border-t border-border/5 pt-4 space-y-2">
             <p className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">
               Cambiar estado
@@ -290,13 +301,13 @@ export default function TicketDetallePage() {
                 className="text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                Cerrar Ticket
+                Cerrar {noun}
               </Button>
             </div>
           </div>
         )}
 
-        {isAdmin && ticket.status === "Cerrado" && (
+        {canManageStatus && ticket.status === "Cerrado" && (
           <div className="border-t border-border/5 pt-4">
             <Button
               size="sm"
@@ -304,7 +315,7 @@ export default function TicketDetallePage() {
               onClick={() => changeStatusMutation.mutate("Abierto")}
               disabled={changeStatusMutation.isPending}
             >
-              Reabrir Ticket
+              Reabrir {noun}
             </Button>
           </div>
         )}
@@ -373,7 +384,9 @@ export default function TicketDetallePage() {
         </div>
       ) : (
         <p className="text-center text-xs text-muted-foreground py-4 bg-card border border-border/10 rounded-lg">
-          Este ticket está cerrado. Contacta al equipo si necesitas reactivarlo.
+          {isSolicitud
+            ? "Esta solicitud está cerrada. Contacta al equipo si necesitas reactivarla."
+            : "Este ticket está cerrado. Contacta al equipo si necesitas reactivarlo."}
         </p>
       )}
     </motion.div>
