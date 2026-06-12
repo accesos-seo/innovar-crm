@@ -72,7 +72,12 @@ export function NotificationBell() {
       await markAsRead.mutateAsync(notif.id);
     }
     if (notif.action_url) {
-      navigate(notif.action_url);
+      const taskState =
+        notif.related_id &&
+        (notif.action_url === '/agenda/tareas' || notif.related_table === 'tasks')
+          ? { state: { taskId: notif.related_id } }
+          : undefined;
+      navigate(notif.action_url, taskState);
     }
   };
 
