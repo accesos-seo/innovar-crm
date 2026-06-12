@@ -2,45 +2,39 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
 import { supabase } from '@/lib/supabaseClient';
 
-// Servicio para el cálculo dinámico
+// Servicio para el cálculo dinámico — Edge Function `calculate-item`.
+// El motor de precios vive en Supabase (funciona igual en local y en prod;
+// Vercel solo sirve estáticos, el viejo /api/quotations/calculate-item del
+// server Express no existe allá).
 const fetchCalculation = async (category: string, configuration: any) => {
-  console.log('📡 Calling Pricing Engine:', { category, configuration });
-  
-  // Obtener sesión de Supabase si existe
-  let authHeader = {};
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      authHeader = { 'Authorization': `Bearer ${session.access_token}` };
-    }
-  } catch (e) {
-    console.warn("Could not get supabase session for calculation:", e);
-  }
+  console.log('📡 Calling Pricing Engine (EF calculate-item):', { category, configuration });
 
-  const response = await fetch('/api/quotations/calculate-item', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeader
-    },
-    body: JSON.stringify({ category, configuration }),
+  // invoke() adjunta automáticamente el apikey y el JWT de la sesión si existe
+  const { data, error } = await supabase.functions.invoke('calculate-item', {
+    body: { category, configuration },
   });
 
-  // Si el server responde HTML (SPA fallback / 404), el motor de precios NO está
-  // disponible en este host — fallar con mensaje claro en vez de mostrar $0.
-  const contentType = response.headers.get('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    throw new Error(
-      `Motor de precios no disponible (HTTP ${response.status}). ` +
-      `Verifique que el server corra con 'npm run dev' (server.ts), no con vite preview.`
-    );
+  if (error) {
+    // FunctionsHttpError trae la Response original con el JSON del error
+    let message = 'Error calculando precio';
+    try {
+      const ctx = (error as any)?.context;
+      if (ctx && typeof ctx.json === 'function') {
+        const body = await ctx.json();
+        message = body?.error || message;
+      } else if (error.message) {
+        message = error.message;
+      }
+    } catch {
+      if (error.message) message = error.message;
+    }
+    throw new Error(message);
   }
 
-  const data = await response.json();
   console.log('💰 Calculation Result:', data);
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Error calculando precio');
+  if (!data?.success) {
+    throw new Error(data?.error || 'Error calculando precio');
   }
 
   return data;
