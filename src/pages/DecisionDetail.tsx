@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ClipboardCheck, CheckCircle2, Info, Save, Loader2 } from "lucide-react";
+import { ClipboardCheck, CheckCircle2, Info, Save, Loader2, ArrowRight } from "lucide-react";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { PremiumLoader } from "@/components/shared/PremiumLoader";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   useSaveDecisionAnswer,
   type DecisionQuestion,
 } from "@/hooks/useDecisiones";
+
+const N8N_DECISION_WEBHOOK = import.meta.env.VITE_N8N_DECISION_WEBHOOK as string;
 
 function QuestionCard({ question, index }: { question: DecisionQuestion; index: number }) {
   const saveAnswer = useSaveDecisionAnswer();
@@ -94,6 +96,26 @@ export default function DecisionDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: questionnaire, isLoading } = useDecisionQuestionnaire(slug);
+  const [finalizing, setFinalizing] = React.useState(false);
+
+  const handleFinalizar = async () => {
+    if (!questionnaire) return;
+    setFinalizing(true);
+    try {
+      await fetch(N8N_DECISION_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionnaire_title: questionnaire.title,
+          questionnaire_slug: questionnaire.slug,
+          completed_at: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // La notificación es best-effort: si falla no bloqueamos al usuario
+    }
+    navigate("/decisiones");
+  };
 
   if (isLoading) {
     return (
@@ -139,11 +161,25 @@ export default function DecisionDetailPage() {
       </div>
 
       {answered === total && total > 0 && (
-        <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-sm p-6 flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <p className="text-sm text-emerald-200/90 leading-relaxed">
-            Cuestionario completo. El equipo técnico tomará estas respuestas como base para construir la funcionalidad — gracias por el detalle.
-          </p>
+        <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-sm p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex items-start gap-3 flex-1">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-emerald-200/90 leading-relaxed">
+              Cuestionario completo. El equipo técnico tomará estas respuestas como base para construir la funcionalidad — gracias por el detalle.
+            </p>
+          </div>
+          <Button
+            onClick={handleFinalizar}
+            disabled={finalizing}
+            className="shrink-0 h-10 rounded-none font-bold uppercase text-[10px] tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+          >
+            {finalizing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ArrowRight className="w-3.5 h-3.5" />
+            )}
+            {finalizing ? "Enviando..." : "Finalizar"}
+          </Button>
         </div>
       )}
     </div>
