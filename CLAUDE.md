@@ -1,103 +1,66 @@
 # CRM Innovar — Guía para Claude
 
-> Este archivo es leído automáticamente por Claude al abrir esta carpeta.
-> Contiene todo lo necesario para trabajar en el proyecto sin preguntas.
-
----
+> Leído automáticamente por Claude al abrir esta carpeta. Mapa operativo + punteros.
+> El mapa técnico del repo (arquitectura, gotchas, checklist de "hecho") vive en `AGENTS.md` — no duplicar acá.
 
 ## Identidad del proyecto
 
-- **Nombre:** CRM Innovar App
-- **Propósito:** CRM para empresa de cocinas y muebles (cotizaciones, clientes, proyectos, agenda, finanzas)
-- **Dueño:** No es técnico — todas las instrucciones deben ser de copiar y pegar
-- **Carpeta canónica (ÚNICA válida):** `D:\Agents-automations\04-Innovar` ← actualizado 2026-06-09
-- ⛔ **Rutas MUERTAS — ignorar siempre:** `OneDrive\Escritorio\...\Innovar-App-main` y `OneDrive\Documentos\...\Innovar-App-main` son réplicas legacy desincronizadas. Los commits recientes NO están ahí. Ver memoria `feedback_innovar_canonical_path.md`.
+- **Nombre:** CRM Innovar App — CRM para empresa de cocinas y muebles (cotizaciones, clientes, proyectos, agenda, finanzas)
+- **Dueño:** Robert, NO técnico — instrucciones que le lleguen: siempre copy-paste
+- **Carpeta canónica (ÚNICA válida):** `D:\Agents-automations\04-Innovar`
+- ⛔ **Rutas MUERTAS — ignorar siempre:** `OneDrive\Escritorio\...\Innovar-App-main` y `OneDrive\Documentos\...\Innovar-App-main` son réplicas legacy desincronizadas. Si la sesión arranca parada en una de ellas, moverse a `D:` antes de tocar nada. Ver `feedback_innovar_canonical_path.md`.
+- **Stack:** React 19 + TS + Vite 6, shadcn/ui + Tailwind 4, Supabase, Express local (`server.ts`), deploy Vercel. Detalle y mapa de carpetas: `AGENTS.md` §2-§5.
 
-> **IMPORTANTE:** La carpeta está en `D:` (no OneDrive) — git y builds corren sin problema. **Para todo (Supabase queries, Management API, lecturas, logs, archivos, commits) el agente ejecuta directamente.** Solo `git push` se delega (pedido explícito).
+## Modo de trabajo: EN VIVO (orden del dueño, 2026-06-12)
 
----
+**Todos los cambios se suben en vivo. No se acumula trabajo local.** El ciclo completo lo ejecuta el agente, sin delegar:
 
-## Autonomía operativa (Innovar)
+1. Editar → `npm run build` (y `npm run typecheck`, sin errores nuevos sobre baseline)
+2. `git add ARCHIVOS_EXPLICITOS` + `git commit` (nunca `git add .`)
+3. `git push origin master` — **lo hace el agente** (repo en `D:`, sin conflictos de watcher)
+4. Deploy manual a Vercel — **lo hace el agente** vía CLI o API (auto-deploy roto, ver abajo)
+5. Verificar prod (URL viva, smoke test) y reportar
 
-Hereda el "Modo de autonomía por defecto" del `CLAUDE.md` global (`C:\Users\ceoel\.claude\CLAUDE.md`). Casos específicos de este proyecto:
+> Esto reemplaza la política anterior ("solo push lo hace el usuario", "cambios solo locales").
+> Siguen delegándose ÚNICAMENTE: acciones destructivas (force push, DROP, DELETE masivo),
+> secretos que no estén en ningún `.env`, y mensajes WhatsApp reales (ver AGENTS.md §6.3).
 
-### El agente HACE SOLO (no delegar)
-- **SQL en Supabase Innovar** (`xdzbjptozeqcbnaqhtye`) → Management API con `SUPABASE_ACCESS_TOKEN` del `.env`. Patrón canonizado en `reference_innovar_management_api.md`.
-- **Migraciones SQL** aplicadas contra producción cuando el usuario aprueba el contenido (no requiere pedir "corré esto vos").
-- **Cron jobs, Vault secrets, Edge Functions deploy** con `supabase functions deploy` y el PAT del `.env`.
-- **Verificación post-migración**: smoke-tests SQL sobre `pg_proc`, `pg_trigger`, `pg_policies`, `information_schema`.
+## Autonomía operativa
 
-### El agente DELEGA al usuario
-- **Solo `git push`** (OneDrive race conditions afectan push/background, no commits). El `git add` + `git commit` en foreground los hace el agente SIEMPRE, sin pedírselo al usuario.
-- `vercel --prod` (deploy a producción)
-- `npm run dev` (usar `vite preview` sobre build en su lugar)
-- Secretos de proveedores externos NO presentes en `.env` (Meta Business Manager, n8n, etc.)
+Hereda el modo de autonomía del `CLAUDE.md` global. Específico de Innovar — el agente HACE SOLO:
 
-Feedback explícito del usuario 2026-05-23: la conducta de "pedile al usuario que corra el SQL en el dashboard" estaba mal calibrada y debe evitarse. Si tengo el PAT, lo uso.
-
----
+- **SQL en Supabase Innovar** (`xdzbjptozeqcbnaqhtye`) → Management API con `SUPABASE_ACCESS_TOKEN` del `.env`. Patrón: `reference_innovar_management_api.md`.
+- **Migraciones SQL contra producción** (idempotentes, con ROLLBACK) cuando el usuario aprobó el contenido.
+- **Cron jobs, Vault secrets, Edge Functions** (`supabase functions deploy`) con el PAT del `.env`.
+- **Verificación post-migración:** smoke-tests sobre `pg_proc`, `pg_trigger`, `pg_policies`, `information_schema`.
+- **git push + deploy Vercel** (modo en vivo, ver arriba).
 
 ## GitHub
 
 | Campo | Valor |
 |---|---|
-| Repositorio de trabajo | https://github.com/accesos-seo/innovar-crm |
-| Rama | `master` (estable); trabajo activo en `ux-fixes` — ver memoria `project_innovar.md` |
-| Cuenta GitHub | `accesos-seo` |
-| Autenticación | GitHub CLI (`gh`) ya instalado y autenticado |
-
-### Hacer push (copiar y pegar)
+| Repositorio | https://github.com/accesos-seo/innovar-crm |
+| Rama de trabajo | `master` (estado vivo del proyecto: memoria `project_innovar.md`) |
+| Cuenta | `accesos-seo` — `gh` autenticado. Error de auth → `gh auth status` |
 
 ```powershell
 Set-Location "D:\Agents-automations\04-Innovar"; git add ARCHIVO1 ARCHIVO2; git commit -m "DESCRIPCION"; git push origin master
 ```
 
-> Siempre especificar los archivos individualmente en `git add` — nunca usar `git add .` para evitar subir archivos sensibles.
-
-### Verificar estado antes de subir
-
-```powershell
-Set-Location "D:\Agents-automations\04-Innovar"; git status
-```
-
----
-
-## Vercel — Deploy
+## Vercel — deploy
 
 | Campo | Valor |
 |---|---|
-| Proyecto activo | `crm-innovar-app-2026` |
-| URL de producción | https://crm-innovar-app-2026.vercel.app |
-| Project ID | `prj_dowuuH3bdSTKuNbnNOUCWD2Hxjpi` |
-| Team ID | `team_K7m1K8aMiKR36myzPROYViA8` |
-| Token | En `.env` del proyecto como `VERCEL_TOKEN` |
-| Repo conectado en Vercel | `Rvirona/CRM-INNOVAR-APP` (rama `main`) ⚠️ |
+| Proyecto | `crm-innovar-app-2026` |
+| Producción | https://crm-innovar-app-2026.vercel.app |
+| Token | `.env` → `VERCEL_TOKEN` |
 
-> **ADVERTENCIA CRÍTICA — Repo desconectado:** Vercel está conectado a `Rvirona/CRM-INNOVAR-APP:main`, pero el trabajo real va a `accesos-seo/innovar-crm:master`. Los push automáticos NO disparan deploys en Vercel. Hay que hacer deploy manual cada vez.
-
-### Hacer deploy manual a Vercel (copiar y pegar)
+> ⚠️ **Auto-deploy ROTO:** Vercel está conectado a `Rvirona/CRM-INNOVAR-APP:main`, el trabajo va a `accesos-seo/innovar-crm:master`. El push NO dispara deploy → **deploy manual tras cada push** (lo hace el agente).
+> Comandos CLI/API, IDs de proyecto/team y env vars: **`docs/ops/vercel-deploy.md`**.
 
 ```powershell
 Set-Location "D:\Agents-automations\04-Innovar"; npx vercel --prod --token TU_VERCEL_TOKEN_AQUI --yes
 ```
-
-### Disparar redeploy vía API (cuando Claude lo hace)
-
-```bash
-curl -X POST "https://api.vercel.com/v13/deployments?teamId=team_K7m1K8aMiKR36myzPROYViA8&forceNew=1" \
-  -H "Authorization: Bearer VERCEL_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"crm-innovar-app-2026","project":"prj_dowuuH3bdSTKuNbnNOUCWD2Hxjpi","gitSource":{"type":"github","repoId":"1210035787","ref":"main"}}'
-```
-
-### Variables de entorno en Vercel (ya configuradas)
-
-| Variable | ID en Vercel | Valor |
-|---|---|---|
-| `VITE_SUPABASE_URL` | `VOe0hiQcqJEWVtDb` | `https://xdzbjptozeqcbnaqhtye.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | `Ef4LwttryZf6qBnR` | clave anon del `.env` local |
-
----
 
 ## Supabase
 
@@ -105,142 +68,43 @@ curl -X POST "https://api.vercel.com/v13/deployments?teamId=team_K7m1K8aMiKR36my
 |---|---|
 | Project ID | `xdzbjptozeqcbnaqhtye` |
 | URL | `https://xdzbjptozeqcbnaqhtye.supabase.co` |
-| Claves | En `.env` del proyecto |
+| Claves | `.env` del proyecto |
 
-> **Acceso SQL (actualizado 2026-06-09):** TODOS los Supabase de la agencia se acceden igual — Management API con el token del proyecto (tabla universal en `~/.claude/CLAUDE.md` → sección Supabase). Para Innovar: `SUPABASE_ACCESS_TOKEN` del `.env`. No usar MCP.
+- **Acceso SQL:** Management API con `SUPABASE_ACCESS_TOKEN` (PAT) — tabla universal en `~/.claude/CLAUDE.md`. **No usar MCP** (apunta a Light_House, no a Innovar).
+- **Schema local miente** — verificar contra `information_schema` antes de tocar Zod/SQL: `AGENTS.md` §6.1.
+- **Storage (bucket avatares, políticas):** `docs/ops/storage-buckets.md`.
+- **Notificaciones (tabla, 7 triggers, anti-patrón Realtime):** `docs/ops/notificaciones.md`.
 
-### Bucket de avatares (Storage)
+## Pendientes conocidos (verificado 2026-06-12)
 
-Si el avatar no se sube, ejecutar en SQL Editor de Supabase:
-
-```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars', 'avatars', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
-
-CREATE POLICY "Avatar upload authenticated" ON storage.objects
-  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
-
-CREATE POLICY "Avatar update authenticated" ON storage.objects
-  FOR UPDATE TO authenticated USING (bucket_id = 'avatars');
-
-CREATE POLICY "Avatar public read" ON storage.objects
-  FOR SELECT TO public USING (bucket_id = 'avatars');
-```
-
----
-
-## Stack técnico
-
-- **Frontend:** React 19 + TypeScript + Vite 6
-- **UI:** shadcn/ui + Tailwind CSS 4
-- **Base de datos:** Supabase (PostgreSQL + Storage)
-- **Servidor local:** Node.js + Express (`server.ts`)
-- **Deploy:** Vercel (proyecto `crm-innovar-app-2026`)
-
-## Estructura de carpetas
-
-```
-src/
-  pages/        → Páginas (Dashboard, Proyectos, Cotizaciones, Profile...)
-  components/   → Componentes reutilizables y templates PDF
-  hooks/        → Hooks de datos (conexión a Supabase)
-  features/     → Módulos del cotizador paramétrico
-    kitchen/      → Cocinas (server-side via Edge Function)
-    closets/      → Closets (client-side)
-    doors/        → Puertas (client-side, reescrito)
-    mesones/      → Mesones (client-side, nuevo)
-    tv_center/    → Centro TV (client-side)
-    special_finishes/ → Acabados especiales (client-side)
-    hardware/     → Herrajes (client-side)
-  store/        → Estado global (Zustand)
-server/
-  services/     → Motor de precios server-side
-db/
-  migrations/   → Migraciones de base de datos
-```
-
----
-
-## Arquitectura del cotizador — Patrón 3 capas
-
-Cada módulo sigue:
-
-```
-src/features/[modulo]/logic.ts              → Motor puro (tipos, constantes, cálculo)
-src/hooks/use-[modulo]-calculator.ts        → Hook React (useMemo sobre el motor)
-src/features/[modulo]/[Modulo]Module.tsx    → UI (Card + footer con total)
-```
-
-El hub central es `src/components/quotations/steps/QuotationDesignStep.tsx`.
-Todos los módulos notifican cambios vía `onDataChange(total, config)`.
-El `config` se guarda en `item.configuration` en Supabase y alimenta los templates PDF.
-
-### Templates PDF existentes
-
-| Módulo | Template |
-|---|---|
-| Cocinas | `src/components/pdf/templates/KitchenTemplate.tsx` |
-| Closets | `src/components/pdf/templates/ClosetTemplate.tsx` |
-| Puertas | `src/components/pdf/templates/DoorsTemplate.tsx` |
-| TV Center | `src/components/pdf/templates/TVCenterTemplate.tsx` |
-| Herrajes | `src/components/pdf/templates/HardwareTemplate.tsx` |
-| Acabados | `src/components/pdf/templates/SpecialFinishesTemplate.tsx` |
-| Mesones | ⚠️ **Pendiente crear** |
-
----
-
-## Pendientes conocidos
-
-- [ ] `MesonesTemplate.tsx` — crear template PDF para mesones
-- [ ] `MesonesModule` sin `initialData` — no restaura config guardada al reabrir cotización
-- [ ] Conectar Vercel al repo correcto `accesos-seo/innovar-crm:master` para deploys automáticos
-- [ ] Verificar políticas del bucket `avatars` en Supabase Storage (ver SQL arriba)
-
----
+- [ ] Conectar Vercel al repo correcto `accesos-seo/innovar-crm:master` (mientras: deploy manual)
+- [ ] `MesonesTemplate.tsx` — template PDF de mesones pendiente; `MesonesModule` no restaura config guardada
+- [ ] Rotar el PAT de Supabase (estuvo hardcodeado en un script local; nunca llegó al remoto)
+- [ ] Limpiar ~20 archivos basura `*.tmp.*` sin trackear en el working tree
 
 ## Archivos que NUNCA deben subirse
 
-| Archivo / Carpeta | Por qué |
-|---|---|
-| `.env` | Contiene claves privadas de Supabase y tokens |
-| `.claude/` | Contiene tokens y permisos locales |
-| `.vercel/` | Contiene IDs del proyecto Vercel |
-| `node_modules/` | Dependencias (se instalan con `npm install`) |
-| `*.log` | Logs de errores locales |
-
----
+`.env` (claves), `.claude/` (tokens locales), `.vercel/` (IDs), `node_modules/`, `*.log`, `*.tmp.*` — aunque el usuario lo pida explícitamente.
 
 ## Reglas de trabajo
 
-1. El dueño NO es técnico — siempre dar comandos de copiar y pegar
-2. Usar `;` para encadenar comandos en PowerShell (nunca `&&`)
-3. No usar tareas PowerShell en background en rutas OneDrive — se cuelgan
-4. Antes de cualquier push, confirmar con `git status` que no hay archivos sensibles
-5. Nunca subir `.env` aunque el usuario lo pida explícitamente
-6. El Supabase MCP del entorno NO corresponde al proyecto Innovar — no usarlo
-7. Para deploys a Vercel: usar el comando `npx vercel --prod` o la API (ver sección Vercel)
-8. Si hay error de autenticación GitHub: `gh auth status`
+1. Dueño NO técnico → todo comando que le llegue: copy-paste, PowerShell con `;` (nunca `&&`)
+2. Antes de push: `git status` para confirmar que no van archivos sensibles
+3. `npm run dev` funciona (repo en `D:`); para verificación rápida preferir `npm run build` + `npm run preview`
+4. Diagnóstico de bugs: primero incógnito/estado del navegador, después frontend, último RLS (`feedback_diagnose_browser_state_first.md`)
+5. DB en inglés, labels en español (`feedback_innovar_db_language_convention.md`)
+6. Antes de declarar "hecho": checklist de `AGENTS.md` §10 + `CHECKPOINTS.md`
 
----
+## Punteros — dónde vive cada cosa
 
-## Notificaciones — arquitectura actual (2026-05-23)
-
-- **Tabla DB:** `notifications` (columnas: id, user_id, title, body, is_read, notification_type, priority, action_url, related_table, related_id, created_at)
-- **Tipos conocidos de `notification_type`:** `booking_new`, `booking_reminder`, `booking_completed`, `booking_cancelled`, `project_status`, `system`. Las notificaciones de pagos actualmente caen bajo `system` (a confirmar con las edge functions/triggers que insertan).
-- **Página completa:** `/notifications` ([src/pages/Notifications.tsx](src/pages/Notifications.tsx)) — sidebar de categorías + búsqueda server-side + "Marcar todas como leídas".
-- **Bell (topbar):** [src/components/layout/NotificationBell.tsx](src/components/layout/NotificationBell.tsx) — popover con últimas 15.
-- **Componente compartido de lista:** [src/components/notifications/NotificationsList.tsx](src/components/notifications/NotificationsList.tsx) — agrupa por fecha (Hoy/Ayer/Esta semana/Anteriores), infinite scroll, acepta `filterType` y `searchQuery`.
-- **Triggers de notificaciones (Supabase producción):** 7 funciones plpgsql. La que está en migraciones locales: `notify_project_created` ([009_lead_to_project_functions.sql:490](db/migrations/009_lead_to_project_functions.sql)). Las 6 restantes (`notify_booking_created`, `notify_booking_status_change`, `notify_task_assigned`, `notify_task_blocked`, `notify_task_comment`, `notify_task_completed`) están en producción y se snapshottearon en [013_fix_notification_action_urls.sql](db/migrations/013_fix_notification_action_urls.sql) al arreglar el bug de `action_url` legacy. Si modificas alguna, hacelo con `CREATE OR REPLACE FUNCTION` vía Management API y agregá una migración nueva.
-
-### Pendientes específicos de notificaciones
-
-- [ ] **Deep-linking en `/tasks` y `/agenda`** — los `action_url` de tareas y citas ya traen `?task_id=X` pero esas páginas no leen el query param. Implementarlo abriría el item específico en vez de solo aterrizar en el listado.
-
-### ⚠️ Anti-patrón: Supabase Realtime channels son singletons globales
-
-`useRealtimeNotifications()` usa `supabase.channel('notifications-updates')` con nombre **hardcoded**. Solo se puede invocar desde UN componente a la vez (actualmente: `NotificationBell` dentro de `Layout`). Llamarlo desde una segunda página revienta con:
-
-> `cannot add postgres_changes callbacks for realtime:notifications-updates after subscribe()`
-
-Si necesitas realtime en una página nueva: confía en que el hook ya está activo desde `Layout` y el bell invalida `['notifications']` automáticamente. Detalles en [docs/handover/2026-05-23_NOTIFICATIONS-PAGE.md §3](docs/handover/2026-05-23_NOTIFICATIONS-PAGE.md).
+| Tema | Documento |
+|---|---|
+| Mapa del repo, arquitectura, gotchas, zonas minadas | `AGENTS.md` |
+| Criterios de "hecho" | `CHECKPOINTS.md` |
+| Deploy Vercel (IDs, API, env vars) | `docs/ops/vercel-deploy.md` |
+| Notificaciones (arquitectura + triggers) | `docs/ops/notificaciones.md` |
+| Storage / buckets | `docs/ops/storage-buckets.md` |
+| Estado vivo del proyecto (fases, bugs, decisiones) | memoria `project_innovar.md` |
+| Handoffs por sesión | `docs/handover/` |
+| PRDs (portal cliente, postventa, producción, agentes) | `docs/prd/`, `docs/agents/`, raíz `PRD-*.md` |
+| Onboarding narrativo del producto | `ONBOARDING.md` |
