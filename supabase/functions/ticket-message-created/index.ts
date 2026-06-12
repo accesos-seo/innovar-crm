@@ -69,11 +69,14 @@ Deno.serve(async (req) => {
 
     const ticket = message.ticket;
     const noun = ticket?.ticket_type === "solicitud" ? "solicitud" : "ticket";
+    const content = String(message.content ?? "");
+    const excerpt =
+      content.length > 300 ? `${content.slice(0, 300)}… (mensaje completo en la app)` : content;
     const waText =
       `💬 *Nuevo mensaje en ${noun} ${ticket?.ticket_id ?? ""}*\n\n` +
       `*De:* ${senderName}\n` +
       `*Asunto:* ${ticket?.subject ?? "—"}\n\n` +
-      `${String(message.content ?? "").slice(0, 300)}` +
+      excerpt +
       `\n\n🔗 ${APP_URL}/soporte/${message.ticket_id}`;
 
     const res = await fetch(
