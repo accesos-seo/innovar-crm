@@ -41,9 +41,20 @@ async function startServer() {
       });
     }
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 INNOVAR ERP Server running at http://0.0.0.0:${PORT}`);
+    // Escuchar en '::' (dual-stack IPv6+IPv4). Antes era '0.0.0.0' (solo IPv4):
+    // si otro proceso (p.ej. `vite preview --port 3000`) tomaba [::1]:3000, el
+    // navegador resolvía localhost→::1 y las llamadas /api caían en el proceso
+    // equivocado (404/index.html) — subtotales en $0 sin error visible.
+    const httpServer = app.listen(PORT, '::', () => {
+      console.log(`🚀 INNOVAR ERP Server running at http://localhost:${PORT}`);
       console.log(`Backend Pricing Engine initialized.`);
+    });
+    httpServer.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Puerto ${PORT} ya está ocupado por otro proceso (¿un vite preview viejo?).`);
+        console.error(`   Liberalo: netstat -ano | findstr :${PORT}  →  taskkill /PID <pid> /F`);
+      }
+      throw err;
     });
   } catch (error) {
     console.error('❌ CRITICAL: Server failed during initialization:', error);

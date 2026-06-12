@@ -77,7 +77,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
 
   // Solo calcular cuando el metraje sea válido (≥ 0.5 ml)
   const canCalculate = (currentConfig?.metrajeTotal ?? 0) >= 0.5;
-  const { data: calculation, isLoading } = useCalculatePrice('cocina', currentConfig, canCalculate);
+  const { data: calculation, isLoading, isError, error } = useCalculatePrice('cocina', currentConfig, canCalculate);
 
   const lastUpdateRef = React.useRef({ total: -1, configStr: '' });
   React.useEffect(() => {
@@ -124,6 +124,10 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
             <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest hidden sm:block">Subtotal</span>
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : isError && canCalculate ? (
+              <span className="text-xs font-bold text-destructive" title={error instanceof Error ? error.message : 'Error calculando precio'}>
+                ⚠ Error de cálculo
+              </span>
             ) : canCalculate ? (
               <span className="text-lg font-black font-mono text-primary tracking-tighter">
                 $ {subtotal.toLocaleString('es-CO')}

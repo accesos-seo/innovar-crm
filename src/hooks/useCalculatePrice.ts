@@ -19,20 +19,30 @@ const fetchCalculation = async (category: string, configuration: any) => {
 
   const response = await fetch('/api/quotations/calculate-item', {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       ...authHeader
     },
     body: JSON.stringify({ category, configuration }),
   });
-  
+
+  // Si el server responde HTML (SPA fallback / 404), el motor de precios NO está
+  // disponible en este host — fallar con mensaje claro en vez de mostrar $0.
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      `Motor de precios no disponible (HTTP ${response.status}). ` +
+      `Verifique que el server corra con 'npm run dev' (server.ts), no con vite preview.`
+    );
+  }
+
   const data = await response.json();
   console.log('💰 Calculation Result:', data);
-  
+
   if (!response.ok) {
     throw new Error(data.error || 'Error calculando precio');
   }
-  
+
   return data;
 };
 

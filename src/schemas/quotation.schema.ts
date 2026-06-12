@@ -205,7 +205,7 @@ export const SpecialFinishesConfigSchema = z.object({
 // 3. ESQUEMA DEL REQUEST PARA CALCULAR ITEM (Lo que el Frontend le envía al Backend)
 // Nota: 'puerta' (singular) = puertas interiores (módulo doors). 'puertas' (plural) = puertas/tapas repuestos de cocina.
 export const CalculateItemRequestSchema = z.object({
-  category: z.enum(['cocina', 'closet', 'puerta', 'puertas', 'tv_center', 'especiales', 'mesones']),
+  category: z.enum(['cocina', 'closet', 'puerta', 'puertas', 'tv_center', 'especiales', 'mesones', 'herrajes']),
   configuration: z.any() // Aquí vendrá KitchenConfigSchema, ClosetSchema, TVCenterConfigSchema, SpecialFinishesConfigSchema, etc.
 });
 
