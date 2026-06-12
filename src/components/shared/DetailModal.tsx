@@ -694,7 +694,7 @@ export function DetailModal({
 }: any) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 bg-card border-border/50 overflow-hidden shadow-2xl">
+      <DialogContent showCloseButton={false} className="w-[95vw] max-w-4xl sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 bg-card border-border/50 overflow-hidden shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-primary/20 via-white to-primary/20 shrink-0"></div>
         <DialogHeader className="px-8 pt-8 pb-6 shrink-0 bg-muted/20 border-b border-border/10 relative">
           <Button
