@@ -114,15 +114,29 @@ export default function TicketDetallePage() {
       if (!profile?.id) throw new Error("No hay sesión activa");
       if (!id) throw new Error("ID de ticket requerido");
 
-      const { error: msgError } = await supabase
+      const { data: newMsg, error: msgError } = await supabase
         .from("ticket_messages")
         .insert({
           ticket_id: Number(id),
           sender_id: profile.id,
           content,
           is_internal: false,
-        });
+        })
+        .select("id")
+        .single();
       if (msgError) throw msgError;
+
+      // Alerta WA al admin cuando escribe el cliente; la EF decide
+      // (los remitentes de la agencia no notifican).
+      if (newMsg?.id) {
+        supabase.functions
+          .invoke("ticket-message-created", {
+            body: { message_id: newMsg.id },
+          })
+          .catch((e) =>
+            console.warn("[ticket-message-created] invoke failed:", e)
+          );
+      }
 
       // Admin: actualizar estado y first_response_at usando parámetros snapshot
       if (isAdmin) {
