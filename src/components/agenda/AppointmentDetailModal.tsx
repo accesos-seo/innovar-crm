@@ -77,6 +77,15 @@ export function AppointmentDetailModal({
                     <span className="text-sm text-muted-foreground">{client.address}</span>
                   </div>
                 )}
+                {appointment.description && (
+                  <div className="flex items-start gap-3 pt-3 border-t border-border/50">
+                    <MapPin className="w-4 h-4 text-primary mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Ubicación de esta cita</span>
+                      <span className="text-sm font-medium text-foreground">{appointment.description}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

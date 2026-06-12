@@ -115,7 +115,10 @@ export function NewPaymentModal({ isOpen, onClose }: NewPaymentModalProps) {
           amount: parseFloat(displayAmount.replace(/[^0-9.]/g, '')) || 0,
           payment_method: formData.payment_method as PaymentMethod,
           payment_type: formData.payment_type as PaymentType,
-          received_at: formData.received_at,
+          // El schema exige datetime ISO completo; mandar solo YYYY-MM-DD
+          // hacía fallar TODOS los registros de pago. Mediodía local evita
+          // el corrimiento de día por zona horaria.
+          received_at: new Date(`${formData.received_at}T12:00:00`).toISOString(),
           notes: formData.notes || null,
         },
         file: file || undefined

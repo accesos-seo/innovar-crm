@@ -111,7 +111,7 @@ function TaskRow({ title, status, dueDate, isOverdue, onVerTarea, hasExternalLin
 // ── Componente principal ──────────────────────────────────────────────────────
 export function WeeklyTasksSummary() {
   const navigate = useNavigate();
-  const [openSection, setOpenSection] = useState<'current' | 'past' | null>('current');
+  const [openSection, setOpenSection] = useState<'current' | 'past' | null>(null);
 
   const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
   const { summaries, loading: summariesLoading, unreadCount, markAsRead } = useWeeklyTaskSummaries();

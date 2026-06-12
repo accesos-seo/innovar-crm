@@ -82,6 +82,10 @@ export function NewTaskModal({ isOpen, onClose, staff, defaultStatus = 'pendient
     try {
       await createTask.mutateAsync({
         ...formData,
+        // Los strings vacíos del estado inicial rompen la validación Zod
+        // (due_date exige YYYY-MM-DD): se normalizan a null.
+        description: formData.description || null,
+        due_date: formData.due_date || null,
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
         status: defaultStatus as TaskStatus,
         kanban_order: 0

@@ -10,10 +10,10 @@
 - **Nombre:** CRM Innovar App
 - **Propósito:** CRM para empresa de cocinas y muebles (cotizaciones, clientes, proyectos, agenda, finanzas)
 - **Dueño:** No es técnico — todas las instrucciones deben ser de copiar y pegar
-- **Carpeta real del proyecto:** `C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main`
-- **Alias en OneDrive (mismo contenido, sincronizado):** `C:\Users\ceoel\OneDrive\Documentos\Agents-automations\Innovar-App-main`
+- **Carpeta canónica (ÚNICA válida):** `D:\Agents-automations\04-Innovar` ← actualizado 2026-06-09
+- ⛔ **Rutas MUERTAS — ignorar siempre:** `OneDrive\Escritorio\...\Innovar-App-main` y `OneDrive\Documentos\...\Innovar-App-main` son réplicas legacy desincronizadas. Los commits recientes NO están ahí. Ver memoria `feedback_innovar_canonical_path.md`.
 
-> **IMPORTANTE:** Usar siempre la ruta del **Escritorio** para comandos de git y deploy. Las **tareas PowerShell en background largo** se cuelgan en rutas de OneDrive — para esos casos puntuales (git push, vercel --prod, npm run dev) dar el comando al usuario. **Para todo lo demás (Supabase queries, Management API, lecturas, regenerar logs, escribir archivos) el agente ejecuta directamente.**
+> **IMPORTANTE:** La carpeta está en `D:` (no OneDrive) — git y builds corren sin problema. **Para todo (Supabase queries, Management API, lecturas, logs, archivos, commits) el agente ejecuta directamente.** Solo `git push` se delega (pedido explícito).
 
 ---
 
@@ -42,14 +42,14 @@ Feedback explícito del usuario 2026-05-23: la conducta de "pedile al usuario qu
 | Campo | Valor |
 |---|---|
 | Repositorio de trabajo | https://github.com/accesos-seo/innovar-crm |
-| Rama | `master` |
+| Rama | `master` (estable); trabajo activo en `ux-fixes` — ver memoria `project_innovar.md` |
 | Cuenta GitHub | `accesos-seo` |
 | Autenticación | GitHub CLI (`gh`) ya instalado y autenticado |
 
 ### Hacer push (copiar y pegar)
 
 ```powershell
-Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; git add ARCHIVO1 ARCHIVO2; git commit -m "DESCRIPCION"; git push origin master
+Set-Location "D:\Agents-automations\04-Innovar"; git add ARCHIVO1 ARCHIVO2; git commit -m "DESCRIPCION"; git push origin master
 ```
 
 > Siempre especificar los archivos individualmente en `git add` — nunca usar `git add .` para evitar subir archivos sensibles.
@@ -57,7 +57,7 @@ Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\I
 ### Verificar estado antes de subir
 
 ```powershell
-Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; git status
+Set-Location "D:\Agents-automations\04-Innovar"; git status
 ```
 
 ---
@@ -78,7 +78,7 @@ Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\I
 ### Hacer deploy manual a Vercel (copiar y pegar)
 
 ```powershell
-Set-Location "C:\Users\ceoel\OneDrive\Escritorio\mi proyect\Agents-automations\Innovar-App-main"; npx vercel --prod --token TU_VERCEL_TOKEN_AQUI --yes
+Set-Location "D:\Agents-automations\04-Innovar"; npx vercel --prod --token TU_VERCEL_TOKEN_AQUI --yes
 ```
 
 ### Disparar redeploy vía API (cuando Claude lo hace)
@@ -107,7 +107,7 @@ curl -X POST "https://api.vercel.com/v13/deployments?teamId=team_K7m1K8aMiKR36my
 | URL | `https://xdzbjptozeqcbnaqhtye.supabase.co` |
 | Claves | En `.env` del proyecto |
 
-> **ADVERTENCIA:** El Supabase MCP conectado en este entorno Claude es `Light_House` y `Swarm Agentes MD` — NO el proyecto Innovar. No usar el MCP para queries de Innovar.
+> **Acceso SQL (actualizado 2026-06-09):** TODOS los Supabase de la agencia se acceden igual — Management API con el token del proyecto (tabla universal en `~/.claude/CLAUDE.md` → sección Supabase). Para Innovar: `SUPABASE_ACCESS_TOKEN` del `.env`. No usar MCP.
 
 ### Bucket de avatares (Storage)
 

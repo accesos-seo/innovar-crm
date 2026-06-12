@@ -52,6 +52,7 @@ export default function GastosPage() {
     approval_status: [] as string[],
     category: [] as string[],
     project_id: "all" as string,
+    expense_class: "all" as "all" | "proyecto" | "empresa",
     dateFrom: "" as string,
     dateTo: "" as string
   });
@@ -61,6 +62,7 @@ export default function GastosPage() {
       approval_status: filters.approval_status.length > 0 ? filters.approval_status[0] : "all",
       category: filters.category.length > 0 ? filters.category[0] : "all",
       project_id: filters.project_id,
+      expense_class: filters.expense_class,
       date_from: filters.dateFrom,
       date_to: filters.dateTo,
       search: debouncedSearch,
@@ -129,12 +131,13 @@ export default function GastosPage() {
       approval_status: [],
       category: [],
       project_id: "all",
+      expense_class: "all",
       dateFrom: "",
       dateTo: ""
     });
   };
 
-  const isFiltered = filters.approval_status.length > 0 || filters.category.length > 0 || filters.project_id !== "all" || filters.dateFrom || filters.dateTo;
+  const isFiltered = filters.approval_status.length > 0 || filters.category.length > 0 || filters.project_id !== "all" || filters.expense_class !== "all" || filters.dateFrom || filters.dateTo;
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-8">
@@ -189,6 +192,30 @@ export default function GastosPage() {
                     )}
                   >
                     {formatSentenceCase(label)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tipo de gasto: proyecto vs empresa/bodega */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-muted-foreground">{formatSentenceCase("Tipo de gasto")}</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: "all", label: "Todos" },
+                  { value: "proyecto", label: "De proyecto" },
+                  { value: "empresa", label: "De empresa" },
+                ] as const).map((opt) => (
+                  <Button
+                    key={opt.value}
+                    variant={filters.expense_class === opt.value ? "default" : "outline"}
+                    onClick={() => setFilters(prev => ({ ...prev, expense_class: opt.value }))}
+                    className={cn(
+                      "text-[10px] font-bold h-10 rounded-none border-border/30",
+                      filters.expense_class === opt.value ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    {formatSentenceCase(opt.label)}
                   </Button>
                 ))}
               </div>

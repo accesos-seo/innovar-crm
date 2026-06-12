@@ -23,6 +23,7 @@ import { MetricData } from "@/components/shared/MetricsGrid";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { useClients, useUpdateClient, type ClientsFilters } from "@/hooks/useClients";
 import { ResourceListPage, ResourceQueryResult } from "@/components/shared/ResourceListPage";
+import { NewClientModal } from "@/components/shared/NewClientModal";
 
 const clientColumns: ColumnDef<Client>[] = [
   {
@@ -109,6 +110,7 @@ export default function ClientsPage() {
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [onlyArchived, setOnlyArchived] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
+  const [isNewClientOpen, setIsNewClientOpen] = React.useState(false);
 
   // Lista completa (sin filtros) usada solo para métricas — siempre cuenta los activos.
   const { clients: allClients } = useClients("");
@@ -180,6 +182,8 @@ export default function ClientsPage() {
       subtitle="Directorio de clientes con cotización aprobada y proyectos activos."
       icon={Users}
       onBack={() => navigate("/")}
+      createLabel="Nuevo cliente"
+      onCreateClick={() => setIsNewClientOpen(true)}
       useQueryHook={useClientsQuery}
       hookParams={{ onlyArchived } satisfies ClientsFilters}
       columns={clientColumns}
@@ -329,6 +333,8 @@ export default function ClientsPage() {
           </div>
         </div>
       </DetailModal>
+
+      <NewClientModal isOpen={isNewClientOpen} onClose={() => setIsNewClientOpen(false)} />
     </ResourceListPage>
   );
 }

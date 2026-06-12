@@ -7,6 +7,7 @@ export const expenseCategorySchema = z.enum([
   "materiales",
   "operativo",
   "nomina",
+  "dietas",
   "transporte",
   "herramientas",
   "servicios_publicos",

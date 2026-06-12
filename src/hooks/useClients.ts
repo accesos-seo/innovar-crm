@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Client } from "@/types/database";
 import { assertSupabase, mapSupabaseError, notifyError } from "@/lib/errors";
+import { clientInsertSchema, type ClientInsert } from "@/schemas/client";
 import { toast } from "sonner";
 
 const CLIENTS_KEY = "clients";
@@ -125,6 +126,34 @@ export function useClients(
     archiveClients: async (ids: string[]) => archiveMutation.mutateAsync(ids),
     restoreClients: async (ids: string[]) => restoreMutation.mutateAsync(ids),
   };
+}
+
+/**
+ * Alta directa de cliente (carta cliente 2026-06-11). El flujo principal sigue
+ * siendo lead → conversión automática; este atajo cubre clientes que llegan
+ * por fuera del embudo (referidos, presenciales) sin pasar por solicitudes.
+ */
+export function useCreateClient() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (clientData: ClientInsert) => {
+      assertSupabase(supabase);
+      const validated = clientInsertSchema.parse(clientData);
+      const { data, error } = await supabase
+        .from("clients")
+        .insert(validated)
+        .select()
+        .single();
+      if (error) throw mapSupabaseError(error);
+      return data as Client;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CLIENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (error) => notifyError(error, "Error al crear cliente"),
+  });
 }
 
 /**

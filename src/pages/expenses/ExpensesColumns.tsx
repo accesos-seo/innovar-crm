@@ -73,6 +73,25 @@ export const columns: ColumnDef<Expense>[] = [
     },
   },
   {
+    id: "asignacion",
+    header: "Asignación",
+    cell: ({ row }) => {
+      const project = (row.original as any).projects as { name?: string } | null;
+      if (row.original.project_id) {
+        return (
+          <span className="text-xs font-bold text-foreground truncate max-w-[180px] block" title={project?.name ?? undefined}>
+            {project?.name ?? "Proyecto"}
+          </span>
+        );
+      }
+      return (
+        <Badge className="bg-muted/40 text-muted-foreground border-border/30 uppercase text-[9px] font-black tracking-widest rounded-none">
+          Empresa / Bodega
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: "amount",
     header: "Monto",
     cell: ({ row }) => {

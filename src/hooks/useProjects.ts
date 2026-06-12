@@ -227,36 +227,36 @@ export const useUpload3DFile = () => {
     }) => {
       assertSupabase(supabase);
 
-      // 1. Upload to storage
-      const filePath = `projects/3d/${projectId}/${Date.now()}_${fileName}`;
+      // 1. Upload al bucket project-files (mismo de la ficha de taller; el
+      //    bucket legacy project-3d-files nunca existió en prod)
+      const filePath = `${projectId}/design3d/${Date.now()}_${fileName}`;
       const { error: uploadError } = await supabase.storage
-        .from("project-3d-files")
-        .upload(filePath, file);
+        .from("project-files")
+        .upload(filePath, file, { contentType: file.type || "application/octet-stream" });
       if (uploadError) throw mapSupabaseError(uploadError);
 
-      // 2. Public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("project-3d-files").getPublicUrl(filePath);
-
-      // 3. Read current files for append + version calculation
+      // 2. Read current files for append + version calculation
       const { data: project, error: readErr } = await supabase
         .from("projects")
         .select("design_3d_files")
         .eq("id", projectId)
         .single();
-      if (readErr) throw mapSupabaseError(readErr);
+      if (readErr) {
+        await supabase.storage.from("project-files").remove([filePath]);
+        throw mapSupabaseError(readErr);
+      }
 
       const currentFiles = ((project?.design_3d_files as any[]) || []) as any[];
       const newVersion = currentFiles.length + 1;
 
-      // 4. Append
+      // 3. Append — formato estandarizado {path, name, ...} (bucket privado:
+      //    la URL se resuelve al descargar con getProjectFileUrl)
       const newFile = {
-        url: publicUrl,
-        nombre: fileName,
+        path: filePath,
+        name: fileName,
         version: newVersion,
-        subido_en: new Date().toISOString(),
-        subido_por: user?.id,
+        uploaded_at: new Date().toISOString(),
+        uploaded_by: user?.id ?? null,
       };
 
       const { data, error } = await supabase
@@ -266,7 +266,10 @@ export const useUpload3DFile = () => {
         .select()
         .single();
 
-      if (error) throw mapSupabaseError(error);
+      if (error) {
+        await supabase.storage.from("project-files").remove([filePath]);
+        throw mapSupabaseError(error);
+      }
       return data;
     },
     onSuccess: (data) => {

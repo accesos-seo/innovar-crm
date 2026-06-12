@@ -26,16 +26,25 @@ interface NewExpenseModalProps {
   onClose: () => void;
 }
 
-const CATEGORIES = [
-  { value: "materiales", label: "Materiales" },
-  { value: "operativo", label: "Operativo" },
-  { value: "nomina", label: "Nómina" },
-  { value: "transporte", label: "Transporte" },
-  { value: "herramientas", label: "Herramientas" },
-  { value: "servicios_publicos", label: "Servicios públicos" },
-  { value: "arriendo", label: "Arriendo" },
-  { value: "subcontrato", label: "Subcontrato" },
-  { value: "otro", label: "Otro" },
+/**
+ * Taxonomía de 2 clases (carta cliente 2026-06-11):
+ *  - proyecto: gastos imputados a un proyecto puntual (materiales, subcontrato…)
+ *  - empresa:  gastos de bodega/oficina sin proyecto (nómina, dietas, arriendo…)
+ * En la DB la clase se deriva de project_id (con proyecto / null).
+ */
+export type ExpenseClass = "proyecto" | "empresa";
+
+const CATEGORIES: { value: string; label: string; classes: ExpenseClass[] }[] = [
+  { value: "materiales", label: "Materiales", classes: ["proyecto"] },
+  { value: "subcontrato", label: "Subcontrato", classes: ["proyecto"] },
+  { value: "transporte", label: "Transporte", classes: ["proyecto", "empresa"] },
+  { value: "herramientas", label: "Herramientas", classes: ["proyecto", "empresa"] },
+  { value: "operativo", label: "Operativo", classes: ["proyecto", "empresa"] },
+  { value: "dietas", label: "Dietas y extras de empleados", classes: ["proyecto", "empresa"] },
+  { value: "nomina", label: "Nómina", classes: ["empresa"] },
+  { value: "servicios_publicos", label: "Servicios públicos", classes: ["empresa"] },
+  { value: "arriendo", label: "Arriendo", classes: ["empresa"] },
+  { value: "otro", label: "Otro", classes: ["proyecto", "empresa"] },
 ];
 
 export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
@@ -48,6 +57,7 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
     amount: ""
   });
 
+  const [expenseClass, setExpenseClass] = React.useState<ExpenseClass>("proyecto");
   const [formData, setFormData] = React.useState({
     project_id: "",
     category: "",
@@ -56,6 +66,19 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
   });
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [file, setFile] = React.useState<File | null>(null);
+
+  const visibleCategories = CATEGORIES.filter((c) => c.classes.includes(expenseClass));
+
+  const handleClassChange = (next: ExpenseClass) => {
+    setExpenseClass(next);
+    setFormData(prev => ({
+      ...prev,
+      // Al pasar a "empresa" el gasto deja de pertenecer a un proyecto.
+      project_id: next === "empresa" ? "" : prev.project_id,
+      // Si la categoría elegida no aplica a la nueva clase, se limpia.
+      category: CATEGORIES.find(c => c.value === prev.category)?.classes.includes(next) ? prev.category : "",
+    }));
+  };
 
   // Reset form when modal closes
   React.useEffect(() => {
@@ -78,11 +101,15 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
       notify.error("Error", "Faltan campos obligatorios");
       return;
     }
+    if (expenseClass === "proyecto" && !formData.project_id) {
+      notify.error("Error", "Un gasto de proyecto necesita el proyecto al que pertenece.");
+      return;
+    }
 
     try {
       await createExpense.mutateAsync({
         expenseData: {
-          project_id: formData.project_id || null,
+          project_id: expenseClass === "empresa" ? null : formData.project_id || null,
           amount: amountNum,
           category: formData.category as ExpenseCategory,
           expense_date: formData.expense_date,
@@ -102,6 +129,7 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
 
   const resetForm = () => {
     setDisplayData({ amount: "" });
+    setExpenseClass("proyecto");
     setFormData({
       project_id: "",
       category: "",
@@ -153,6 +181,41 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
             <div className="grid grid-cols-1 gap-6 bg-muted/5 p-6 border border-border/10">
               <div className="w-full space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                  {formatSentenceCase("Tipo de gasto")} <span className="text-primary">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={expenseClass === "proyecto" ? "default" : "outline"}
+                    onClick={() => handleClassChange("proyecto")}
+                    className={cn(
+                      "h-12 rounded-none text-[10px] font-bold uppercase tracking-widest border-border/30",
+                      expenseClass !== "proyecto" && "text-muted-foreground"
+                    )}
+                  >
+                    {formatSentenceCase("De proyecto")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={expenseClass === "empresa" ? "default" : "outline"}
+                    onClick={() => handleClassChange("empresa")}
+                    className={cn(
+                      "h-12 rounded-none text-[10px] font-bold uppercase tracking-widest border-border/30",
+                      expenseClass !== "empresa" && "text-muted-foreground"
+                    )}
+                  >
+                    {formatSentenceCase("De empresa / Bodega")}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                  {expenseClass === "proyecto"
+                    ? formatSentenceCase("Materiales y costos imputados a un proyecto puntual.")
+                    : formatSentenceCase("Nómina, dietas, arriendo y demás gastos de bodega/oficina — no afectan ningún proyecto.")}
+                </p>
+              </div>
+
+              <div className="w-full space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
                   {formatSentenceCase("Categoría")} <span className="text-primary">*</span>
                 </label>
                 <Select value={formData.category} onValueChange={(v) => { if (v !== null) setFormData({...formData, category: v}); }}>
@@ -162,31 +225,32 @@ export function NewExpenseModal({ isOpen, onClose }: NewExpenseModalProps) {
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border/50">
-                    {CATEGORIES.map(cat => (
+                    {visibleCategories.map(cat => (
                       <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="w-full space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                  {formatSentenceCase("Proyecto (opcional)")}
-                </label>
-                <Select value={formData.project_id} onValueChange={(v) => { if (v !== null) setFormData({...formData, project_id: v}); }}>
-                  <SelectTrigger className="bg-background border-border/50 h-12 rounded-none focus:ring-primary font-medium w-full">
-                    <SelectValue placeholder={formatSentenceCase("Gastos generales de oficina / General")}>
-                      {formData.project_id ? projects.find((p: any) => p.id === formData.project_id)?.name : "Gastos Generales / Oficina"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border/50">
-                    <SelectItem value="">Gastos Generales / Oficina</SelectItem>
-                    {projects.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {expenseClass === "proyecto" && (
+                <div className="w-full space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                    {formatSentenceCase("Proyecto")} <span className="text-primary">*</span>
+                  </label>
+                  <Select value={formData.project_id} onValueChange={(v) => { if (v !== null) setFormData({...formData, project_id: v}); }}>
+                    <SelectTrigger className="bg-background border-border/50 h-12 rounded-none focus:ring-primary font-medium w-full">
+                      <SelectValue placeholder={formatSentenceCase("Seleccionar proyecto")}>
+                        {formData.project_id ? projects.find((p: any) => p.id === formData.project_id)?.name : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border/50">
+                      {projects.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
 

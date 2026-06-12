@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { DetailModal } from "@/components/shared/DetailModal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -31,6 +32,8 @@ export interface BookAppointmentData {
   date: string;
   timeSlot: string;
   appointmentType: 'visita_tecnica' | 'cita_diseno';
+  /** Dirección exacta donde se realizará la visita (carta cliente 2026-06-11). */
+  address?: string;
 }
 
 interface NewAppointmentModalProps {
@@ -53,6 +56,7 @@ export function NewAppointmentModal({
   const [staffId, setStaffId] = useState<string>('');
   const [date, setDate] = useState<Date | undefined>(preselectedDate || new Date());
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
 
   const { data: staffList = [], isLoading: isLoadingStaff } = useActiveStaff();
 
@@ -80,6 +84,7 @@ export function NewAppointmentModal({
       setStaffId('');
       setDate(new Date());
       setSelectedTime('');
+      setAddress('');
     }
   }, [isOpen]);
 
@@ -112,6 +117,7 @@ export function NewAppointmentModal({
       date: format(date, 'yyyy-MM-dd'),
       timeSlot: selectedTime,
       appointmentType,
+      address: address.trim() || undefined,
     });
   };
 
@@ -258,7 +264,31 @@ export function NewAppointmentModal({
           </div>
         </div>
 
-        {/* SECCIÓN 3: INFO BANNERS — Políticas + Notificación, fila pareja. */}
+        {/* SECCIÓN 3: UBICACIÓN — dirección exacta de la visita (opcional). */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 border-l-2 border-primary pl-4">
+            <MapPin className="w-4 h-4 text-primary" />
+            <h3 className="text-xs font-black text-foreground uppercase">{formatSentenceCase("Ubicación")}</h3>
+          </div>
+
+          <div className="bg-muted/5 p-8 border border-border/10 space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+              {formatSentenceCase("Dirección exacta de la visita (opcional)")}
+            </label>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={formatSentenceCase("Ej. Cra 15 #23-45, Torre 2, Apto 801 — Barrio Álamos, Pereira")}
+              maxLength={300}
+              className="bg-background border-border/50 h-12 rounded-none focus-visible:ring-primary font-medium"
+            />
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed italic">
+              {formatSentenceCase("Quedará en la descripción de la cita, visible para el comercial que hará la visita.")}
+            </p>
+          </div>
+        </div>
+
+        {/* SECCIÓN 4: INFO BANNERS — Políticas + Notificación, fila pareja. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 bg-primary/5 border border-primary/10 space-y-3">
             <div className="flex items-center gap-2 text-primary">

@@ -180,9 +180,6 @@ export const Sidebar = React.memo(function Sidebar() {
   const isProduccionRole = FEATURES.productionModuleEnabled && profile?.role === "produccion";
   const isAdministradora = profile?.role === "administradora";
   const isGerente = profile?.role === "gerente";
-  // isAdminLevel: rutas de Decisiones visibles (seguridad real en ProtectedRoute + RLS)
-  const isAdminLevel = profile?.role === 'admin' || profile?.role === 'super_admin' || isGerente;
-
   const visibleNavItems = React.useMemo<NavItem[]>(() => {
     if (isProduccionRole) {
       return [
@@ -337,33 +334,6 @@ export const Sidebar = React.memo(function Sidebar() {
           )}
         </Link>
 
-        {/* Decisiones — solo admin, super_admin y gerente */}
-        {isAdminLevel && (
-          <Link
-            to="/decisiones"
-            className={cn(
-              "group flex items-center px-4 py-3 rounded-md transition-all duration-200",
-              isSidebarCollapsed ? "justify-center" : "justify-between",
-              location.pathname.startsWith("/decisiones")
-                ? "text-primary bg-primary/5 font-bold"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ClipboardCheck className={cn(
-                "w-5 h-5 transition-colors",
-                location.pathname.startsWith("/decisiones") ? "text-primary" : "group-hover:text-primary"
-              )} />
-              {!isSidebarCollapsed && <span className="text-sm tracking-tight">Decisiones</span>}
-            </div>
-            {!isSidebarCollapsed && location.pathname.startsWith("/decisiones") && (
-              <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
-            )}
-            {!isSidebarCollapsed && !location.pathname.startsWith("/decisiones") && (
-              <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
-            )}
-          </Link>
-        )}
 
         {/* Badge visual para gerente (rol de solo observación) */}
         {isGerente && !isSidebarCollapsed && (

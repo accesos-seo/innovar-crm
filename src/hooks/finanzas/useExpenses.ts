@@ -8,6 +8,8 @@ export function useExpenses(
     category?: string;
     approval_status?: string;
     project_id?: string;
+    /** "proyecto" = con project_id; "empresa" = sin project_id (bodega/oficina). */
+    expense_class?: "all" | "proyecto" | "empresa";
     date_from?: string;
     date_to?: string;
     search?: string;
@@ -40,6 +42,11 @@ export function useExpenses(
       }
       if (filters?.project_id && filters.project_id !== "all") {
         query = query.eq("project_id", filters.project_id);
+      }
+      if (filters?.expense_class === "proyecto") {
+        query = query.not("project_id", "is", null);
+      } else if (filters?.expense_class === "empresa") {
+        query = query.is("project_id", null);
       }
       if (filters?.date_from) {
         query = query.gte("expense_date", filters.date_from);

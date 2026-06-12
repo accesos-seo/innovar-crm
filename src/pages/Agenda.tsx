@@ -66,6 +66,7 @@ export default function AgendaPage() {
     date: string;
     timeSlot: string;
     appointmentType: 'visita_tecnica' | 'cita_diseno';
+    address?: string;
   }) => {
     await bookMutation.mutateAsync(data);
     setIsNewModalOpen(false);

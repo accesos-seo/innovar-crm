@@ -9,13 +9,15 @@ interface BookAppointmentParams {
   date: string;
   timeSlot: string;
   appointmentType: 'visita_tecnica' | 'cita_diseno';
+  /** Dirección exacta de la visita; se guarda en la descripción de la cita. */
+  address?: string;
 }
 
 export function useBookAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clientId, staffId, date, timeSlot, appointmentType }: BookAppointmentParams) => {
+    mutationFn: async ({ clientId, staffId, date, timeSlot, appointmentType, address }: BookAppointmentParams) => {
       assertSupabase(supabase);
 
       const { data: existing, error: existingErr } = await supabase
@@ -56,6 +58,7 @@ export function useBookAppointment() {
           time_slot: timeSlot,
           appointment_type: appointmentType,
           task_category: 'cita',
+          description: address?.trim() ? `📍 Dirección: ${address.trim()}` : null,
         })
         .select()
         .single();

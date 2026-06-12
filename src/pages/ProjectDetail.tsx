@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProject, useUpdateProject, useUpload3DFile } from "@/hooks/useProjects";
+import { getProjectFileUrl, ALLOWED_FILE_EXTENSIONS } from "@/hooks/produccion/useProductionBoard";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { 
   Briefcase, 
@@ -117,7 +118,14 @@ export default function ProjectDetailPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!ALLOWED_FILE_EXTENSIONS.includes(ext)) {
+      toast.error(`Extensión no permitida. Usa: ${ALLOWED_FILE_EXTENSIONS.join(", ")}.`);
+      return;
+    }
 
     const toastId = toast.loading("Subiendo archivo...");
 
@@ -131,10 +139,19 @@ export default function ProjectDetailPage() {
     } catch (error: any) {
       console.error("Error uploading file:", error);
       const isBucketError = error.message?.includes("bucket") || error.error === "Bucket not found";
-      const message = isBucketError 
-        ? "El contenedor de archivos (Bucket) no está configurado en Supabase. Contacte a soporte." 
+      const message = isBucketError
+        ? "El contenedor de archivos (Bucket) no está configurado en Supabase. Contacte a soporte."
         : error.message || "Error al subir archivo";
       toast.error(message, { id: toastId });
+    }
+  };
+
+  const handleFileDownload = async (file: any) => {
+    const url = await getProjectFileUrl(file);
+    if (url) {
+      window.open(url, "_blank", "noopener");
+    } else {
+      toast.error("No se pudo generar el enlace del archivo");
     }
   };
 
@@ -282,10 +299,16 @@ export default function ProjectDetailPage() {
                 Modelado 3D y Renders
               </h3>
               <div className="flex gap-2">
-                <input type="file" id="file-upload" className="hidden" onChange={handleFileUpload} />
-                <Button 
-                  variant="default" 
-                  size="sm" 
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  accept=".pdf,.skp,.dwg,.dxf,.png,.jpg,.jpeg,.webp"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="default"
+                  size="sm"
                   className="text-[10px] font-bold uppercase tracking-widest h-8"
                   onClick={() => document.getElementById('file-upload')?.click()}
                 >
@@ -297,29 +320,22 @@ export default function ProjectDetailPage() {
               {project.design_3d_files && project.design_3d_files.length > 0 ? (
                 <div className="space-y-4">
                   {project.design_3d_files.map((file: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-muted/30 border border-border/10 rounded-sm group hover:border-primary/30 transition-all">
+                    <div key={file.path ?? file.url ?? idx} className="flex items-center justify-between p-4 bg-muted/30 border border-border/10 rounded-sm group hover:border-primary/30 transition-all">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-sm flex items-center justify-center">
                           <FileText className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-foreground">{file.nombre}</p>
+                          <p className="text-sm font-bold text-foreground">{file.name ?? file.nombre}</p>
                           <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                            Versión {file.version} • {formatDate(file.subido_en)}
+                            Versión {file.version ?? idx + 1} • {formatDate(file.uploaded_at ?? file.subido_en)}
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        render={(triggerProps) => (
-                          <a 
-                            {...triggerProps} 
-                            href={file.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                          />
-                        )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleFileDownload(file)}
                       >
                         <Download className="w-4 h-4" />
                       </Button>
