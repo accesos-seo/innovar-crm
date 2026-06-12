@@ -63,17 +63,26 @@ export const columns: ColumnDef<NotificationQueueRow>[] = [
   {
     accessorKey: "delivered_at",
     header: "Hora de entrega",
-    cell: ({ row }) => (
-      <div className="flex flex-col">
-        {row.original.delivered_at ? (
-          <span className="font-bold text-xs text-emerald-500 tabular-nums">
-            {formatDateTime(row.original.delivered_at)}
-          </span>
-        ) : (
-          <span className="text-[10px] text-muted-foreground italic uppercase tracking-tighter">Pen. Entrega</span>
-        )}
-      </div>
-    )
+    cell: ({ row }) => {
+      const { delivered_at, sent_at } = row.original;
+      if (delivered_at) {
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-xs text-emerald-500 tabular-nums">{formatDateTime(delivered_at)}</span>
+            <span className="text-[10px] text-emerald-500/60 uppercase tracking-tighter">Entregado</span>
+          </div>
+        );
+      }
+      if (sent_at) {
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-xs tabular-nums">{formatDateTime(sent_at)}</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">Enviado</span>
+          </div>
+        );
+      }
+      return <span className="text-[10px] text-muted-foreground italic uppercase tracking-tighter">Pen. Envío</span>;
+    }
   },
   {
     accessorKey: "status",
