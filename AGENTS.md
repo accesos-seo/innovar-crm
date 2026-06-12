@@ -2,7 +2,7 @@
 
 > Punto de entrada para cualquier agente (Claude Code, Codex, Cursor, Antigravity…).
 > `AGENTS.md` es el estándar abierto; `CLAUDE.md` lo lee solo Claude. **Ambos coexisten** (§0).
-> NO es una biblia: es un mapa con divulgación progresiva. Si encontrás algo obsoleto, **párate y avisá** — no improvises.
+> NO es una biblia: es un mapa con divulgación progresiva. Si encontrás algo obsoleto, **párate y avisá** — no improvises. Si el arnés contradice el código real, **gana el código** — actualizá el arnés.
 
 ## 0. Relación con CLAUDE.md, memoria y convenciones
 

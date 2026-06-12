@@ -91,6 +91,21 @@ trabajo local. Verificar deploy Ready (auto-deploy de Vercel está ROTO: `docs/o
 ### CHK-DEPLOY-002 — Nada sensible commiteado
 `.env`, `.claude/`, `.vercel/`, `*.log` fuera del commit.
 
+### CHK-DEPLOY-003 — Escaneo de secretos en archivos nuevos
+Antes de commitear archivos NUEVOS: `grep -E "sbp_|eyJhbGciOi|AIza|client_secret"` sobre lo que
+entra al add. Match con valor literal → mover a env y sanear ANTES del push. (Origen: 3 scripts
+con service_role+PAT hardcodeados encontrados en Manager Ascent, 2026-06-12.)
+
+---
+
+## Identidad (cross-cliente)
+
+### CHK-ID-001 — Cliente correcto verificado
+Antes del primer SQL de escritura, deploy o EF de la sesión: el `project_ref` de Supabase (y el
+proyecto Vercel, si aplica) que vas a tocar coincide con el de este arnés Y con la tabla universal
+de `~/.claude/CLAUDE.md`. Tocar infra de otro cliente es el incidente más grave del ecosistema
+(Emporium apuntando a la DB y al Vercel de Innovar — 2026-06-09 y 2026-06-12).
+
 ---
 
 ## Cuándo agregar checkpoints nuevos
