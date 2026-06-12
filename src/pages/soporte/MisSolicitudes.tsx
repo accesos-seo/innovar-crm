@@ -42,19 +42,29 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function MisSolicitudesPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
 
   const [activeTab, setActiveTab] = React.useState<TicketStatus>("Abierto");
   const [search, setSearch] = React.useState("");
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["my_support_tickets", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["mis_solicitudes", user?.id, isAdmin],
+    enabled: !!user?.id && !!profile,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const uid = user?.id ?? "";
+      let q = supabase
         .from("support_tickets")
         .select("*")
-        .eq("created_by", user!.id)
-        .order("created_at", { ascending: false });
+        .eq("ticket_type", "solicitud");
+      // Admins ven las solicitudes que ellos crearon;
+      // clientes ven solo las que les asignaron.
+      if (isAdmin) {
+        q = q.eq("created_by", uid);
+      } else {
+        q = q.eq("assigned_to", uid);
+      }
+      const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
       return data as SupportTicket[];
     },

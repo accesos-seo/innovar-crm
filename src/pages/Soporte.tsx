@@ -55,6 +55,7 @@ export default function SoportePage() {
       const { data, error } = await supabase
         .from("support_tickets")
         .select("*, creator:profiles!created_by(full_name, avatar_url, role)")
+        .eq("ticket_type", "ticket")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as SupportTicket[];

@@ -7,6 +7,8 @@ export type TicketCategory =
   | "otro";
 export type TicketStatus = "Abierto" | "En Progreso" | "Cerrado";
 
+export type TicketType = "ticket" | "solicitud";
+
 export interface SupportTicket {
   id: number;
   ticket_id: string;
@@ -15,6 +17,7 @@ export interface SupportTicket {
   priority: TicketPriority;
   category: TicketCategory;
   status: TicketStatus;
+  ticket_type: TicketType;
   created_by: string;
   assigned_to: string | null;
   file_urls: string[];

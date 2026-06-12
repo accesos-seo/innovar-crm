@@ -123,6 +123,7 @@ export default function NuevoTicketPage() {
           category: data.category,
           priority: data.priority,
           status: "Abierto",
+          ticket_type: "ticket",
           created_by: profile.id,
           file_urls: attachments.map((a) => a.url),
         })
