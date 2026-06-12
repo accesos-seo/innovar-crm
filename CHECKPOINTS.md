@@ -12,7 +12,7 @@
 `npm run typecheck` → 0 errores **nuevos** sobre el baseline (~32 pre-existentes, AGENTS.md §7.2).
 
 ### CHK-GLOB-002 — Build verde
-`npm run build` → completa sin error. Verificación real (no `dev`, que se cuelga sobre OneDrive).
+`npm run build` → completa sin error. Verificación real sobre el build (repo en `D:`, sin watchers problemáticos).
 
 ### CHK-GLOB-003 — Sin `console.log`/`TODO` huérfano en archivos modificados
 Salvo en `*.test.ts`.
@@ -83,9 +83,10 @@ Tests solo a Robert `573183061286` o Heduin `+584127862439`. Nunca a clientes. N
 
 ## Deploy / git
 
-### CHK-DEPLOY-001 — Comandos al usuario, copy-paste
-`git add`/`commit`/`push` y `vercel --prod` se entregan como comando PowerShell copy-paste
-(`;` no `&&`), nunca background sobre OneDrive. `git add` con archivos explícitos, nunca `git add .`.
+### CHK-DEPLOY-001 — Ciclo EN VIVO ejecutado por el agente (orden 2026-06-12)
+`git add` (archivos explícitos, nunca `git add .`) + `commit` + `push` + `vercel --prod --yes`
+los ejecuta el agente al cerrar cada cambio — no se entregan comandos al usuario ni se acumula
+trabajo local. Verificar deploy Ready (auto-deploy de Vercel está ROTO: `docs/ops/vercel-deploy.md`).
 
 ### CHK-DEPLOY-002 — Nada sensible commiteado
 `.env`, `.claude/`, `.vercel/`, `*.log` fuera del commit.
