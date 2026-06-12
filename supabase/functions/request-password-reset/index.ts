@@ -20,6 +20,21 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validate SUPABASE_URL at startup to prevent DoS from malformed URL
+let supabaseHostname: string;
+try {
+  const url = new URL(SUPABASE_URL);
+  supabaseHostname = url.hostname || '';
+  if (!supabaseHostname || !supabaseHostname.endsWith('.supabase.co')) {
+    throw new Error('SUPABASE_URL hostname must be a valid Supabase domain');
+  }
+} catch (err) {
+  if (err instanceof Error) {
+    throw new Error(`Invalid SUPABASE_URL: ${err.message}`);
+  }
+  throw new Error('Invalid SUPABASE_URL: malformed or empty hostname');
+}
+
 function ok() {
   return new Response(JSON.stringify({ sent: true }), {
     status: 200,
