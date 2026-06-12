@@ -58,7 +58,7 @@ export function QuotationCancelModal({
       open={isOpen}
       onOpenChange={(open) => !open && !cancel.isPending && onClose()}
     >
-      <DialogContent className="max-w-lg bg-card border-border/50">
+      <DialogContent className="sm:max-w-lg bg-card border-border/50">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <XCircle className="w-5 h-5 text-destructive" />

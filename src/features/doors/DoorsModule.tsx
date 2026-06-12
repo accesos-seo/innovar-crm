@@ -330,7 +330,7 @@ export const DoorsModule: React.FC<DoorsModuleProps> = ({ onDataChange, initialD
                   <Eye className="w-3 h-3 mr-2" /> Ficha Técnica
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-[850px] p-0 border-none bg-transparent shadow-2xl">
+              <DialogContent className="sm:max-w-[850px] p-0 border-none bg-transparent shadow-2xl">
                 <div className="scale-75 origin-top-center overflow-auto max-h-[90vh]">
                   <DoorsTemplate
                     data={{

@@ -96,7 +96,7 @@ export const TVCenterModule: React.FC<TVCenterModuleProps> = ({ onDataChange, in
                 <Eye className="w-4 h-4 mr-2" /> Ver Ficha Técnica
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[850px] p-0 border-none bg-transparent shadow-2xl">
+            <DialogContent className="sm:max-w-[850px] p-0 border-none bg-transparent shadow-2xl">
               <div className="scale-75 origin-top overflow-auto max-h-[90vh]">
                 <TVCenterTemplate
                   data={{

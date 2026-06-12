@@ -107,7 +107,7 @@ export function QuotationClientStep({
                     </Button>
                   )}
                 />
-                <DialogContent className="max-w-3xl bg-card border-primary/20 p-12 shadow-[0_0_80px_rgba(0,0,0,0.6)] border-l-8 border-l-primary overflow-y-auto max-h-[90vh]">
+                <DialogContent className="sm:max-w-3xl bg-card border-primary/20 p-12 shadow-[0_0_80px_rgba(0,0,0,0.6)] border-l-8 border-l-primary overflow-y-auto max-h-[90vh]">
                   <DialogHeader className="space-y-4 mb-8">
                     <div className="flex items-center gap-6">
                       <div className="p-4 bg-primary/10 rounded-sm border border-primary/20 shrink-0">

@@ -115,7 +115,7 @@ export function BankDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-none border-border/20">
+      <DialogContent className="sm:max-w-lg rounded-none border-border/20">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold uppercase">
             Agregar Datos Bancarios
