@@ -42,29 +42,23 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function MisSolicitudesPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const profile = useAuthStore((s) => s.profile);
-  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
 
   const [activeTab, setActiveTab] = React.useState<TicketStatus>("Abierto");
   const [search, setSearch] = React.useState("");
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["mis_solicitudes", user?.id, isAdmin],
-    enabled: !!user?.id && !!profile,
+    queryKey: ["mis_solicitudes", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       const uid = user?.id ?? "";
-      let q = supabase
+      // Muestra tickets donde soy el destinatario (assigned_to) O el creador (created_by).
+      // Así Álvaro ve lo que le enviaron, y Robert ve lo que él creó para seguimiento.
+      const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("ticket_type", "solicitud");
-      // Admins ven las solicitudes que ellos crearon;
-      // clientes ven solo las que les asignaron.
-      if (isAdmin) {
-        q = q.eq("created_by", uid);
-      } else {
-        q = q.eq("assigned_to", uid);
-      }
-      const { data, error } = await q.order("created_at", { ascending: false });
+        .eq("ticket_type", "solicitud")
+        .or(`assigned_to.eq.${uid},created_by.eq.${uid}`)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as SupportTicket[];
     },
