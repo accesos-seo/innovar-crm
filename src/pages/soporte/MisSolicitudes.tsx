@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ClipboardList,
-  Plus,
   Search,
   Clock,
   CheckCircle2,
@@ -92,14 +91,9 @@ export default function MisSolicitudesPage() {
     >
       <CategoryHeader
         title="MIS SOLICITUDES"
-        subtitle="Tickets que has enviado al equipo de soporte."
+        subtitle="Solicitudes enviadas por el equipo para tu revisión."
         icon={ClipboardList}
         onBack={() => navigate("/settings")}
-        action={{
-          label: "Nueva Solicitud",
-          icon: Plus,
-          onClick: () => navigate("/soporte/nuevo"),
-        }}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -151,7 +145,7 @@ export default function MisSolicitudesPage() {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState status={activeTab} onNew={() => navigate("/soporte/nuevo")} />
+          <EmptyState status={activeTab} />
         ) : (
           <div className="space-y-2">
             {filtered.map((ticket) => (
@@ -253,17 +247,11 @@ function TicketRow({
   );
 }
 
-function EmptyState({
-  status,
-  onNew,
-}: {
-  status: TicketStatus;
-  onNew: () => void;
-}) {
+function EmptyState({ status }: { status: TicketStatus }) {
   const messages: Record<TicketStatus, string> = {
-    Abierto: "No tienes solicitudes abiertas.",
-    "En Progreso": "No tienes solicitudes en progreso.",
-    Cerrado: "No tienes solicitudes cerradas aun.",
+    Abierto: "No hay solicitudes abiertas.",
+    "En Progreso": "No hay solicitudes en progreso.",
+    Cerrado: "No hay solicitudes cerradas aun.",
   };
   return (
     <div className="flex flex-col items-center justify-center py-16 space-y-4">
@@ -271,12 +259,6 @@ function EmptyState({
         <ClipboardList className="w-8 h-8 text-primary/50" />
       </div>
       <p className="text-sm text-muted-foreground">{messages[status]}</p>
-      {status === "Abierto" && (
-        <Button variant="outline" size="sm" onClick={onNew} className="mt-2">
-          <Plus className="w-4 h-4 mr-2" />
-          Crear solicitud
-        </Button>
-      )}
     </div>
   );
 }
