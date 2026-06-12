@@ -106,5 +106,6 @@ Set-Location "D:\Agents-automations\04-Innovar"; npx vercel --prod --token TU_VE
 | Storage / buckets | `docs/ops/storage-buckets.md` |
 | Estado vivo del proyecto (fases, bugs, decisiones) | memoria `project_innovar.md` |
 | Handoffs por sesión | `docs/handover/` |
-| PRDs (portal cliente, postventa, producción, agentes) | `docs/prd/`, `docs/agents/`, raíz `PRD-*.md` |
-| Onboarding narrativo del producto | `ONBOARDING.md` |
+| PRDs (portal cliente, postventa, producción, agentes) | `docs/prd/`, `docs/agents/` |
+| Onboarding narrativo del producto | `docs/legacy/ONBOARDING.md` |
+| Legacy (cotizadores Word, handovers viejos) e informes | `docs/legacy/` · `docs/informes/` |
