@@ -12,6 +12,7 @@ import { useRealtimeNotifications } from '@/hooks/notifications/useRealtimeNotif
 import { Notification } from '@/types/database';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { buildDeepLinkState } from '@/lib/notification-deeplink';
 
 export const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -72,12 +73,7 @@ export function NotificationBell() {
       await markAsRead.mutateAsync(notif.id);
     }
     if (notif.action_url) {
-      const taskState =
-        notif.related_id &&
-        (notif.action_url === '/agenda/tareas' || notif.related_table === 'tasks')
-          ? { state: { taskId: notif.related_id } }
-          : undefined;
-      navigate(notif.action_url, taskState);
+      navigate(notif.action_url, buildDeepLinkState(notif));
     }
   };
 

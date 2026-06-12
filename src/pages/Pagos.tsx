@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PaymentMetrics } from '@/components/finanzas/PaymentMetrics';
 import { PaymentsList } from '@/components/finanzas/PaymentsList';
 import { NewPaymentModal } from '@/components/finanzas/NewPaymentModal';
@@ -35,6 +36,11 @@ type TabKey = 'pending' | 'verified' | 'rejected';
 
 export default function PagosPage() {
   const slice3 = useFeatureFlag('slice_3_enabled');
+  const location = useLocation();
+
+  const pendingPaymentIdRef = useRef<string | null>(
+    (location.state as { paymentId?: string } | null)?.paymentId ?? null
+  );
 
   const [filters, setFilters] = useState({
     project_id: 'all',
@@ -114,13 +120,21 @@ export default function PagosPage() {
     !!filters.date_from ||
     !!filters.date_to;
 
-  const handlePaymentClick = (p: Payment) => {
+  const handlePaymentClick = useCallback((p: Payment) => {
     if (slice3 && p.verification_status === 'pending') {
       setVerifyingPayment(p);
     } else {
       setSelectedPayment(p);
     }
-  };
+  }, [slice3]);
+
+  useEffect(() => {
+    if (!pendingPaymentIdRef.current || payments.length === 0) return;
+    const target = payments.find(p => p.id === pendingPaymentIdRef.current);
+    if (!target) return;
+    pendingPaymentIdRef.current = null;
+    handlePaymentClick(target);
+  }, [payments, handlePaymentClick]);
 
   const FiltersBar = (
     <div className="flex gap-4 items-center bg-card/50 p-4 rounded-sm border border-border/10 transition-all duration-300 ease-in-out hover:border-l-primary hover:border-l-4 group">

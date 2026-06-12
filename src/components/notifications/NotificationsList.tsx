@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildDeepLinkState } from '@/lib/notification-deeplink';
 import { useNotifications } from '@/hooks/notifications/useNotifications';
 import { useMarkAsRead } from '@/hooks/notifications/useMarkAsRead';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
@@ -74,12 +75,7 @@ export function NotificationsList({ filterType, searchQuery }: NotificationsList
       await markAsRead.mutateAsync(notif.id);
     }
     if (notif.action_url) {
-      const taskState =
-        notif.related_id &&
-        (notif.action_url === '/agenda/tareas' || notif.related_table === 'tasks')
-          ? { state: { taskId: notif.related_id } }
-          : undefined;
-      navigate(notif.action_url, taskState);
+      navigate(notif.action_url, buildDeepLinkState(notif));
     }
   };
 

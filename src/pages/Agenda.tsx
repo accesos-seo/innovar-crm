@@ -1,12 +1,12 @@
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CategoryHeader } from "@/components/shared/CategoryHeader";
 import { Calendar, Plus, Clock, CheckCircle2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { addWeeks, subWeeks, addHours, parse } from "date-fns";
 
 import { useAppointments } from "@/hooks/agenda/useAppointments";
@@ -22,14 +22,19 @@ import { Task } from "@/types/database";
 
 export default function AgendaPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'month'>('week');
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  
+
   const [selectedDateForNew, setSelectedDateForNew] = useState<Date | undefined>(undefined);
   const [selectedAppointment, setSelectedAppointment] = useState<Task | null>(null);
+
+  const pendingApptIdRef = useRef<string | null>(
+    (location.state as { appointmentId?: string } | null)?.appointmentId ?? null
+  );
 
   const { data: appointments = [], isLoading } = useAppointments(date, view);
   
@@ -55,10 +60,18 @@ export default function AgendaPage() {
     setIsNewModalOpen(true);
   };
 
-  const handleAppointmentClick = (app: Task) => {
+  const handleAppointmentClick = React.useCallback((app: Task) => {
     setSelectedAppointment(app);
     setIsDetailModalOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!pendingApptIdRef.current || appointments.length === 0) return;
+    const target = appointments.find(a => a.id === pendingApptIdRef.current);
+    if (!target) return;
+    pendingApptIdRef.current = null;
+    handleAppointmentClick(target);
+  }, [appointments, handleAppointmentClick]);
 
   const handleBook = async (data: {
     clientId: string;

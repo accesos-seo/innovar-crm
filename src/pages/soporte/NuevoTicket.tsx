@@ -145,7 +145,9 @@ export default function NuevoTicketPage() {
         "Ticket enviado",
         `${ticket.ticket_id} recibido. Te notificaremos al responder.`
       );
-      navigate(`/soporte/${ticket.id}`);
+      // Volver al registro principal: el cliente recién envía el ticket,
+      // no hay conversación que esperar todavía.
+      navigate("/soporte");
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : "Intenta nuevamente.";
