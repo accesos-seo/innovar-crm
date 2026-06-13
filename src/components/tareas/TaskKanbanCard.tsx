@@ -83,7 +83,7 @@ export const TaskKanbanCard: React.FC<TaskKanbanCardProps> = ({ task, index, onC
 
           {task.assigned_user && (
             <div className="flex items-center gap-2 mb-3 bg-muted/20 p-2 border border-border/10">
-              <UserAvatar name={task.assigned_user.full_name || "U"} className="w-5 h-5 text-[8px]" />
+              <UserAvatar name={task.assigned_user.full_name || "U"} image={task.assigned_user.avatar_url ?? undefined} className="w-5 h-5 text-[8px]" />
               <span className="text-[10px] font-bold text-muted-foreground truncate uppercase tracking-wider">
                 {task.assigned_user.full_name}
               </span>

@@ -117,7 +117,7 @@ export function TaskListView({ tasks, onTaskClick, selectedTasks, toggleTaskSele
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <UserAvatar name={task.assigned_user?.full_name || "U"} className="w-6 h-6" />
+                      <UserAvatar name={task.assigned_user?.full_name || "U"} image={task.assigned_user?.avatar_url ?? undefined} className="w-6 h-6" />
                       <span className="text-xs font-bold text-foreground truncate max-w-[120px]">
                         {task.assigned_user?.full_name || formatSentenceCase("Sin asignar")}
                       </span>

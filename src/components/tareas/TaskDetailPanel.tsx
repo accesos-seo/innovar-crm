@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DetailModal } from '@/components/shared/DetailModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, User, Clock, Tag, ExternalLink, X, ListTodo, Link2, Lock, CheckCircle2 } from 'lucide-react';
+import { Trash2, Clock, Tag, ExternalLink, X, ListTodo, Link2, Lock, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,6 +21,7 @@ import {
 } from '@/services/taskDependenciesService';
 
 import { Task } from '@/types/database';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 
 interface TaskDetailPanelProps {
   task: Task | null;
@@ -241,7 +242,7 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
             <div className="space-y-2 pt-4 border-t border-border/10">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Asignado a</p>
               <div className="flex items-center gap-2">
-                <User className="w-3 h-3 text-primary" />
+                <UserAvatar name={task.assigned_user?.full_name || "Sin asignar"} image={task.assigned_user?.avatar_url ?? undefined} className="w-6 h-6" />
                 <span className="text-xs font-bold text-foreground">{task.assigned_user?.full_name || 'Sin asignar'}</span>
               </div>
             </div>

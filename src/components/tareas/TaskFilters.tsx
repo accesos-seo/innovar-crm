@@ -114,7 +114,7 @@ export function TaskFilters({ filters, setFilters, staff, tasks, usersCanFilterA
                       );
                       return (
                         <div className="flex items-center gap-2">
-                          <UserAvatar name={display} className="w-6 h-6" />
+                          <UserAvatar name={display} image={staff.find(s => s.id === filters.assigned_to)?.avatar_url ?? undefined} className="w-6 h-6" />
                           <span>{display}</span>
                         </div>
                       );
@@ -128,7 +128,7 @@ export function TaskFilters({ filters, setFilters, staff, tasks, usersCanFilterA
                     return (
                       <SelectItem key={member.id} value={member.id}>
                         <div className="flex items-center gap-2">
-                          <UserAvatar name={display} className="w-6 h-6" />
+                          <UserAvatar name={display} image={member.avatar_url ?? undefined} className="w-6 h-6" />
                           <span>
                             {display}
                             <span className="ml-1 text-muted-foreground font-medium">({getTaskCountForStaff(member.id)})</span>
