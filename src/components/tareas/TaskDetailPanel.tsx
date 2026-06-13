@@ -44,6 +44,7 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
   const [depSearch, setDepSearch] = useState('');
   const [depRelation, setDepRelation] = useState<'blocked' | 'blocking'>('blocked');
   const [addingDep, setAddingDep] = useState(false);
+  const [deletingDepId, setDeletingDepId] = useState<string | null>(null);
 
   const loadTaskDeps = useCallback(async (taskId: string) => {
     const [blocking, blocked] = await Promise.all([
@@ -90,12 +91,16 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
   };
 
   const handleDeleteDep = async (depId: string, currentTaskId: string) => {
+    if (deletingDepId) return;
+    setDeletingDepId(depId);
     try {
       await deleteTaskDependency(depId);
       await loadTaskDeps(currentTaskId);
       notify.success('Dependencia eliminada', 'La dependencia fue eliminada.');
     } catch (e: any) {
       notify.error('Error al eliminar dependencia', e?.message ?? 'No se pudo eliminar la dependencia.');
+    } finally {
+      setDeletingDepId(null);
     }
   };
 
@@ -287,7 +292,8 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
                     </span>
                     <button
                       onClick={() => handleDeleteDep(dep.id, task.id)}
-                      className="text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0"
+                      disabled={!!deletingDepId}
+                      className="text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -309,7 +315,8 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
                     </span>
                     <button
                       onClick={() => handleDeleteDep(dep.id, task.id)}
-                      className="text-muted-foreground/40 hover:text-purple-400 transition-colors shrink-0"
+                      disabled={!!deletingDepId}
+                      className="text-muted-foreground/40 hover:text-purple-400 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
