@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DetailModal } from '@/components/shared/DetailModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,15 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
   const [depRelation, setDepRelation] = useState<'blocked' | 'blocking'>('blocked');
   const [addingDep, setAddingDep] = useState(false);
 
+  const loadTaskDeps = useCallback(async (taskId: string) => {
+    const [blocking, blocked] = await Promise.all([
+      getBlockingTasks(taskId),
+      getBlockedTasks(taskId),
+    ]);
+    setBlockingTasks(blocking);
+    setBlockedTasks(blocked);
+  }, []);
+
   // Cargar dependencias cuando cambia la tarea abierta
   useEffect(() => {
     if (!task?.id) {
@@ -56,18 +65,10 @@ export function TaskDetailPanel({ task, isOpen, onClose, staff, canEditStatus, c
     // Resetear UI del buscador al cambiar tarea
     setShowAddDep(false);
     setDepSearch('');
-  }, [task?.id]);
-
-  const loadTaskDeps = async (taskId: string) => {
-    const [blocking, blocked] = await Promise.all([
-      getBlockingTasks(taskId),
-      getBlockedTasks(taskId),
-    ]);
-    setBlockingTasks(blocking);
-    setBlockedTasks(blocked);
-  };
+  }, [task?.id, loadTaskDeps]);
 
   const handleAddDep = async (relatedId: string, currentTaskId: string) => {
+    if (addingDep) return; // guard contra clicks simultáneos
     setAddingDep(true);
     try {
       if (depRelation === 'blocked') {
