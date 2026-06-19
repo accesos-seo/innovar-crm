@@ -2452,13 +2452,23 @@ export type Database = {
       approval_status: "pendiente" | "aprobado" | "rechazado"
       expense_category:
         | "materiales"
-        | "operativo"
-        | "nomina"
+        | "subcontrato"
         | "transporte"
         | "herramientas"
-        | "servicios_publicos"
+        | "operativo"
+        | "dietas"
         | "arriendo"
-        | "subcontrato"
+        | "luz_energia"
+        | "agua"
+        | "internet"
+        | "insumos_aseo"
+        | "insumos_papeleria"
+        | "cortesia_atencion_cliente"
+        | "gasolina_vehiculos"
+        | "mantenimiento_moto"
+        | "mantenimiento_bodega"
+        | "mantenimiento_maquinaria"
+        | "nomina"
         | "otro"
       payment_method:
         | "efectivo"
@@ -2632,13 +2642,23 @@ export const Constants = {
       approval_status: ["pendiente", "aprobado", "rechazado"],
       expense_category: [
         "materiales",
-        "operativo",
-        "nomina",
+        "subcontrato",
         "transporte",
         "herramientas",
-        "servicios_publicos",
+        "operativo",
+        "dietas",
         "arriendo",
-        "subcontrato",
+        "luz_energia",
+        "agua",
+        "internet",
+        "insumos_aseo",
+        "insumos_papeleria",
+        "cortesia_atencion_cliente",
+        "gasolina_vehiculos",
+        "mantenimiento_moto",
+        "mantenimiento_bodega",
+        "mantenimiento_maquinaria",
+        "nomina",
         "otro",
       ],
       payment_method: [

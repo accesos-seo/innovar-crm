@@ -172,7 +172,7 @@ export interface Expense {
   id: string;
   project_id?: string | null;
   client_id?: string | null;
-  category: 'materiales' | 'operativo' | 'nomina' | 'transporte' | 'herramientas' | 'servicios_publicos' | 'arriendo' | 'subcontrato' | 'otro' | string;
+  category: 'materiales' | 'subcontrato' | 'transporte' | 'herramientas' | 'operativo' | 'dietas' | 'arriendo' | 'luz_energia' | 'agua' | 'internet' | 'insumos_aseo' | 'insumos_papeleria' | 'cortesia_atencion_cliente' | 'gasolina_vehiculos' | 'mantenimiento_moto' | 'mantenimiento_bodega' | 'mantenimiento_maquinaria' | 'nomina' | 'otro' | string;
   amount: number;
   expense_date: string;
   receipt_url?: string | null;

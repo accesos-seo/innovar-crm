@@ -35,15 +35,27 @@ interface NewExpenseModalProps {
 export type ExpenseClass = "proyecto" | "empresa";
 
 const CATEGORIES: { value: string; label: string; classes: ExpenseClass[] }[] = [
+  // Gastos de proyecto
   { value: "materiales", label: "Materiales", classes: ["proyecto"] },
   { value: "subcontrato", label: "Subcontrato", classes: ["proyecto"] },
-  { value: "transporte", label: "Transporte", classes: ["proyecto", "empresa"] },
-  { value: "herramientas", label: "Herramientas", classes: ["proyecto", "empresa"] },
-  { value: "operativo", label: "Operativo", classes: ["proyecto", "empresa"] },
-  { value: "dietas", label: "Dietas y extras de empleados", classes: ["proyecto", "empresa"] },
-  { value: "nomina", label: "Nómina", classes: ["empresa"] },
-  { value: "servicios_publicos", label: "Servicios públicos", classes: ["empresa"] },
+  { value: "transporte", label: "Transporte", classes: ["proyecto"] },
+  { value: "herramientas", label: "Herramientas", classes: ["proyecto"] },
+  { value: "operativo", label: "Operativo", classes: ["proyecto"] },
+  { value: "dietas", label: "Dietas y extras de empleados", classes: ["proyecto"] },
+  // Gastos de bodega / empresa — las 13 del cliente (Q2, 2026-06-19)
   { value: "arriendo", label: "Arriendo", classes: ["empresa"] },
+  { value: "luz_energia", label: "Luz / Energía", classes: ["empresa"] },
+  { value: "agua", label: "Agua", classes: ["empresa"] },
+  { value: "internet", label: "Internet", classes: ["empresa"] },
+  { value: "insumos_aseo", label: "Insumos de aseo", classes: ["empresa"] },
+  { value: "insumos_papeleria", label: "Insumos de papelería", classes: ["empresa"] },
+  { value: "cortesia_atencion_cliente", label: "Cortesía atención cliente", classes: ["empresa"] },
+  { value: "gasolina_vehiculos", label: "Gasolina vehículos", classes: ["empresa"] },
+  { value: "mantenimiento_moto", label: "Mantenimiento moto", classes: ["empresa"] },
+  { value: "mantenimiento_bodega", label: "Mantenimiento bodega", classes: ["empresa"] },
+  { value: "mantenimiento_maquinaria", label: "Mantenimiento maquinaria", classes: ["empresa"] },
+  { value: "nomina", label: "Nómina", classes: ["empresa"] },
+  // Compartida
   { value: "otro", label: "Otro", classes: ["proyecto", "empresa"] },
 ];
 

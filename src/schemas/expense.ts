@@ -4,15 +4,27 @@ import { z } from "zod";
  * Schema for the `expenses` table.
  */
 export const expenseCategorySchema = z.enum([
+  // Gastos de proyecto (se conservan)
   "materiales",
-  "operativo",
-  "nomina",
-  "dietas",
+  "subcontrato",
   "transporte",
   "herramientas",
-  "servicios_publicos",
+  "operativo",
+  "dietas",
+  // Gastos de bodega / empresa — las 13 del cliente (Q2, 2026-06-19)
   "arriendo",
-  "subcontrato",
+  "luz_energia",
+  "agua",
+  "internet",
+  "insumos_aseo",
+  "insumos_papeleria",
+  "cortesia_atencion_cliente",
+  "gasolina_vehiculos",
+  "mantenimiento_moto",
+  "mantenimiento_bodega",
+  "mantenimiento_maquinaria",
+  "nomina",
+  // Compartida
   "otro",
 ]);
 
