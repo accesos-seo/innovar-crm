@@ -39,19 +39,19 @@ Las respuestas están redactadas en presente ("el sistema graba…", "el modal p
 
 ## 1. FINANZAS — Cuestionario 1 (Cierres Contables y Gastos)
 
-**Módulos:** `/finanzas/gastos`, `/finanzas/cierres` · **Tablas reales:** `accounting_closures`, `expenses`
+**Módulos:** `/finanzas/gastos`, `/finanzas/cierres` · **Tablas reales:** `accounting_closures` (per-proyecto), `expenses` · **PRD:** [`../prd/PRD-decisiones-finanzas.md`](../prd/PRD-decisiones-finanzas.md)
 
 | # | Ítem / requisito del documento | Estado | Evidencia / nota |
 |---|---|---|---|
 | Q1a | Gastos de empresa/bodega independientes de proyectos (no se prorratean) | ✅ | `expenses.project_id` NULL = gasto empresa. `NewExpenseModal.tsx:35-77` |
-| Q1b | "13 categorías de bodega ya activas" (Arriendo, Luz, Agua, Internet, Insumos aseo/papelería, Cortesía, Gasolina, Mant. moto/bodega/maquinaria, Nómina, Otro) | 🟡 ⚠️ | En código hay **10 categorías y DISTINTAS** (Materiales, Subcontrato, Transporte, Herramientas, Operativo, Dietas, Nómina, Servicios públicos, Arriendo, Otro). No hay constraint en BD (son constante de frontend). **No coinciden** con las 13 del documento |
-| Q2 | Al cierre solo entran proyectos terminados **y pagados 100%** | 🟡 | El trigger `trg_cierre_automatico_proyecto` (mig 049) exige `delivered_at` + `is_fully_paid`; pero el **selector manual** del cierre filtra solo `status==='entregado'`, sin verificar pago 100% (`NewClosureModal.tsx:32`). Inconsistencia UI vs trigger |
-| Q3 | Regla de período: gastos de bodega desde el **último cierre confirmado** hasta la fecha del nuevo cierre | 🔴 ⚠️ | No existe la RPC ni la lógica de corte por período. `useCreateClosure` llama a un RPC inexistente. Descrito en detalle, **no construido** |
-| Q4 | Revertir cierre solo super_admin + motivo ≥10 chars + registro en `closureAuditLog` + botón oculto a admins | 🔴 ⚠️ | **`closure_audit_log` no existe en prod.** No hay flujo de revertir, ni validación de motivo, ni restricción super_admin. Solo archivar/restaurar (soft-delete) |
-| Q5 | No hay dietas de empleados (si existieran → gasto bodega) | ✅ | Política, sin build. (Curiosamente sí existe categoría "Dietas y extras" en las 10 del frontend) |
-| Q6a | Tablas-foto del cierre `accountingClosureProjects` / `accountingClosureOperationalExpenses` | 🔴 ⚠️ | **No existen en prod.** Modelo real = `accounting_closures` (1:1 proyecto) + `expenses` |
-| Q6b | **Reporte Ejecutivo PDF** + **Anexo de Gastos PDF** (columnas, fila pérdida rosada, firmas, 2 secciones) | 🔴 ⚠️ | **No hay generación de PDF en absoluto** (sin librería PDF en package.json). Hoy solo panel web. Uno de los mayores gaps |
-| Q7 | Cierres solo super_admin/CEO | 🟡 | UI: botón solo si `role==='admin'` (no super_admin); **el rol "CEO" no existe**. RLS: `FOR ALL TO authenticated` (sin filtro de rol). Difiere |
+| Q1b | "13 categorías de bodega ya activas" (Arriendo, Luz, Agua, Internet, Insumos aseo/papelería, Cortesía, Gasolina, Mant. moto/bodega/maquinaria, Nómina, Otro) | 🟡 ⚠️ | El enum `expense_category` en prod tiene **10 valores y mayormente DISTINTOS** (`materiales, operativo, nomina, transporte, herramientas, servicios_publicos, arriendo, subcontrato, otro, dietas`). Solo coinciden 3. **No** son las 13 del documento |
+| Q2 | Al cierre solo entran proyectos terminados **y pagados 100%** | 🟡 | El trigger `fn_cierre_automatico_proyecto` (mig 049) exige `delivered_at` + `is_fully_paid`; pero el **selector manual** del cierre filtra solo `status==='entregado'`, sin verificar pago 100% (`NewClosureModal.tsx:32`). Inconsistencia UI vs trigger |
+| Q3 | Regla de período: gastos de bodega desde el **último cierre confirmado** hasta la fecha del nuevo cierre | 🔴 ⚠️ | No existe lógica de corte por período (depende de un cierre de período que no existe — ver Q6a). Descrito en detalle, **no construido** |
+| Q4 | Revertir cierre solo super_admin + motivo ≥10 chars + registro en `closureAuditLog` + botón oculto a admins | 🔴 ⚠️ | **`closure_audit_log` no existe en prod.** No hay flujo de revertir, ni validación de motivo, ni restricción super_admin. Solo archivar/restaurar (soft-delete `deleted_at`) |
+| Q5 | No hay dietas de empleados (si existieran → gasto bodega) | ✅ | Política, sin build. (Existe categoría `dietas` en el enum) |
+| Q6a | Tablas-foto del cierre `accountingClosureProjects` / `accountingClosureOperationalExpenses` | 🔴 ⚠️ | **No existen.** Hallazgo de fondo: `accounting_closures.project_id` es NOT NULL → el cierre real es **por proyecto**, no el **cierre de período** que describe el cliente. El modelo de período (consolidar proyectos + bodega) no está construido. Ver el PRD de Finanzas |
+| Q6b | **Reporte Ejecutivo PDF** + **Anexo de Gastos PDF** (columnas, fila pérdida rosada, firmas, 2 secciones) | 🔴 | No existe el PDF de cierre. **Corrección a una verificación previa:** sí hay librería `jsPDF` en el repo (ya usada en cotizaciones, `useQuotationBuilder.ts`) — reutilizable, el esfuerzo es menor al estimado |
+| Q7 | Cierres solo super_admin/CEO | 🟡 | UI: crear solo si `role==='admin'`. RLS real (prod): `admin_all_closures` (ALL) + `gerente_select_closures`. Hoy lo hace `admin` (más amplio que "solo super_admin"); **el rol "CEO" no existe** (mapea a `super_admin`). Difiere |
 
 ---
 
@@ -109,16 +109,16 @@ Las respuestas están redactadas en presente ("el sistema graba…", "el modal p
 
 ## 6. Brechas priorizadas → insumo para los PRD (Fase C)
 
-Agrupadas por departamento, lo 🔴/🟡 que requiere construcción o corrección:
+Agrupadas por departamento, lo 🟡/🔴 que requiere construcción o corrección:
 
-1. **PRD Finanzas** — regla de período del cierre (RPC), revertir cierre + auditoría (`closure_audit_log`), **generación de PDF Ejecutivo + Anexo**, reconciliar las 13 categorías vs las 10 reales, filtro de cierre "100% pagado" en UI, permisos super_admin reales.
-2. **PRD Diseño** — integrar "Levantamiento técnico" en la ficha del proyecto, alinear formatos/límites (12MB), compresión PDF (Ghostscript) si se mantiene el requisito.
-3. **PRD Comercial / Aprobaciones** — **el ciclo de aprobación completo** (portal público Aprobar/Solicitar cambios, sub-estados, `modelado_approved_by`, `changes_requested_at`), aprobación delegada + evidencia + datos del familiar, recordatorios T+5h/48h/96h.
-4. **PRD Producción** — override por `renders_approved_at`, ruteo `skip_design_process`, **cadena de avisos al aprobar render** (trigger + notificaciones a taller/comercial/cliente).
-5. **PRD Visita Técnica** — surface de medidas/fotos del `visits` hacia el proyecto, evento "Enviar al equipo".
+1. **PRD Finanzas** ✅ *(redactado)* — capa de cierre de **período** sobre el per-proyecto, regla de corte de bodega, revertir + auditoría (`closure_audit_log`), **PDF Ejecutivo + Anexo** (reusar `jsPDF`), reconciliar categorías 10→13, filtro 100% pagado en UI, permisos super_admin, versionar la RPC `create_accounting_closure`.
+2. **PRD Visita Técnica** — integrar "Levantamiento técnico" en la ficha del proyecto, evento "Enviar al equipo".
+3. **PRD Comercial / Aprobaciones** — **el ciclo de aprobación completo** (portal público Aprobar/Solicitar cambios, sub-estados, `modelado_approved_by`, `changes_requested_at`), aprobación delegada + evidencia + datos del familiar, recordatorios T+5h/48h/96h. *(Bloqueado por C2-Q1 y C2-Q9.)*
+4. **PRD Diseño** — surface de medidas/fotos del `visits` hacia el proyecto, formatos/límites (12MB), compresión PDF.
+5. **PRD Producción** — override por `renders_approved_at`, ruteo `skip_design_process`, **cadena de avisos al aprobar render** (trigger + notificaciones a taller/comercial/cliente).
 
-> **Cambio de naturaleza respecto al plan original:** los PRD ya **no** son "documentar y verificar lo existente" sino mayormente **"construir lo que el documento describe como hecho"**. El esfuerzo real es considerablemente mayor al estimado al inicio. La secuencia y priorización se definen en el roadmap (Fase D), con las 2 decisiones pendientes del cliente al frente.
+> **Cambio de naturaleza respecto al plan original:** los PRD ya **no** son "documentar y verificar lo existente" sino mayormente **"construir lo que el documento da por hecho"**. El esfuerzo real es considerablemente mayor al estimado al inicio. La secuencia y priorización se definen en el roadmap (Fase D), con las 2 decisiones pendientes del cliente al frente.
 
 ---
 
-*Siguiente paso: checkpoint con el usuario. No se redacta ningún PRD hasta validar este mapa.*
+*Orden de PRD recomendado: Finanzas → Visita Técnica → Comercial/Aprobaciones → Diseño → Producción. El de Finanzas ya está redactado.*
