@@ -208,7 +208,7 @@ export function LevantamientoTecnico({ projectId }: { projectId: string }) {
                     <button
                       key={photo.path}
                       type="button"
-                      onClick={() => photo.url && window.open(photo.url, "_blank", "noopener")}
+                      onClick={() => photo.url && window.open(photo.url, "_blank", "noopener,noreferrer")}
                       className={cn(
                         "relative aspect-square rounded-md overflow-hidden border border-border/50 bg-muted/30 group",
                         photo.url ? "cursor-zoom-in" : "cursor-default"

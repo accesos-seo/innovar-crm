@@ -51,12 +51,18 @@ export function useProjectLevantamiento(projectId: string | null | undefined) {
       if (!row) return null;
 
       const photos: string[] = Array.isArray(row.photos) ? row.photos : [];
+      // Firma cada foto de forma independiente: una falla de red en una no debe
+      // tumbar toda la sección (cae a url=null → "No disponible" en la galería).
       const photoUrls = await Promise.all(
         photos.map(async (path): Promise<LevantamientoPhoto> => {
-          const { data: signed } = await supabase!.storage
-            .from(BUCKET)
-            .createSignedUrl(path, 3600);
-          return { path, url: signed?.signedUrl ?? null };
+          try {
+            const { data: signed } = await supabase!.storage
+              .from(BUCKET)
+              .createSignedUrl(path, 3600);
+            return { path, url: signed?.signedUrl ?? null };
+          } catch {
+            return { path, url: null };
+          }
         })
       );
 

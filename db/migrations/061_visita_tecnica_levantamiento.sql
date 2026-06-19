@@ -60,7 +60,11 @@ AS $$
   WHERE pr.id = p_project_id
     AND v.status = 'realizada'
     AND v.deleted_at IS NULL
-    AND public.get_my_role() IS NOT NULL   -- solo equipo interno autenticado
+    -- Whitelist explícita de roles internos (least-privilege; consistente con la
+    -- policy visit_photos_select de abajo). Roles sin acceso → 0 filas.
+    AND public.get_my_role() = ANY (
+      ARRAY['admin','super_admin','comercial','diseno','gerente','administradora','produccion']::user_role[]
+    )
   ORDER BY v.realized_at DESC NULLS LAST
   LIMIT 1;
 $$;
