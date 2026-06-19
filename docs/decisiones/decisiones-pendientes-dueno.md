@@ -37,10 +37,10 @@ Hoy el diseñador recibe el aviso de "iniciar diseño" **cuando se verifica el p
 - *Por qué importa:* define el momento exacto en que arranca todo el ciclo de diseño.
 - **Tu decisión:** ¿Al **aprobar la cotización** o al **verificar el pago**?
 
-**5. ¿Hay tope de rondas de cambios?** *(la dejaste en blanco)*
-Hoy el cliente puede pedir cambios **ilimitados**.
-- *Por qué importa:* define cuándo le cobrás un ajuste extra.
-- **Tu decisión:** ¿Ilimitadas, o un **tope** antes de cobrar? Si hay tope: **¿cuántas rondas**, y se cuentan **por etapa** (modelado y render por separado) o sobre **el diseño completo**?
+**5. En el diseño (NO en la cotización): ¿hay un tope de rondas de cambios?** *(la dejaste en blanco)*
+Aclaramos porque se presta a confusión: hablamos de los cambios al **diseño**, no a la cotización. Es cuando el diseñador ya le mostró al cliente el **modelado o los renders** y el cliente pide ajustes ("córrelo a la izquierda", "cámbialo de color", "agrégale una gaveta"). Hoy el cliente puede pedir **cambios ilimitados** sin costo extra.
+- *Por qué importa:* define a partir de cuántos ajustes le empezás a cobrar un extra.
+- **Tu decisión:** ¿Ilimitadas, o un **tope** (por ejemplo 2 o 3) antes de cobrar? Si hay tope: **¿cuántas rondas**, y se cuentan **por etapa** (modelado y renders por separado) o sobre **el diseño completo**?
 
 **6. Si el cliente no aprueba ni después de los recordatorios, ¿qué hacemos?**
 El sistema le va a recordar al cliente (a las 5h y a las 48h), y a los 4 días te avisa internamente "contacto manual". Pero si aun así **no responde nunca**...
