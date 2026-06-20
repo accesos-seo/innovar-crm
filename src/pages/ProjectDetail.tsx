@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { PremiumLoader } from "@/components/shared/PremiumLoader";
 import { ClientPortalCard } from "@/components/projects/ClientPortalCard";
 import { LevantamientoTecnico } from "@/components/projects/LevantamientoTecnico";
+import { EjecucionDirectaCard } from "@/components/projects/EjecucionDirectaCard";
 import { FEATURES } from "@/lib/features";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { cn } from "@/lib/utils";
@@ -294,6 +295,9 @@ export default function ProjectDetailPage() {
 
           {/* Levantamiento Técnico (medidas + fotos + notas de la visita) */}
           <LevantamientoTecnico projectId={project.id} />
+
+          {/* Ejecución directa / sin diseño (Q8 carta magna) */}
+          <EjecucionDirectaCard project={project as any} />
 
           {/* Archivos 3D y Modelado */}
           <div className="bg-card border border-border/10 rounded-sm overflow-hidden">
