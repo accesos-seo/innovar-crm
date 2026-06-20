@@ -1,5 +1,7 @@
 # Decisiones que necesitamos de ti — Cocinas Integrales Pereira
 
+> **✅ ESTADO (2026-06-19): las 8 decisiones están RESPONDIDAS.** Q1 y Q2 en sesión; Q3–Q8 vía la 2ª encuesta → ver [`2da-encuesta-respuestas-dueno.md`](2da-encuesta-respuestas-dueno.md) (respuestas completas + mapa de implementación). Finanzas (Q1/Q2) ya construido y desplegado; Comercial / Diseño / Producción / plano de Visita (Q3–Q8) en implementación.
+
 Para terminar de dejar el sistema **exactamente como lo describiste**, hay unas pocas decisiones que **solo tú puedes tomar** porque dependen de cómo querés que funcione tu negocio. Todo lo demás (lo técnico, lo de configuración) lo resolvemos nosotros sin molestarte.
 
 Son **8 preguntas**, agrupadas por área. Donde ayuda, te dejamos opciones. Respondé al lado de cada una.
