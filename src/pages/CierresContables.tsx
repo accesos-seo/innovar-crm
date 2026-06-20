@@ -9,7 +9,8 @@ import {
   PieChart,
   DollarSign,
   ArrowUpRight,
-  Calculator
+  Calculator,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,14 +33,19 @@ import { ClosureDetailPanel } from "@/components/finanzas/ClosureDetailPanel";
 import { useAuthStore } from "@/store/authStore";
 import { parseISO } from "date-fns";
 import { CalendarPopover } from "@/components/ui/calendar-popover";
+import { useClosurePeriods } from "@/hooks/finanzas/useClosurePeriods";
+import { NewClosurePeriodModal } from "@/components/finanzas/NewClosurePeriodModal";
+import { ClosurePeriodDetailPanel } from "@/components/finanzas/ClosurePeriodDetailPanel";
 
 export default function CierresContablesPage() {
   const profile = useAuthStore(state => state.profile);
   const isAdmin = profile?.role === 'admin';
   const role = profile?.role;
+  const canManagePeriods = role === 'admin' || role === 'super_admin';
 
   // Access control
-  const canSee = role === 'admin' || role === 'comercial';
+  const canSee = role === 'admin' || role === 'super_admin' || role === 'comercial' || role === 'gerente';
+  const canSeePeriods = role === 'admin' || role === 'super_admin' || role === 'gerente';
   
   const [searchTerm, setSearchTerm] = React.useState("");
   const [debouncedSearch] = useDebounce(searchTerm, 400);
@@ -47,6 +53,8 @@ export default function CierresContablesPage() {
   const [pageSize, setPageSize] = React.useState(20);
   const [selectedClosure, setSelectedClosure] = React.useState<AccountingClosure | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isPeriodModalOpen, setIsPeriodModalOpen] = React.useState(false);
+  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string | null>(null);
 
   const [filters, setFilters] = React.useState({
     status: [] as string[],
@@ -61,6 +69,8 @@ export default function CierresContablesPage() {
   });
 
   const navigate = useNavigate();
+
+  const { data: periods = [] } = useClosurePeriods();
 
   const filteredClosures = React.useMemo(() => {
     if (!debouncedSearch) return closures;
@@ -147,6 +157,84 @@ export default function CierresContablesPage() {
         <MetricGridSkeleton count={3} />
       ) : (
         <MetricsGrid metrics={metrics} />
+      )}
+
+      {canSeePeriods && (
+        <div className="bg-card/50 border border-border/10 rounded-sm p-6 space-y-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center">
+                <Layers className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
+                  {formatSentenceCase("Cierre de período")}
+                </h3>
+                <p className="text-[10px] text-muted-foreground/70 uppercase tracking-widest">
+                  {formatSentenceCase("Utilidad neta del negocio: proyectos + gastos de bodega")}
+                </p>
+              </div>
+            </div>
+            {canManagePeriods && (
+              <Button
+                onClick={() => setIsPeriodModalOpen(true)}
+                className="h-11 rounded-none bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.2em]"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {formatSentenceCase("Nuevo cierre de período")}
+              </Button>
+            )}
+          </div>
+
+          {periods.length === 0 ? (
+            <div className="text-center py-6 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em] italic">
+              {formatSentenceCase(
+                canManagePeriods
+                  ? "Aún no hay cierres de período. Creá el primero."
+                  : "Aún no hay cierres de período."
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {periods.slice(0, 6).map((p) => {
+                const meta =
+                  ({
+                    borrador: { label: "Borrador", dot: "bg-amber-500" },
+                    confirmado: { label: "Confirmado", dot: "bg-emerald-500" },
+                    revertido: { label: "Revertido", dot: "bg-destructive" },
+                  } as Record<string, { label: string; dot: string }>)[p.status] || {
+                    label: p.status,
+                    dot: "bg-muted",
+                  };
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPeriodId(p.id)}
+                    className="text-left bg-background border border-border/10 p-4 space-y-2 hover:border-primary/40 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70 flex items-center gap-1.5">
+                        <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} /> {meta.label}
+                      </span>
+                      <span className="text-[9px] font-bold text-muted-foreground/50 tabular-nums">{p.period_end}</span>
+                    </div>
+                    <p
+                      className={cn(
+                        "text-lg font-black tabular-nums",
+                        p.net_profit >= 0 ? "text-foreground" : "text-destructive"
+                      )}
+                    >
+                      {formatCurrency(p.net_profit)}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/50 uppercase tracking-widest">
+                      {formatSentenceCase("Utilidad neta")}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="flex gap-4 items-center bg-card/50 p-4 rounded-sm border border-border/10 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-2xl hover:border-t-primary hover:border-t-4 group">
@@ -250,11 +338,20 @@ export default function CierresContablesPage() {
       />
 
       <NewClosureModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      
-      <ClosureDetailPanel 
-        closure={selectedClosure} 
-        isOpen={!!selectedClosure} 
-        onClose={() => setSelectedClosure(null)} 
+
+      <ClosureDetailPanel
+        closure={selectedClosure}
+        isOpen={!!selectedClosure}
+        onClose={() => setSelectedClosure(null)}
+      />
+
+      <NewClosurePeriodModal isOpen={isPeriodModalOpen} onClose={() => setIsPeriodModalOpen(false)} />
+
+      <ClosurePeriodDetailPanel
+        periodId={selectedPeriodId}
+        isOpen={!!selectedPeriodId}
+        onClose={() => setSelectedPeriodId(null)}
+        canManage={canManagePeriods}
       />
 
     </div>

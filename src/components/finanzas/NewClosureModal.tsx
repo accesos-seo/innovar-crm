@@ -28,8 +28,8 @@ export function NewClosureModal({ isOpen, onClose }: NewClosureModalProps) {
   const { data: rawProjects = [] } = useProjects();
   const projects = Array.isArray(rawProjects) ? rawProjects : [];
   
-  // Restricted to delivered projects with no closure yet
-  const eligibleProjects = projects.filter((p: any) => p.status === 'entregado' && !p.accounting_closure_id);
+  // Restricted to delivered projects, 100% paid, with no closure yet (Q2)
+  const eligibleProjects = projects.filter((p: any) => p.status === 'entregado' && p.is_fully_paid && !p.accounting_closure_id);
 
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>("");
   const [notes, setNotes] = React.useState("");
