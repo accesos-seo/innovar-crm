@@ -12,6 +12,7 @@ import { TVCenterModule } from '@/features/tv_center/TVCenterModule';
 import { HardwareModule } from '@/features/hardware/HardwareModule';
 import { SpecialFinishesModule } from '@/features/special_finishes/SpecialFinishesModule';
 import { MesonesModule } from '@/features/mesones/MesonesModule';
+import { OtrosModule } from '@/features/otros/OtrosModule';
 import { urgencyMap } from '@/pages/leads/LeadsColumns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -31,14 +32,6 @@ const CATEGORIES_CONFIG = [
   { id: 'especiales', label: 'Especiales' },
   { id: 'otro', label: 'Otro' },
 ];
-
-const PlaceholderModule = ({ title }: { title: string }) => (
-  <div className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/20 bg-primary/5 group">
-    <Box className="w-16 h-16 text-primary/20 mb-6 group-hover:scale-110 transition-transform duration-500" />
-    <h3 className="text-lg font-black text-muted-foreground tracking-widest uppercase">{title}</h3>
-    <p className="text-[10px] text-primary font-bold mt-2 uppercase tracking-[0.3em] px-4 py-2 border border-primary/10">Próximamente en v2.0</p>
-  </div>
-);
 
 function CategoryEmptyState({ category, label, onAdd }: { category: string; label: string; onAdd: () => void }) {
   return (
@@ -287,8 +280,14 @@ export function QuotationDesignStep({
                       </ItemWrapper>
                     ))}
                 </TabsContent>
-                <TabsContent value="otro" className="mt-0">
-                  <PlaceholderModule title="Otros" />
+                <TabsContent value="otro" className="mt-0 focus-visible:outline-none space-y-12">
+                  {items.filter(i => i.category === 'otro').length === 0
+                    ? <CategoryEmptyState category="otro" label="Otros" onAdd={() => addItem('otro')} />
+                    : items.filter(i => i.category === 'otro').map(item => (
+                      <ItemWrapper key={item.id} id={item.id} onRemove={removeItem}>
+                        <OtrosModule onDataChange={(total, config) => handleItemDataChange(item.id, total, config)} initialData={item.configuration} />
+                      </ItemWrapper>
+                    ))}
                 </TabsContent>
               </>
             )}

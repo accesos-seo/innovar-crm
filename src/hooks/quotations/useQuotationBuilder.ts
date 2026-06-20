@@ -2,6 +2,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { expandirLineasAFilas } from '@/features/otros/logic';
 
 export interface QuotationItemData {
   id: string;
@@ -194,16 +195,33 @@ export function useQuotationBuilder() {
         .single();
       if (quotationError) throw quotationError;
 
-      const { error: itemsError } = await supabase
-        .from('quotation_items')
-        .insert(validItems.map(item => ({
+      // "Otros" se expande: cada línea libre (descripción/cantidad/precio) se persiste como su propia
+      // fila quotation_items — la vista del cliente las renderiza genéricamente. La suma de las filas
+      // iguala el calculatedTotal del ítem, así que los totales de la cotización no cambian.
+      const itemRows = validItems.flatMap(item => {
+        if (item.category === 'otro') {
+          const lineas = Array.isArray(item.configuration?.lineas) ? item.configuration.lineas : [];
+          return expandirLineasAFilas(lineas).map(fila => ({
+            quotation_id: quotationData.id,
+            ...fila,
+            configuration: null,
+          }));
+        }
+        return [{
           quotation_id: quotationData.id,
           product_category: item.category,
           description: `Configuración de ${item.category}`,
           unit_price: item.calculatedTotal,
           quantity: 1,
-          configuration: item.configuration
-        })));
+          configuration: item.configuration,
+        }];
+      });
+
+      if (itemRows.length === 0) { toast.error("Agregue al menos un producto configurado."); setIsSaving(false); return; }
+
+      const { error: itemsError } = await supabase
+        .from('quotation_items')
+        .insert(itemRows);
       if (itemsError) throw itemsError;
 
       toast.success("Cotización guardada exitosamente.");
@@ -243,11 +261,28 @@ export function useQuotationBuilder() {
       let y = 100;
       items.filter(i => i.calculatedTotal > 0).forEach((item) => {
         doc.setFontSize(11); doc.setTextColor(50, 50, 50);
-        doc.text(item.category.toUpperCase(), 25, y);
+        doc.text(item.category === 'otro' ? 'OTROS' : item.category.toUpperCase(), 25, y);
         doc.text(`$ ${item.calculatedTotal.toLocaleString()}`, pageWidth - 25, y, { align: 'right' });
-        doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-        doc.text("Configuración personalizada de ingeniería.", 25, y + 5);
-        y += 20;
+
+        if (item.category === 'otro' && Array.isArray(item.configuration?.lineas)) {
+          // Detalle por línea libre (descripción · cantidad × precio)
+          doc.setFontSize(9); doc.setTextColor(120, 120, 120);
+          item.configuration.lineas
+            .filter((l: any) => (Number(l?.cantidad) || 0) > 0 && (Number(l?.precioUnitario) || 0) > 0)
+            .forEach((l: any) => {
+              y += 5;
+              const desc = ((l?.descripcion ?? '').trim() || 'Producto adicional').slice(0, 40);
+              const cant = Number(l.cantidad) || 0;
+              const sub = cant * (Number(l.precioUnitario) || 0);
+              doc.text(`• ${cant} × ${desc}`, 28, y);
+              doc.text(`$ ${sub.toLocaleString()}`, pageWidth - 25, y, { align: 'right' });
+            });
+          y += 20;
+        } else {
+          doc.setFontSize(9); doc.setTextColor(120, 120, 120);
+          doc.text("Configuración personalizada de ingeniería.", 25, y + 5);
+          y += 20;
+        }
       });
 
       y += 10;
