@@ -13,11 +13,13 @@ Hoy el sistema cierra **proyecto por proyecto**. Vos describiste un **cierre de 
 - *Por qué importa:* define cómo se calcula y se presenta la utilidad del negocio.
 - *Recomendación nuestra:* construir el cierre de período por encima del actual (no perdés nada de lo que ya hay).
 - **Tu decisión:** ¿Confirmás el cierre de período? (Sí / No / Hablémoslo)
+- ✅ **RESPONDIDA (2026-06-19): Sí, se confirma el cierre de período.** → Implementado (capa de cierre de período + PDFs + reversión auditada).
 
 **2. ¿Qué categorías de gasto de bodega querés?**
 Hoy el sistema tiene **10** categorías (materiales, operativo, nómina, transporte, herramientas, servicios públicos, arriendo, subcontrato, dietas, otro). Vos pediste estas **13**: arriendo, luz/energía, agua, internet, insumos de aseo, insumos de papelería, cortesía atención cliente, gasolina vehículos, mantenimiento moto, mantenimiento bodega, mantenimiento maquinaria, nómina, otro.
 - *Por qué importa:* son las etiquetas que vas a ver al registrar un gasto.
 - **Tu decisión:** ¿**Agregamos** tus 13 a las que ya hay, o **reemplazamos** por exactamente tus 13?
+- ✅ **RESPONDIDA (2026-06-19): Reemplazar — usamos exactamente las 13 (categorías de bodega).** → Implementado. (Nota técnica: las categorías de *proyecto* —materiales, subcontrato, transporte…— se conservan, porque el cierre calcula la utilidad de cada proyecto a partir de ellas; las 13 reemplazan solo el selector de bodega/empresa.)
 
 ---
 

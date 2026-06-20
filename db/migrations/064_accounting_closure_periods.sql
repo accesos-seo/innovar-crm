@@ -13,7 +13,11 @@
 -- Esquema verificado en prod (Management API, 2026-06-19): projects.total_amount (cotizado),
 -- projects.balance_due (mantenido por trg_payment_recalc_balance), is_fully_paid; income por
 -- proyecto = SUM(payments.amount); gasto por proyecto = SUM(expenses aprobados); get_my_role()
--- devuelve user_role; auth.uid() disponible. Roles: super_admin = CEO (no existe rol "CEO").
+-- devuelve user_role; auth.uid() disponible.
+-- Permisos: gestión (crear/confirmar/revertir) = admin | super_admin; lectura = admin | super_admin |
+-- gerente. (En prod hoy NO existe super_admin ni gerente: 'admin' es el rol de gestión real —
+-- Robert/Alvaro. Gatear solo a super_admin dejaría la función inutilizable. Si el dueño quiere
+-- restringirlo al CEO, su cuenta debe pasar a super_admin y se estrecha el guard.)
 --
 -- Idempotente (IF NOT EXISTS / DROP POLICY IF EXISTS / CREATE OR REPLACE) y transaccional.
 
@@ -139,9 +143,9 @@ DECLARE
   v_bodega numeric := 0;
   v_count int := 0;
 BEGIN
-  IF v_role IS DISTINCT FROM 'super_admin' THEN
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin') THEN
     RETURN jsonb_build_object('success', false, 'error', 'forbidden',
-      'message', 'Solo el CEO (super_admin) puede crear cierres de período.');
+      'message', 'Solo administradores pueden crear cierres de período.');
   END IF;
   IF p_period_end IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'invalid_input',
@@ -245,9 +249,9 @@ DECLARE
   v_status text;
   v_count int;
 BEGIN
-  IF v_role IS DISTINCT FROM 'super_admin' THEN
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin') THEN
     RETURN jsonb_build_object('success', false, 'error', 'forbidden',
-      'message', 'Solo el CEO (super_admin) puede confirmar cierres.');
+      'message', 'Solo administradores pueden confirmar cierres.');
   END IF;
   SELECT status INTO v_status FROM public.accounting_closure_periods WHERE id = p_period_id;
   IF v_status IS NULL THEN
@@ -285,9 +289,9 @@ DECLARE
   v_status text;
   v_count int;
 BEGIN
-  IF v_role IS DISTINCT FROM 'super_admin' THEN
+  IF v_role IS NULL OR v_role NOT IN ('admin', 'super_admin') THEN
     RETURN jsonb_build_object('success', false, 'error', 'forbidden',
-      'message', 'Solo el CEO (super_admin) puede revertir un cierre.');
+      'message', 'Solo administradores pueden revertir un cierre.');
   END IF;
   IF p_reason IS NULL OR length(trim(p_reason)) < 10 THEN
     RETURN jsonb_build_object('success', false, 'error', 'reason_required',
