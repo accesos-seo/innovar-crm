@@ -9,6 +9,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { KitchenConfigSchema } from '@/schemas/quotation.schema';
 import { useCalculatePrice } from '@/hooks/useCalculatePrice';
+import { usePricing } from '@/hooks/usePricing';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -38,21 +39,32 @@ const FORMA_LABELS: Record<string, string> = {
   ISLA:     'Con isla',
 };
 
-const MESON_LABELS: Record<string, string> = {
-  SINTERIZADO: 'Sinterizado — $1.200.000/ml',
-  CUARZO:      'Cuarzo — $850.000/ml',
-  GRANITO:     'Granito — $700.000/ml',
+const MESON_NOMBRES: Record<string, string> = {
+  SINTERIZADO: 'Sinterizado',
+  CUARZO:      'Cuarzo',
+  GRANITO:     'Granito',
   NINGUNO:     'Sin mesón',
 };
 
-// Precio propio de cada módulo (cobrado al cliente) + metros que descuenta del metraje base
+// El descuento de metraje es regla de negocio (fijo); el PRECIO se lee vivo del catálogo
+// (pricing_catalog) para que refleje los ajustes de la biblioteca sin quedar desactualizado.
 const MODULOS_ESPECIALES = [
-  { codigo: 'NICHO_NEVECON',      label: 'Nicho Nevecón',      descuento: '−1.0ml',  precio: '$1.200.000' },
-  { codigo: 'NICHO_NEVERA',       label: 'Nicho Nevera',       descuento: '−0.75ml', precio: '$1.100.000' },
-  { codigo: 'ALACENA_ENTREPAÑOS', label: 'Alacena Entrepaños', descuento: '−0.5ml',  precio: '$1.250.000' },
-  { codigo: 'ALACENA_HERRAJE',    label: 'Alacena Herraje',    descuento: '−0.5ml',  precio: '$900.000' },
-  { codigo: 'TORRE_HORNOS',       label: 'Torre de Hornos',    descuento: '−0.7ml',  precio: '$1.350.000' },
+  { codigo: 'NICHO_NEVECON',      label: 'Nicho Nevecón',      descuento: '−1.0ml'  },
+  { codigo: 'NICHO_NEVERA',       label: 'Nicho Nevera',       descuento: '−0.75ml' },
+  { codigo: 'ALACENA_ENTREPAÑOS', label: 'Alacena Entrepaños', descuento: '−0.5ml'  },
+  { codigo: 'ALACENA_HERRAJE',    label: 'Alacena Herraje',    descuento: '−0.5ml'  },
+  { codigo: 'TORRE_HORNOS',       label: 'Torre de Hornos',    descuento: '−0.7ml'  },
 ] as const;
+
+// Precio/ml de referencia según tipo de cocina — espejo de server/services/kitchen.engine.ts PASO 2.
+const PRECIO_ML_POR_TIPO: Record<string, { inf?: string; sup?: string; frente?: string }> = {
+  COMPLETA_STANDARD: { inf: 'COCINA_INF_ML_STANDARD', sup: 'COCINA_SUP_ML_STANDARD' },
+  COMPLETA_PREMIUM:  { inf: 'COCINA_INF_ML_PREMIUM',  sup: 'COCINA_SUP_ML_PREMIUM' },
+  COMPLETA_DELUXE:   { inf: 'COCINA_INF_ML_DELUXE',   sup: 'COCINA_SUP_ML_DELUXE' },
+  SOLO_SUPERIOR:     { sup: 'COCINA_SUP_ML_STANDARD' },
+  SOLO_INFERIOR:     { inf: 'COCINA_INF_ML_STANDARD' },
+  FRENTE_POLLO:      { frente: 'COCINA_FRENTE_POLLO_ML' },
+};
 
 export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) => {
   const [metrajeDisplay, setMetrajeDisplay] = React.useState('');
@@ -74,6 +86,17 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
   });
 
   const currentConfig = useWatch({ control: form.control });
+
+  // Precios VIVOS del catálogo (biblioteca) — se muestran como referencia en la cotización para que
+  // el dueño vea qué ajustar. El cálculo del total sigue siendo server-side (useCalculatePrice).
+  const { items: pricingItems } = usePricing();
+  const priceByCode = React.useMemo(
+    () => new Map(pricingItems.map(p => [p.code, Number(p.value)])),
+    [pricingItems],
+  );
+  const fmtCOP     = (n: number | undefined) => (n === undefined || Number.isNaN(n) ? '—' : `$ ${n.toLocaleString('es-CO')}`);
+  const precioCode = (code?: string) => (code ? priceByCode.get(code) : undefined);
+  const refML      = PRECIO_ML_POR_TIPO[currentConfig.tipoCocina ?? 'COMPLETA_STANDARD'] ?? {};
 
   // Solo calcular cuando el metraje sea válido (≥ 0.5 ml)
   const canCalculate = (currentConfig?.metrajeTotal ?? 0) >= 0.5;
@@ -234,6 +257,28 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                 )} />
               </div>
 
+              {/* Precios de referencia (biblioteca) — solo lectura, reflejan el catálogo vivo */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">
+                  Precios de referencia · biblioteca
+                </span>
+                {refML.inf && (
+                  <Badge variant="outline" className="text-[10px] font-mono font-bold border-primary/20 text-foreground/80 bg-primary/5">
+                    Inferior {fmtCOP(precioCode(refML.inf))}/ml
+                  </Badge>
+                )}
+                {refML.sup && (
+                  <Badge variant="outline" className="text-[10px] font-mono font-bold border-primary/20 text-foreground/80 bg-primary/5">
+                    Superior {fmtCOP(precioCode(refML.sup))}/ml
+                  </Badge>
+                )}
+                {refML.frente && (
+                  <Badge variant="outline" className="text-[10px] font-mono font-bold border-primary/20 text-foreground/80 bg-primary/5">
+                    Frente {fmtCOP(precioCode(refML.frente))}/ml
+                  </Badge>
+                )}
+              </div>
+
               {/* Fila 2: Material Mesón (2/3) · Profundidad (1/3) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
@@ -245,16 +290,18 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                           <SelectTrigger className="w-full !h-12 rounded-none border-border/50 bg-background font-bold">
                             <SelectValue>
                               {(val: string | null) => val
-                                ? MESON_LABELS[val] ?? val
+                                ? (val === 'NINGUNO'
+                                    ? 'Sin mesón'
+                                    : `${MESON_NOMBRES[val] ?? val} — ${fmtCOP(precioCode('MESON_' + val))}/ml`)
                                 : <span className="text-muted-foreground/40 font-normal text-sm">Selecciona material...</span>
                               }
                             </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-sm border-border/20 shadow-xl">
-                          <SelectItem value="SINTERIZADO" className="font-medium">Sinterizado — $1.200.000/ml</SelectItem>
-                          <SelectItem value="CUARZO" className="font-medium">Cuarzo — $850.000/ml</SelectItem>
-                          <SelectItem value="GRANITO" className="font-medium">Granito — $700.000/ml</SelectItem>
+                          <SelectItem value="SINTERIZADO" className="font-medium">Sinterizado — {fmtCOP(precioCode('MESON_SINTERIZADO'))}/ml</SelectItem>
+                          <SelectItem value="CUARZO" className="font-medium">Cuarzo — {fmtCOP(precioCode('MESON_CUARZO'))}/ml</SelectItem>
+                          <SelectItem value="GRANITO" className="font-medium">Granito — {fmtCOP(precioCode('MESON_GRANITO'))}/ml</SelectItem>
                           <SelectItem value="NINGUNO" className="font-medium">Sin mesón</SelectItem>
                         </SelectContent>
                       </Select>
@@ -324,7 +371,7 @@ export const KitchenModule: React.FC<KitchenModuleProps> = ({ onDataChange }) =>
                       </span>
                       <span className="text-muted-foreground/20 text-[10px]">·</span>
                       <span className={cn("text-[10px] font-bold", moduloActivo(opt.codigo) ? "text-primary" : "text-muted-foreground/40")}>
-                        {opt.precio}
+                        {fmtCOP(precioCode(opt.codigo))}
                       </span>
                     </div>
                   </div>
