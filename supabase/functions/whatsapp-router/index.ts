@@ -56,6 +56,8 @@ interface RouterConfig {
   prices_per_ml: { basica: number; intermedia: number; alta: number };
   booking_base_url: string;
   session_idle_minutes: number;
+  services?: Array<{ name: string; description: string }>;
+  advisor_wa_template_ready?: boolean;
 }
 
 interface Conversation {
@@ -112,7 +114,7 @@ function norm(s: string): string {
     .trim();
 }
 
-type Intent = "quote" | "schedule" | "advisor" | "menu" | "unknown";
+type Intent = "quote" | "schedule" | "advisor" | "menu" | "services" | "unknown";
 
 // Enrutamiento determinista: primero id de botón, luego palabras clave / número.
 function detectIntent(inc: Incoming): Intent {
@@ -121,6 +123,7 @@ function detectIntent(inc: Incoming): Intent {
   if (id === "opt_schedule") return "schedule";
   if (id === "opt_advisor") return "advisor";
   if (id === "opt_menu") return "menu";
+  if (id === "opt_services") return "services";
 
   const t = norm(inc.message_body ?? "");
   if (!t) return "unknown";
@@ -132,6 +135,7 @@ function detectIntent(inc: Incoming): Intent {
   if (/(precio|costo|valor|cotiz|cuanto|gama|metro|presupuesto)/.test(t) || t === "1") return "quote";
   if (/(agend|cita|visita|medir|medici|reserv|agenda)/.test(t) || t === "2") return "schedule";
   if (/(asesor|persona|humano|llam|hablar|atend|martha|contact)/.test(t) || t === "3") return "advisor";
+  if (/(servicio|herrer|herradu|cocina integral|que ofrecen|que hacen|que fabrican|linea de)/.test(t) || t === "4") return "services";
   return "unknown";
 }
 
@@ -336,7 +340,7 @@ async function reply(
   return { status, provider_id: providerId, error };
 }
 
-// Menú principal con 3 botones de respuesta.
+// Menú principal como lista (soporta 4+ opciones).
 async function sendMenu(ctx: Ctx, prefix = "") {
   const c = ctx.cfg;
   const body =
@@ -344,14 +348,36 @@ async function sendMenu(ctx: Ctx, prefix = "") {
     `${c.brand_greeting}\n\nSoy ${c.assistant_name}, su asistente. ¿En qué le puedo ayudar?`;
   return reply(
     ctx,
-    buttonsMsg(ctx.to, body, [
-      { id: "opt_quote", title: "Precios y gamas" },
-      { id: "opt_schedule", title: "Agendar visita" },
-      { id: "opt_advisor", title: "Hablar con asesor" },
+    listMsg(ctx.to, body, "Ver opciones", [
+      { id: "opt_services", title: "Nuestros servicios",  description: "Que ofrecemos" },
+      { id: "opt_quote",    title: "Precios y gamas",     description: "Costos por metro lineal" },
+      { id: "opt_schedule", title: "Agendar visita",      description: "Visita tecnica sin compromiso" },
+      { id: "opt_advisor",  title: "Hablar con asesor",   description: "Contacto directo con un asesor" },
     ]),
     "awaiting_menu",
     { intent: null },
   );
+}
+
+// Submenú: descripción de cada línea de servicio + opciones de continuación.
+async function showServices(ctx: Ctx): Promise<{ step: string; status: string }> {
+  const services = ctx.cfg.services ?? [
+    { name: "Cocinas Integrales", description: "Disenamos y fabricamos cocinas a medida con los mejores materiales. Contamos con tres gamas de acabados (basica, intermedia y alta) para adaptarnos a su presupuesto y estilo." },
+    { name: "Herreria",           description: "Fabricacion e instalacion de estructuras metalicas, puertas, rejas y mas, con disenos personalizados para su hogar o negocio." },
+  ];
+  const lines = services.map((s) => `*${s.name}*\n${s.description}`).join("\n\n");
+  const body = `Estas son nuestras lineas de servicio:\n\n${lines}\n\n¿Le interesa alguna de ellas?`;
+  const r = await reply(
+    ctx,
+    buttonsMsg(ctx.to, body, [
+      { id: "opt_quote",    title: "Precios y gamas" },
+      { id: "opt_schedule", title: "Agendar visita" },
+      { id: "opt_advisor",  title: "Hablar con asesor" },
+    ]),
+    "services_shown",
+    { intent: "services" },
+  );
+  return { step: "services_shown", status: r.status };
 }
 
 async function advance(ctx: Ctx): Promise<{ step: string; status?: string }> {
@@ -389,7 +415,9 @@ async function advance(ctx: Ctx): Promise<{ step: string; status?: string }> {
     case "new":
     case "awaiting_menu":
     case "quote_followup":
-    case "lead_created": {
+    case "lead_created":
+    case "services_shown": {
+      if (intent === "services") return finishWith(ctx, await showServices(ctx));
       if (intent === "quote") return finishWith(ctx, await showPrices(ctx));
       if (intent === "schedule") return finishWith(ctx, await startCapture(ctx));
       if (intent === "advisor") return finishWith(ctx, await handoff(ctx));
@@ -655,7 +683,7 @@ async function notifyAdvisor(
         event_reference_id: ctx.conv.id,
         recipient_name: c.advisor_name,
         recipient_phone: c.advisor_phone,
-        template_name: "nuevo_lead_asesor_v1",
+        template_name: "lead_asesor_notif_v1",
         template_language: "es",
         template_parameters: { "1": name, "2": city, "3": work, "4": bookingUrl ?? "Pidió llamada" },
         status: "pending",
