@@ -68,6 +68,8 @@ interface Conversation {
   opportunity_id: string | null;
   client_id: string | null;
   human_handoff: boolean;
+  handoff_at: string | null;
+  last_outbound_at: string | null;
   message_count: number;
 }
 
@@ -122,6 +124,9 @@ function detectIntent(inc: Incoming): Intent {
 
   const t = norm(inc.message_body ?? "");
   if (!t) return "unknown";
+
+  // Saludos → menú limpio (no "no le entendí")
+  if (/^(hola!?|hey|buenas?|buenos|buen dia|buen tarde|saludos|hi|hello|que tal|que hay|ola)/.test(t)) return "menu";
 
   if (/\b(menu|menú|inicio|empezar|volver|opciones)\b/.test(t)) return "menu";
   if (/(precio|costo|valor|cotiz|cuanto|gama|metro|presupuesto)/.test(t) || t === "1") return "quote";
@@ -258,8 +263,7 @@ Deno.serve(async (req: Request) => {
     .update({ last_inbound_at: new Date().toISOString(), message_count: (conv.message_count ?? 0) + 1, contact_name: inc.from_name ?? conv.contact_name })
     .eq("id", conv.id);
 
-  // Si ya está en manos de la asesora, el bot NO responde (deja atender a Martha).
-  if (conv.human_handoff) return json({ skipped: "human_handoff" });
+  // human_handoff se gestiona dentro de advance() para permitir escape por "menú".
 
   // 4. Avanzar la máquina de estados ------------------------------------------
   const ctx: Ctx = { admin, cfg, conv, inc, to: phone12(inc.from_phone), dryRun, metaToken: META_TOKEN, metaPhoneId: META_PHONE_ID };
@@ -322,7 +326,9 @@ async function reply(
       opportunity_id: patch.opportunity_id ?? ctx.conv.opportunity_id,
       client_id: patch.client_id ?? ctx.conv.client_id,
       human_handoff: patch.human_handoff ?? ctx.conv.human_handoff,
-      handoff_at: patch.human_handoff ? new Date().toISOString() : undefined,
+      handoff_at: patch.human_handoff === true ? new Date().toISOString()
+                : patch.human_handoff === false ? null
+                : undefined,
       last_outbound_at: new Date().toISOString(),
     })
     .eq("id", ctx.conv.id);
@@ -352,10 +358,31 @@ async function advance(ctx: Ctx): Promise<{ step: string; status?: string }> {
   const intent = detectIntent(ctx.inc);
   const step = ctx.conv.step;
 
-  // Reset global: si pide menú/inicio en cualquier punto.
+  // "menú" escapa de cualquier estado, incluyendo handoff humano.
   if (intent === "menu") {
+    if (ctx.conv.human_handoff) {
+      // Retomar control del bot: limpiar el flag para que reply() no lo restaure.
+      await ctx.admin.from("whatsapp_conversations")
+        .update({ human_handoff: false, handoff_at: null })
+        .eq("id", ctx.conv.id);
+      ctx.conv.human_handoff = false;
+    }
     const r = await sendMenu(ctx);
     return { step: "awaiting_menu", status: r.status };
+  }
+
+  // Handoff activo: un recordatorio único (step 'human_handoff'), luego silencio
+  // (step 'human_handoff_reminded'). La escritura del nuevo step es el tracking.
+  if (ctx.conv.human_handoff) {
+    if (ctx.conv.step === "human_handoff_reminded") {
+      return { step: "human_handoff_reminded", status: "silent" };
+    }
+    const r = await reply(
+      ctx,
+      textMsg(ctx.to, `*${ctx.cfg.advisor_name}* le atenderá pronto (${ctx.cfg.advisor_hours}). 🙂\n\nSi desea volver al asistente, escriba *"menú"*.`),
+      "human_handoff_reminded",
+    );
+    return { step: "human_handoff_reminded", status: r.status };
   }
 
   switch (step) {
@@ -505,6 +532,13 @@ async function captureWork(ctx: Ctx, _intent: Intent): Promise<{ step: string; s
   return { step: "cap_address", status: r.status };
 }
 
+// Resuelve el nombre del asesor asignado; cae al cfg.advisor_name si no se encuentra.
+async function resolveAdvisorName(ctx: Ctx, assignedTo: string | null): Promise<string> {
+  if (!assignedTo) return ctx.cfg.advisor_name;
+  const { data } = await ctx.admin.from("profiles").select("full_name").eq("id", assignedTo).maybeSingle();
+  return (data?.full_name as string | null) || ctx.cfg.advisor_name;
+}
+
 async function captureAddress(ctx: Ctx): Promise<{ step: string; status: string }> {
   const address = (ctx.inc.message_body ?? "").trim();
   if (address.length < 4) {
@@ -529,12 +563,13 @@ async function captureAddress(ctx: Ctx): Promise<{ step: string; status: string 
     return { step: "lead_created", status: r.status };
   }
 
+  const advisorName = await resolveAdvisorName(ctx, lead.assigned_to);
   const bookingUrl = `${ctx.cfg.booking_base_url.replace(/\/$/, "")}/v/${lead.short_code}`;
   const firstName = String(data.name ?? "").split(" ")[0] || "";
   const body =
     `¡Gracias${firstName ? ", " + firstName : ""}! 🙌 Ya registré su solicitud.\n\n` +
     `Para *cerrar la visita técnica* en el día y la hora que más le convenga, ingrese aquí y elija su espacio disponible:\n${bookingUrl}\n\n` +
-    `Si prefiere que la llamemos, escríbame "asesor" y *${ctx.cfg.advisor_name}* le contacta en el horario de atención (${ctx.cfg.advisor_hours}).`;
+    `Si prefiere que la llamemos, escríbame "asesor" y *${advisorName}* le contacta en el horario de atención (${ctx.cfg.advisor_hours}).`;
   const r = await reply(
     ctx,
     textMsg(ctx.to, body),
