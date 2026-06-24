@@ -61,6 +61,12 @@ interface ConfirmedVisit {
   client_name: string;
 }
 
+// Número de contacto de Álvaro (director) para solicitudes de horario alternativo.
+// Requiere VITE_ALT_SCHEDULE_PHONE en .env. Si no está definida, la escotilla se oculta.
+const ALT_SCHEDULE_PHONE = import.meta.env.VITE_ALT_SCHEDULE_PHONE as string | undefined;
+
+const ALT_DAYS = ['Lunes', 'Miércoles', 'Viernes', 'Sábado'] as const;
+
 interface PublicBookingProps {
   /** Si viene por prop, ignora useParams (usado por el wrapper /v/:code que ya resolvió el code). */
   token?: string;
@@ -72,6 +78,33 @@ export default function PublicBooking({ token: tokenProp }: PublicBookingProps =
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedVisit | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // — Horario alternativo (escotilla de salida)
+  const [showAltForm, setShowAltForm] = useState(false);
+  const [altDays, setAltDays] = useState<Set<string>>(new Set());
+  const [altTime, setAltTime] = useState<'am' | 'pm' | null>(null);
+  const [altNote, setAltNote] = useState('');
+
+  const toggleAltDay = (day: string) =>
+    setAltDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+
+  const buildWhatsAppUrl = (clientName: string) => {
+    const days = Array.from(altDays).join(', ');
+    const time = altTime === 'am' ? 'mañana' : altTime === 'pm' ? 'tarde' : '';
+    const noteText = altNote.trim() ? `\n\nNota: ${altNote.trim()}` : '';
+    const msg =
+      `Hola, soy ${firstName(clientName)} y quiero agendar una visita técnica con Innovar Cocinas de Arte. ` +
+      `No puedo los martes ni jueves` +
+      (days ? `, pero me queda bien un ${days}` : '') +
+      (time ? ` en la ${time}` : '') +
+      `.${noteText}\n\n¿Podemos coordinar una fecha?`;
+    return `https://wa.me/${ALT_SCHEDULE_PHONE}?text=${encodeURIComponent(msg)}`;
+  };
 
   const ctxQ = useBookingContext(token);
   const fromDate = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
@@ -269,6 +302,139 @@ export default function PublicBooking({ token: tokenProp }: PublicBookingProps =
             </div>
           </button>
         </div>
+
+        {/* ── Escotilla de salida — horario alternativo ───────────────── */}
+        {ALT_SCHEDULE_PHONE && !showAltForm ? (
+          <div className="px-8 sm:px-10 pb-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowAltForm(true)}
+              className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 uppercase tracking-widest font-bold hover:underline underline-offset-4 transition-colors"
+            >
+              ¿Ninguno de estos horarios te funciona?
+            </button>
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="px-8 sm:px-10 pb-8 space-y-5 border-t border-border/10 pt-6"
+          >
+            <div className="space-y-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80">
+                Solicitar otro horario
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                Indícanos tu preferencia y Álvaro te contactará para coordinar.{" "}
+                <span className="text-muted-foreground/40">Sujeto a disponibilidad del director.</span>
+              </p>
+            </div>
+
+            {/* Chips de días */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ¿Qué días te quedan mejor?
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {ALT_DAYS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleAltDay(day)}
+                    className={cn(
+                      "h-9 px-4 text-[10px] font-black uppercase tracking-wider border transition-all",
+                      altDays.has(day)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background/40 text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
+                    )}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AM / PM */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ¿Mañana o tarde?
+              </span>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { val: "am", label: "Mañana" },
+                    { val: "pm", label: "Tarde" },
+                  ] as const
+                ).map(({ val, label }) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setAltTime((prev) => (prev === val ? null : val))}
+                    className={cn(
+                      "h-9 px-5 text-[10px] font-black uppercase tracking-wider border transition-all",
+                      altTime === val
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background/40 text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Nota libre */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                Nota adicional{" "}
+                <span className="opacity-50 normal-case">(opcional)</span>
+              </span>
+              <textarea
+                value={altNote}
+                onChange={(e) => setAltNote(e.target.value)}
+                placeholder="Ej: solo puedo entre 10am y 2pm"
+                rows={2}
+                className={cn(
+                  "w-full bg-background/40 border border-border/30 p-3",
+                  "text-xs font-bold text-foreground placeholder:text-muted-foreground/40",
+                  "resize-none focus:outline-none focus:border-primary/50 transition-colors",
+                )}
+              />
+            </div>
+
+            {/* Botón enviar */}
+            <a
+              href={altDays.size > 0 || altTime ? buildWhatsAppUrl(ctx.client_name) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "w-full h-12 flex items-center justify-center gap-2",
+                "border border-primary/40 text-primary font-black text-[10px] uppercase tracking-[0.2em]",
+                "transition-all duration-300",
+                altDays.size > 0 || altTime
+                  ? "hover:bg-primary hover:text-primary-foreground hover:border-primary cursor-pointer"
+                  : "opacity-40 pointer-events-none",
+              )}
+            >
+              Enviar solicitud por WhatsApp
+              <ArrowUpRight size={14} />
+            </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowAltForm(false);
+                setAltDays(new Set());
+                setAltTime(null);
+                setAltNote('');
+              }}
+              className="w-full text-[9px] text-muted-foreground/40 hover:text-muted-foreground/60 uppercase tracking-widest font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+          </motion.div>
+        )}
 
         <div className="px-8 sm:px-10 py-5 bg-muted/30 border-t border-border/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
