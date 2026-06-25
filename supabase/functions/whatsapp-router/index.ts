@@ -362,8 +362,9 @@ async function sendMenu(ctx: Ctx, prefix = "") {
 // Submenú: descripción de cada línea de servicio + opciones de continuación.
 async function showServices(ctx: Ctx): Promise<{ step: string; status: string }> {
   const services = ctx.cfg.services ?? [
-    { name: "Cocinas Integrales", description: "Disenamos y fabricamos cocinas a medida con los mejores materiales. Contamos con tres gamas de acabados (basica, intermedia y alta) para adaptarnos a su presupuesto y estilo." },
-    { name: "Herreria",           description: "Fabricacion e instalacion de estructuras metalicas, puertas, rejas y mas, con disenos personalizados para su hogar o negocio." },
+    { name: "Cocinas Integrales 🍳", description: "Fabricamos cocinas a medida en tres gamas de acabado: básica, intermedia y alta." },
+    { name: "Closets y Vestidores",  description: "Muebles de almacenamiento personalizados para su espacio, funcionales y elegantes." },
+    { name: "Muebles a Medida",      description: "Puertas, centros de TV, mesones y accesorios con diseño personalizado." },
   ];
   const lines = services.map((s) => `*${s.name}*\n${s.description}`).join("\n\n");
   const body = `Estas son nuestras lineas de servicio:\n\n${lines}\n\n¿Le interesa alguna de ellas?`;
