@@ -305,16 +305,16 @@ export default function PublicBooking({ token: tokenProp }: PublicBookingProps =
 
         {/* ── Escotilla de salida — horario alternativo ───────────────── */}
         {ALT_SCHEDULE_PHONE && !showAltForm ? (
-          <div className="px-8 sm:px-10 pb-6 flex justify-center">
+          <div className="px-8 sm:px-10 pb-6">
             <button
               type="button"
               onClick={() => setShowAltForm(true)}
-              className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 uppercase tracking-widest font-bold hover:underline underline-offset-4 transition-colors"
+              className="w-full py-3 border border-primary/40 bg-primary/5 text-[11px] text-primary font-black uppercase tracking-widest hover:bg-primary/10 hover:border-primary/60 transition-all"
             >
               ¿Ninguno de estos horarios te funciona?
             </button>
           </div>
-        ) : (
+        ) : ALT_SCHEDULE_PHONE ? (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -326,8 +326,8 @@ export default function PublicBooking({ token: tokenProp }: PublicBookingProps =
                 Solicitar otro horario
               </p>
               <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-                Indícanos tu preferencia y Álvaro te contactará para coordinar.{" "}
-                <span className="text-muted-foreground/40">Sujeto a disponibilidad del director.</span>
+                Indícanos tu preferencia y te contactaremos para coordinar.{" "}
+                <span className="text-muted-foreground/40">Sujeto a disponibilidad.</span>
               </p>
             </div>
 
@@ -434,7 +434,7 @@ export default function PublicBooking({ token: tokenProp }: PublicBookingProps =
               Cancelar
             </button>
           </motion.div>
-        )}
+        ) : null}
 
         <div className="px-8 sm:px-10 py-5 bg-muted/30 border-t border-border/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
